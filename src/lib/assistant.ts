@@ -1,4 +1,4 @@
-import { MENU, type Dish, type TagKey, findDish } from "../data/menu";
+import type { Dish, TagKey } from "../data/menu";
 import { RESTAURANT, FAQ } from "../data/restaurant";
 
 export interface ChatMessage {
@@ -92,12 +92,12 @@ function isDeclineAdditional(text: string): boolean {
   return /(nothing else|that's all|thats all|no more|no thanks|that is all|all good|nope)/.test(t);
 }
 
-function findDishByName(text: string): Dish | undefined {
+function findDishByName(text: string, menu: Dish[]): Dish | undefined {
   const t = normalize(text);
-  return MENU.find((d) => t.includes(normalize(d.name)));
+  return menu.find((d) => t.includes(normalize(d.name)));
 }
 
-function recommendDishes(text: string): Dish[] {
+function recommendDishes(text: string, menu: Dish[]): Dish[] {
   const t = normalize(text);
   const matchedTags = new Set<TagKey>();
   for (const group of MOOD_KEYWORDS) {
@@ -106,7 +106,7 @@ function recommendDishes(text: string): Dish[] {
     }
   }
   if (matchedTags.size === 0) return [];
-  const scored = MENU.map((d) => ({
+  const scored = menu.map((d) => ({
     dish: d,
     score: d.tags.filter((tag) => matchedTags.has(tag)).length,
   }))
@@ -115,8 +115,8 @@ function recommendDishes(text: string): Dish[] {
   return scored.slice(0, 2).map((s) => s.dish);
 }
 
-function popularPick(): Dish {
-  return findDish("hamburger")!;
+function popularPick(menu: Dish[]): Dish {
+  return menu.find((d) => d.tags.includes("popular")) ?? menu[0];
 }
 
 const GREETING = `Hi there! I'm Menu AI, ${RESTAURANT.name}'s assistant 🍃\nTell me what you're craving or how you're feeling, and I'll recommend the perfect dish for you!`;
@@ -125,8 +125,9 @@ export function initialMessages(): ChatMessage[] {
   return [bot(GREETING, undefined, ["Something spicy & low-calorie", "I want something filling", "Surprise me"])];
 }
 
-export function respond(input: string, state: ConversationState): AssistantResult {
+export function respond(input: string, state: ConversationState, menu: Dish[]): AssistantResult {
   const t = normalize(input);
+  const findDish = (id: string) => menu.find((d) => d.id === id);
 
   // Stage: awaiting confirm quantity for a just-recommended dish
   if (state.stage === "awaitingConfirm" && state.pendingDishId) {
@@ -182,14 +183,14 @@ export function respond(input: string, state: ConversationState): AssistantResul
   }
 
   if (/(best seller|bestseller|most popular|famous dish)/.test(t) && !/(spicy|light|vegan)/.test(t)) {
-    const picks = MENU.filter((d) => d.tags.includes("popular"));
+    const picks = menu.filter((d) => d.tags.includes("popular"));
     return {
       messages: [bot("Here are our best-selling dishes:", picks)],
       state: { stage: "idle" },
     };
   }
 
-  const namedDish = findDishByName(t);
+  const namedDish = findDishByName(t, menu);
   if (namedDish && /(allerg|ingredient|what's in|whats in|contains)/.test(t)) {
     return {
       messages: [
@@ -205,7 +206,7 @@ export function respond(input: string, state: ConversationState): AssistantResul
   if (/(full menu|see the menu|what do you have|show menu)/.test(t)) {
     return {
       messages: [
-        bot("You can browse the full menu on the 'Menu' tab below. Meanwhile, here are a few highlights:", MENU.filter(d => d.tags.includes("popular"))),
+        bot("You can browse the full menu on the 'Menu' tab below. Meanwhile, here are a few highlights:", menu.filter(d => d.tags.includes("popular"))),
       ],
       state: { stage: "idle" },
     };
@@ -224,7 +225,7 @@ export function respond(input: string, state: ConversationState): AssistantResul
   }
 
   // Mood-based recommendation
-  const recs = recommendDishes(t);
+  const recs = recommendDishes(t, menu);
   if (recs.length > 0) {
     const top = recs[0];
     const reply =
@@ -238,7 +239,7 @@ export function respond(input: string, state: ConversationState): AssistantResul
   }
 
   if (/(can't decide|cant decide|surprise me|not sure what|pick for me)/.test(t)) {
-    const pick = popularPick();
+    const pick = popularPick(menu);
     return {
       messages: [bot(`If you can't decide, I recommend our most popular dish: ${pick.name}! 🍔`, [pick])],
       state: { stage: "awaitingConfirm", pendingDishId: pick.id },

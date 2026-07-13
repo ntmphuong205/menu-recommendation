@@ -46,7 +46,7 @@ export interface Dish {
   category: "Main" | "Starter" | "Beverage" | "Side";
 }
 
-export const MENU: Dish[] = [
+export const DEFAULT_MENU: Dish[] = [
   {
     id: "hamburger",
     name: "Handmade Hamburger",
@@ -176,7 +176,5 @@ export const MENU: Dish[] = [
     category: "Starter",
   },
 ];
-
-export const findDish = (id: string) => MENU.find((d) => d.id === id);
 
 export const BEST_SELLERS = ["hamburger", "fried-chicken", "spicy-chicken-salad"];

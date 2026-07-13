@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { X, Minus, Plus, Flame, TriangleAlert } from "lucide-react";
-import { findDish } from "../data/menu";
 import { TagPill } from "./TagPill";
 import { useApp } from "../context/AppContext";
 
 export function DishSheet() {
-  const { selectedDishId, setSelectedDishId, addToCart } = useApp();
+  const { selectedDishId, setSelectedDishId, addToCart, findDish } = useApp();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 

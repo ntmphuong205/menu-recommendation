@@ -6,7 +6,7 @@ import { RESTAURANT } from "../data/restaurant";
 import { useApp } from "../context/AppContext";
 
 export function ChatScreen() {
-  const { addToCart } = useApp();
+  const { addToCart, menu, tableNumber } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages());
   const [state, setState] = useState<ConversationState>({ stage: "idle" });
   const [input, setInput] = useState("");
@@ -26,7 +26,7 @@ export function ChatScreen() {
     setTyping(true);
 
     setTimeout(() => {
-      const result = respond(trimmed, state);
+      const result = respond(trimmed, state, menu);
       setMessages((prev) => [...prev, ...result.messages]);
       setState(result.state);
       if (result.cartOp) {
@@ -43,13 +43,16 @@ export function ChatScreen() {
         <div className="w-9 h-9 rounded-full bg-[#2D5A3D] flex items-center justify-center">
           <ChefHat size={18} className="text-white" />
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-[14px] font-bold text-[#22201B] leading-tight">{RESTAURANT.name} · Menu AI</p>
           <div className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF7D]" />
             <span className="text-[11px] text-[#8A8272]">Online</span>
           </div>
         </div>
+        <span className="text-[11px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-2.5 py-1 rounded-full shrink-0">
+          Table {tableNumber}
+        </span>
       </div>
 
       {/* Messages */}

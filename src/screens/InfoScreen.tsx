@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Clock, MapPin, Star, ChevronDown, MessageCircle } from "lucide-react";
 import { RESTAURANT, FAQ } from "../data/restaurant";
-import { MENU, BEST_SELLERS } from "../data/menu";
+import { BEST_SELLERS } from "../data/menu";
 import { DishCard } from "../components/DishCard";
 import { useApp } from "../context/AppContext";
 
 export function InfoScreen() {
-  const { setActiveTab } = useApp();
+  const { setActiveTab, menu } = useApp();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const bestSellers = MENU.filter((d) => BEST_SELLERS.includes(d.id));
+  const bestSellers = menu.filter((d) => BEST_SELLERS.includes(d.id));
 
   return (
     <div className="flex flex-col h-full">

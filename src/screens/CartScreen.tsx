@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import { findDish } from "../data/menu";
 
 export function CartScreen() {
-  const { cart, updateQty, removeItem, clearCart, totalPrice, setActiveTab } = useApp();
-  const [submitted, setSubmitted] = useState(false);
-  const [orderNo] = useState(() => Math.floor(1000 + Math.random() * 9000));
+  const { cart, updateQty, removeItem, clearCart, findDish, totalPrice, setActiveTab, placeOrder, tableNumber } =
+    useApp();
+  const [submittedTable, setSubmittedTable] = useState<number | null>(null);
 
-  if (submitted) {
+  if (submittedTable !== null) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center gap-3">
         <div className="w-16 h-16 rounded-full bg-[#E5F3EA] flex items-center justify-center">
@@ -16,11 +15,11 @@ export function CartScreen() {
         </div>
         <h2 className="text-[17px] font-bold text-[#22201B]">Order placed!</h2>
         <p className="text-[13px] text-[#8A8272] leading-relaxed">
-          Order #{orderNo} has been sent to the kitchen. Your food will be brought to your table shortly.
+          Your order for Table {submittedTable} has been sent to the kitchen. Your food will be brought to your table shortly.
         </p>
         <button
           onClick={() => {
-            setSubmitted(false);
+            setSubmittedTable(null);
             setActiveTab("chat");
           }}
           className="mt-2 px-5 py-2.5 rounded-full bg-[#2D5A3D] text-white text-[13px] font-semibold active:scale-95 transition-transform"
@@ -54,10 +53,10 @@ export function CartScreen() {
   return (
     <div className="flex flex-col h-full">
       <div className="shrink-0 px-4 pt-2 pb-3 border-b border-black/5 bg-[#FBF7EF] flex items-center justify-between">
-        <h1 className="text-[19px] font-bold text-[#22201B]">Cart</h1>
-        <button onClick={clearCart} className="text-[12px] text-[#B0553C] font-medium">
-          Clear all
-        </button>
+        <div>
+          <h1 className="text-[19px] font-bold text-[#22201B]">Cart</h1>
+          <p className="text-[11px] text-[#8A8272]">Table {tableNumber}</p>
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col gap-2.5">
@@ -110,7 +109,8 @@ export function CartScreen() {
         </div>
         <button
           onClick={() => {
-            setSubmitted(true);
+            placeOrder(tableNumber);
+            setSubmittedTable(tableNumber);
             clearCart();
           }}
           className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform"

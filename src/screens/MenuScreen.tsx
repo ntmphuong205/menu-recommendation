@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { MENU, TAGS, type TagKey } from "../data/menu";
+import { TAGS, type Dish, type TagKey } from "../data/menu";
 import { DishCard } from "../components/DishCard";
+import { useApp } from "../context/AppContext";
 
 const FILTERS: { key: TagKey | "all"; label: string }[] = [
   { key: "all", label: "All" },
@@ -13,19 +14,20 @@ const FILTERS: { key: TagKey | "all"; label: string }[] = [
 ];
 
 export function MenuScreen() {
+  const { menu } = useApp();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<TagKey | "all">("all");
 
   const filtered = useMemo(() => {
-    return MENU.filter((d) => {
+    return menu.filter((d) => {
       const matchesQuery = d.name.toLowerCase().includes(query.toLowerCase());
       const matchesFilter = filter === "all" || d.tags.includes(filter);
       return matchesQuery && matchesFilter;
     });
-  }, [query, filter]);
+  }, [menu, query, filter]);
 
   const grouped = useMemo(() => {
-    const map = new Map<string, typeof MENU>();
+    const map = new Map<string, Dish[]>();
     for (const d of filtered) {
       const list = map.get(d.category) ?? [];
       list.push(d);
