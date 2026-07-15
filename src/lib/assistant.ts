@@ -119,7 +119,7 @@ function popularPick(menu: Dish[]): Dish {
   return menu.find((d) => d.tags.includes("popular")) ?? menu[0];
 }
 
-const GREETING = `Hi there! I'm Menu AI, ${RESTAURANT.name}'s assistant 🍃\nTell me what you're craving or how you're feeling, and I'll recommend the perfect dish for you!`;
+const GREETING = `Hi there! I'm Menu AI, ${RESTAURANT.name}'s assistant 🍃\nWe serve Korean and Vietnamese favorites — tell me what you're craving or how you're feeling, and I'll recommend the perfect dish for you!`;
 
 export function initialMessages(): ChatMessage[] {
   return [bot(GREETING, undefined, ["Something spicy & low-calorie", "I want something filling", "Surprise me"])];
@@ -132,23 +132,28 @@ export function respond(input: string, state: ConversationState, menu: Dish[]): 
   // Stage: awaiting confirm quantity for a just-recommended dish
   if (state.stage === "awaitingConfirm" && state.pendingDishId) {
     const dish = findDish(state.pendingDishId)!;
-    if (/(no|cancel|never mind|nevermind|no thanks)/.test(t) && !parseQuantity(t)) {
+    const decline = /(no|cancel|never mind|nevermind|no thanks)/.test(t);
+    const qty = parseQuantity(t);
+    if (decline && qty === null) {
       return {
         messages: [bot("No worries! Just let me know whenever you'd like another recommendation 😊")],
         state: { stage: "idle" },
       };
     }
-    const qty = parseQuantity(t) ?? 1;
-    return {
-      messages: [
-        bot(
-          `Just to confirm: ${qty} ${dish.name}? Any other requests (e.g. remove onions, add extra sauce)?`,
-          undefined,
-          ["Nothing else", "Remove onions"]
-        ),
-      ],
-      state: { stage: "awaitingCustomization", pendingDishId: dish.id, pendingQty: qty },
-    };
+    if (qty !== null) {
+      return {
+        messages: [
+          bot(
+            `Just to confirm: ${qty} ${dish.name}? Any other requests (e.g. remove onions, add extra sauce)?`,
+            undefined,
+            ["Nothing else", "Remove onions"]
+          ),
+        ],
+        state: { stage: "awaitingCustomization", pendingDishId: dish.id, pendingQty: qty },
+      };
+    }
+    // Doesn't look like a confirmation/decline (e.g. the customer pivoted to a new
+    // request) — fall through to treat this input as a fresh message instead.
   }
 
   // Stage: awaiting customization note before finalizing

@@ -3,7 +3,7 @@ export const RESTAURANT = {
   tagline: "AI Menu Assistant",
   rating: 4.8,
   reviewCount: 326,
-  cuisine: "European-Asian fusion, healthy",
+  cuisine: "Korean & Vietnamese",
   hours: [
     { day: "Mon - Fri", time: "10:30 AM - 10:00 PM" },
     { day: "Sat - Sun", time: "9:00 AM - 11:00 PM" },
@@ -20,12 +20,12 @@ export const FAQ: FAQItem[] = [
   {
     question: "Do you have vegan options?",
     answer:
-      "Yes! Quinoa Buddha Bowl and Carrot Ginger Soup are our two favorite vegan dishes, both under 350 calories.",
+      "Yes! Japchae (stir-fried glass noodles) is our vegetarian favorite, and Yuja Cha (Korean citron tea) is a great vegan drink pick.",
   },
   {
     question: "What's your best-selling dish?",
     answer:
-      "Handmade Hamburger and Crispy Fried Chicken are our two best-sellers. If you want something lighter, the Spicy Grilled Chicken Salad is also very popular.",
+      "Cơm Tấm Sườn and Bulgogi are our two best-sellers. If you want something quick, Bánh Mì Thịt Nướng is also a fan favorite.",
   },
   {
     question: "Can I customize my order?",
