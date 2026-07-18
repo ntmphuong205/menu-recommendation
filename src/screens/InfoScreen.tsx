@@ -4,9 +4,11 @@ import { RESTAURANT, FAQ } from "../data/restaurant";
 import { BEST_SELLERS } from "../data/menu";
 import { DishCard } from "../components/DishCard";
 import { useApp } from "../context/AppContext";
+import { useI18n } from "../i18n/I18nContext";
 
 export function InfoScreen() {
   const { setActiveTab, menu } = useApp();
+  const { t } = useI18n();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const bestSellers = menu.filter((d) => BEST_SELLERS.includes(d.id));
 
@@ -48,7 +50,7 @@ export function InfoScreen() {
           </div>
 
           <div>
-            <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-2">Best Sellers</h2>
+            <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-2">{t("info_best_sellers")}</h2>
             <div className="flex gap-2.5 overflow-x-auto pb-1">
               {bestSellers.map((d) => (
                 <DishCard key={d.id} dish={d} variant="chat" />
@@ -57,7 +59,7 @@ export function InfoScreen() {
           </div>
 
           <div>
-            <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-2">Frequently Asked Questions</h2>
+            <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-2">{t("info_faq")}</h2>
             <div className="flex flex-col gap-2">
               {FAQ.map((item, i) => (
                 <div key={item.question} className="bg-white rounded-xl border border-black/5 shadow-sm overflow-hidden">
@@ -84,7 +86,7 @@ export function InfoScreen() {
             className="flex items-center justify-center gap-2 w-full bg-[#2D5A3D] text-white font-semibold text-[13px] py-3 rounded-full active:scale-[0.98] transition-transform mt-1"
           >
             <MessageCircle size={15} />
-            Ask more via Chat
+            {t("info_ask_chat")}
           </button>
         </div>
       </div>

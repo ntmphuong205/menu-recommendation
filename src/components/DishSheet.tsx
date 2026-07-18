@@ -2,9 +2,12 @@ import { useState } from "react";
 import { X, Minus, Plus, Flame, TriangleAlert } from "lucide-react";
 import { TagPill } from "./TagPill";
 import { useApp } from "../context/AppContext";
+import { useI18n } from "../i18n/I18nContext";
+import { getDishDescription } from "../data/menu";
 
 export function DishSheet() {
   const { selectedDishId, setSelectedDishId, addToCart, findDish } = useApp();
+  const { t, lang } = useI18n();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
@@ -48,7 +51,7 @@ export function DishSheet() {
             ))}
           </div>
 
-          <p className="text-[13.5px] text-[#5C5240] leading-relaxed mt-3">{dish.description}</p>
+          <p className="text-[13.5px] text-[#5C5240] leading-relaxed mt-3">{getDishDescription(dish, lang)}</p>
 
           {dish.calories && (
             <div className="flex items-center gap-1.5 mt-3 text-[12.5px] text-[#8A6B3F] bg-[#F3E9D2] px-3 py-2 rounded-xl">
@@ -60,7 +63,7 @@ export function DishSheet() {
           )}
 
           <div className="mt-4">
-            <p className="text-[12.5px] font-semibold text-[#22201B] mb-1.5">Ingredients</p>
+            <p className="text-[12.5px] font-semibold text-[#22201B] mb-1.5">{t("dish_ingredients")}</p>
             <p className="text-[13px] text-[#5C5240]">{dish.ingredients.join(", ")}</p>
           </div>
 
@@ -94,7 +97,7 @@ export function DishSheet() {
               className="flex-1 bg-[#2D5A3D] text-white font-semibold text-[14px] py-3 rounded-full active:scale-[0.98] transition-transform disabled:opacity-70"
               disabled={added}
             >
-              {added ? "Added to cart ✓" : `Add to cart · $${(dish.price * qty).toFixed(2)}`}
+              {added ? t("dish_added") : `${t("dish_add_to_cart")} · $${(dish.price * qty).toFixed(2)}`}
             </button>
           </div>
         </div>

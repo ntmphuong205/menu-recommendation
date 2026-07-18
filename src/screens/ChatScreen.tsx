@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { ChefHat, Send } from "lucide-react";
 import { ChatBubble } from "../components/ChatBubble";
-import { initialMessages, respond, type ChatMessage, type ConversationState } from "../lib/assistant";
+import { initialMessages, respond, botMessage, type ChatMessage, type ConversationState } from "../lib/assistant";
+import { getAiRecommendation } from "../lib/aiClient";
 import { RESTAURANT } from "../data/restaurant";
 import { useApp } from "../context/AppContext";
+import { useI18n } from "../i18n/I18nContext";
+import { LangSwitcher } from "../components/LangSwitcher";
 
 export function ChatScreen() {
   const { addToCart, menu, tableNumber } = useApp();
-  const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages());
+  const { t, lang } = useI18n();
+  const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages(lang));
   const [state, setState] = useState<ConversationState>({ stage: "idle" });
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -25,8 +29,24 @@ export function ChatScreen() {
     setInput("");
     setTyping(true);
 
-    setTimeout(() => {
-      const result = respond(trimmed, state, menu);
+    setTimeout(async () => {
+      const result = respond(trimmed, state, menu, lang);
+
+      // The rule engine only reaches its low-confidence fallback when it can't
+      // match anything for free — that's the one case worth a paid AI call.
+      // getAiRecommendation() resolves to null instantly if no Supabase project
+      // (or no API key) is configured, so this is a no-op until you set one up.
+      if (result.isFallback) {
+        const ai = await getAiRecommendation(trimmed, lang, menu);
+        const aiDishes = ai?.dishIds.map((id) => menu.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => !!d);
+        if (ai && ai.reply && aiDishes && aiDishes.length > 0) {
+          setMessages((prev) => [...prev, botMessage(ai.reply, aiDishes)]);
+          setState({ stage: "awaitingConfirm", pendingDishId: aiDishes[0].id });
+          setTyping(false);
+          return;
+        }
+      }
+
       setMessages((prev) => [...prev, ...result.messages]);
       setState(result.state);
       if (result.cartOp) {
@@ -47,12 +67,13 @@ export function ChatScreen() {
           <p className="text-[14px] font-bold text-[#22201B] leading-tight">{RESTAURANT.name} · Menu AI</p>
           <div className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF7D]" />
-            <span className="text-[11px] text-[#8A8272]">Online</span>
+            <span className="text-[11px] text-[#8A8272]">{t("chat_online")}</span>
           </div>
         </div>
         <span className="text-[11px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-2.5 py-1 rounded-full shrink-0">
-          Table {tableNumber}
+          {t("chat_table")} {tableNumber}
         </span>
+        <LangSwitcher />
       </div>
 
       {/* Messages */}
@@ -82,7 +103,7 @@ export function ChatScreen() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send(input)}
-            placeholder="e.g. I want something spicy and low-calorie..."
+            placeholder={t("chat_placeholder")}
             className="flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-[#B0A794] text-[#22201B]"
           />
           <button

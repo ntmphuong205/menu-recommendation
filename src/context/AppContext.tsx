@@ -1,6 +1,8 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { usePersistentState } from "../store/usePersistentState";
-import { DEFAULT_MENU, type Dish } from "../data/menu";
+import { useMenuData } from "../store/useMenuData";
+import { useOrdersData } from "../store/useOrdersData";
+import { useRestaurantId } from "../store/useRestaurantId";
+import type { Dish } from "../data/menu";
 import type { Order, OrderStatus } from "../data/orders";
 
 export interface CartItem {
@@ -29,7 +31,7 @@ interface AppContextValue {
 
   // orders (shared, created by customer app, managed by owner dashboard)
   orders: Order[];
-  placeOrder: (tableNumber: number) => Order;
+  placeOrder: (tableNumber: number) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
 
   // customer app navigation
@@ -53,19 +55,15 @@ function getTableFromUrl(): number {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [menu, setMenu] = usePersistentState<Dish[]>("fb_menu", DEFAULT_MENU);
-  const [orders, setOrders] = usePersistentState<Order[]>("fb_orders", []);
+  const restaurantId = useRestaurantId();
+  const { menu, addDish, updateDish, deleteDish } = useMenuData(restaurantId);
+  const { orders, placeOrder: placeOrderRaw, updateOrderStatus } = useOrdersData(restaurantId);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>("chat");
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const [tableNumber] = useState<number>(getTableFromUrl);
 
   const findDish = (id: string) => menu.find((d) => d.id === id);
-
-  const addDish = (dish: Dish) => setMenu((prev) => [...prev, dish]);
-  const updateDish = (id: string, patch: Partial<Dish>) =>
-    setMenu((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
-  const deleteDish = (id: string) => setMenu((prev) => prev.filter((d) => d.id !== id));
 
   const addToCart = (dishId: string, qty = 1, note?: string) => {
     setCart((prev) => [...prev, { id: `c${Date.now()}_${itemCounter++}`, dishId, qty, note }]);
@@ -86,23 +84,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [cart, menu]
   );
 
-  const placeOrder = (tableNum: number): Order => {
-    const order: Order = {
-      id: `o${Date.now()}_${itemCounter++}`,
-      tableNumber: tableNum,
-      items: cart.map((i) => {
-        const dish = findDish(i.dishId);
-        return { dishId: i.dishId, dishName: dish?.name ?? "Unknown dish", qty: i.qty, price: dish?.price ?? 0, note: i.note };
-      }),
-      status: "new",
-      createdAt: Date.now(),
-    };
-    setOrders((prev) => [order, ...prev]);
-    return order;
+  const placeOrder = (tableNum: number) => {
+    const items = cart.map((i) => {
+      const dish = findDish(i.dishId);
+      return { dishId: i.dishId, dishName: dish?.name ?? "Unknown dish", qty: i.qty, price: dish?.price ?? 0, note: i.note };
+    });
+    placeOrderRaw(tableNum, items);
   };
-
-  const updateOrderStatus = (orderId: string, status: OrderStatus) =>
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
 
   return (
     <AppContext.Provider

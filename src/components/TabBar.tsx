@@ -1,20 +1,24 @@
 import { MessageCircle, UtensilsCrossed, ShoppingBag, Store } from "lucide-react";
 import { useApp, type TabKey } from "../context/AppContext";
+import { useI18n } from "../i18n/I18nContext";
+import type { TranslationKey } from "../i18n/translations";
 
-const TABS: { key: TabKey; label: string; icon: typeof MessageCircle }[] = [
-  { key: "chat", label: "Chat", icon: MessageCircle },
-  { key: "menu", label: "Menu", icon: UtensilsCrossed },
-  { key: "cart", label: "Cart", icon: ShoppingBag },
-  { key: "info", label: "Info", icon: Store },
+const TABS: { key: TabKey; labelKey: TranslationKey; icon: typeof MessageCircle }[] = [
+  { key: "chat", labelKey: "tab_chat", icon: MessageCircle },
+  { key: "menu", labelKey: "tab_menu", icon: UtensilsCrossed },
+  { key: "cart", labelKey: "tab_cart", icon: ShoppingBag },
+  { key: "info", labelKey: "tab_info", icon: Store },
 ];
 
 export function TabBar() {
   const { activeTab, setActiveTab, totalItems } = useApp();
+  const { t } = useI18n();
 
   return (
     <div className="shrink-0 border-t border-black/5 bg-white/90 backdrop-blur-xl px-2 pt-2 pb-7">
       <div className="flex items-center justify-around">
-        {TABS.map(({ key, label, icon: Icon }) => {
+        {TABS.map(({ key, labelKey, icon: Icon }) => {
+          const label = t(labelKey);
           const active = activeTab === key;
           return (
             <button

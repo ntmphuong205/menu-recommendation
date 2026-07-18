@@ -2,9 +2,11 @@ import { Plus } from "lucide-react";
 import type { Dish } from "../data/menu";
 import { TagPill } from "./TagPill";
 import { useApp } from "../context/AppContext";
+import { useI18n } from "../i18n/I18nContext";
 
 export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "chat" | "grid" }) {
   const { addToCart, setSelectedDishId } = useApp();
+  const { t } = useI18n();
 
   if (variant === "grid") {
     return (
@@ -47,7 +49,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
             className="flex items-center gap-1 bg-[#2D5A3D] text-white text-[12px] font-semibold px-2.5 py-1.5 rounded-full active:scale-95 transition-transform"
           >
             <Plus size={13} strokeWidth={3} />
-            Order
+            {t("dish_order")}
           </button>
         </div>
       </div>

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
+import { useI18n } from "../i18n/I18nContext";
 
 export function CartScreen() {
   const { cart, updateQty, removeItem, clearCart, findDish, totalPrice, setActiveTab, placeOrder, tableNumber } =
     useApp();
+  const { t } = useI18n();
   const [submittedTable, setSubmittedTable] = useState<number | null>(null);
 
   if (submittedTable !== null) {
@@ -13,9 +15,9 @@ export function CartScreen() {
         <div className="w-16 h-16 rounded-full bg-[#E5F3EA] flex items-center justify-center">
           <CheckCircle2 size={34} className="text-[#2D5A3D]" />
         </div>
-        <h2 className="text-[17px] font-bold text-[#22201B]">Order placed!</h2>
+        <h2 className="text-[17px] font-bold text-[#22201B]">{t("cart_placed_title")}</h2>
         <p className="text-[13px] text-[#8A8272] leading-relaxed">
-          Your order for Table {submittedTable} has been sent to the kitchen. Your food will be brought to your table shortly.
+          {t("cart_placed_desc", { table: submittedTable })}
         </p>
         <button
           onClick={() => {
@@ -24,7 +26,7 @@ export function CartScreen() {
           }}
           className="mt-2 px-5 py-2.5 rounded-full bg-[#2D5A3D] text-white text-[13px] font-semibold active:scale-95 transition-transform"
         >
-          Back to Chat
+          {t("cart_back_to_chat")}
         </button>
       </div>
     );
@@ -36,15 +38,13 @@ export function CartScreen() {
         <div className="w-16 h-16 rounded-full bg-[#EFE9D8] flex items-center justify-center">
           <ShoppingBag size={28} className="text-[#B0A794]" />
         </div>
-        <h2 className="text-[15px] font-bold text-[#22201B]">Your cart is empty</h2>
-        <p className="text-[13px] text-[#8A8272] leading-relaxed">
-          Chat with Menu AI or browse the Menu tab to pick something delicious!
-        </p>
+        <h2 className="text-[15px] font-bold text-[#22201B]">{t("cart_empty_title")}</h2>
+        <p className="text-[13px] text-[#8A8272] leading-relaxed">{t("cart_empty_desc")}</p>
         <button
           onClick={() => setActiveTab("chat")}
           className="mt-2 px-5 py-2.5 rounded-full bg-[#2D5A3D] text-white text-[13px] font-semibold active:scale-95 transition-transform"
         >
-          Ask Menu AI
+          {t("cart_ask_ai")}
         </button>
       </div>
     );
@@ -54,8 +54,10 @@ export function CartScreen() {
     <div className="flex flex-col h-full">
       <div className="shrink-0 px-4 pt-2 pb-3 border-b border-black/5 bg-[#FBF7EF] flex items-center justify-between">
         <div>
-          <h1 className="text-[19px] font-bold text-[#22201B]">Cart</h1>
-          <p className="text-[11px] text-[#8A8272]">Table {tableNumber}</p>
+          <h1 className="text-[19px] font-bold text-[#22201B]">{t("cart_title")}</h1>
+          <p className="text-[11px] text-[#8A8272]">
+            {t("chat_table")} {tableNumber}
+          </p>
         </div>
       </div>
 
@@ -104,7 +106,7 @@ export function CartScreen() {
 
       <div className="shrink-0 px-4 pt-3 pb-4 border-t border-black/5 bg-[#FBF7EF]">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-[13px] text-[#8A8272]">Total</span>
+          <span className="text-[13px] text-[#8A8272]">{t("cart_total")}</span>
           <span className="text-[18px] font-bold text-[#22201B]">${totalPrice.toFixed(2)}</span>
         </div>
         <button
@@ -115,7 +117,7 @@ export function CartScreen() {
           }}
           className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform"
         >
-          Confirm order
+          {t("cart_confirm_order")}
         </button>
       </div>
     </div>
