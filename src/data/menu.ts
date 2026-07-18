@@ -45,6 +45,7 @@ export interface Dish {
   ingredients: string[];
   allergyNote: string;
   category: "Main" | "Starter" | "Beverage" | "Side";
+  soldOut?: boolean;
 }
 
 export const DEFAULT_MENU: Dish[] = [

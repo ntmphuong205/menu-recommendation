@@ -40,6 +40,7 @@ create table if not exists menu_items (
   ingredients text[] not null default '{}',
   allergy_note text not null default '',
   category text not null default 'Main',
+  sold_out boolean not null default false,
   created_at timestamptz not null default now()
 );
 

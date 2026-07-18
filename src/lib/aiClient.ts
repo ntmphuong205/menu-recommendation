@@ -19,7 +19,13 @@ export async function getAiRecommendation(input: string, lang: Lang, menu: Dish[
 
   try {
     const { data, error } = await supabase.functions.invoke("recommend", {
-      body: { input, lang, menu: menu.map((d) => ({ id: d.id, name: d.name, description: d.description, tags: d.tags })) },
+      body: {
+        input,
+        lang,
+        menu: menu
+          .filter((d) => !d.soldOut)
+          .map((d) => ({ id: d.id, name: d.name, description: d.description, tags: d.tags })),
+      },
     });
     if (error || !data?.available) return null;
     return { reply: data.reply ?? "", dishIds: data.dishIds ?? [] };

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { X, Upload } from "lucide-react";
 import { TAGS, type Dish, type TagKey } from "../data/menu";
 
 const CATEGORIES: Dish["category"][] = ["Main", "Starter", "Beverage", "Side"];
@@ -32,6 +32,13 @@ export function DishFormModal({
   const [ingredients, setIngredients] = useState(initial?.ingredients?.join(", ") ?? "");
   const [allergyNote, setAllergyNote] = useState(initial?.allergyNote ?? "");
   const [tags, setTags] = useState<Set<TagKey>>(new Set(initial?.tags ?? []));
+
+  const handlePhotoUpload = (file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setImage(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   const toggleTag = (tag: TagKey) => {
     setTags((prev) => {
@@ -97,7 +104,27 @@ export function DishFormModal({
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={`${inputCls} h-16 resize-none`} placeholder="Short, appetizing description" />
           </Field>
 
-          <Field label="Image URL">
+          <Field label="Menu photo">
+            <div className="flex items-center gap-3">
+              {image && (
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#EFE9D8] shrink-0 border border-black/10">
+                  <img src={image} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <label className={`${inputCls} flex items-center gap-2 cursor-pointer text-[#5C5240]`}>
+                <Upload size={14} />
+                Choose file
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handlePhotoUpload(e.target.files?.[0])}
+                />
+              </label>
+            </div>
+          </Field>
+
+          <Field label="Or image URL">
             <input value={image} onChange={(e) => setImage(e.target.value)} className={inputCls} placeholder="https://..." />
           </Field>
 

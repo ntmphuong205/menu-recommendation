@@ -16,6 +16,7 @@ interface MenuRow {
   ingredients: string[];
   allergy_note: string;
   category: Dish["category"];
+  sold_out: boolean;
 }
 
 function fromRow(row: MenuRow): Dish {
@@ -32,6 +33,7 @@ function fromRow(row: MenuRow): Dish {
     ingredients: row.ingredients,
     allergyNote: row.allergy_note,
     category: row.category,
+    soldOut: row.sold_out,
   };
 }
 
@@ -50,6 +52,7 @@ function toRow(restaurantId: string, dish: Dish) {
     ingredients: dish.ingredients,
     allergy_note: dish.allergyNote,
     category: dish.category,
+    sold_out: dish.soldOut ?? false,
   };
 }
 

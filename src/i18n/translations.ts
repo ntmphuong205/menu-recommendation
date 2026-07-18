@@ -15,6 +15,19 @@ const dict = {
   tab_cart: { vi: "Giỏ hàng", en: "Cart", ko: "장바구니" },
   tab_info: { vi: "Thông tin", en: "Info", ko: "정보" },
 
+  // Welcome screen (shown once when the customer app first loads)
+  welcome_greeting: {
+    vi: "Chào mừng quý khách đến với {restaurant}! 👋",
+    en: "Welcome to {restaurant}! 👋",
+    ko: "{restaurant}에 오신 것을 환영합니다! 👋",
+  },
+  welcome_sub: {
+    vi: "Hãy để mình giúp bạn chọn món ngon nhất hôm nay nhé.",
+    en: "Let me help you pick something delicious today.",
+    ko: "오늘 가장 맛있는 메뉴를 골라드릴게요.",
+  },
+  welcome_cta: { vi: "Bắt đầu gọi món", en: "Start ordering", ko: "주문 시작하기" },
+
   // Chat screen
   chat_online: { vi: "Đang hoạt động", en: "Online", ko: "온라인" },
   chat_table: { vi: "Bàn", en: "Table", ko: "테이블" },
@@ -56,6 +69,8 @@ const dict = {
   menu_category_side: { vi: "Món phụ", en: "Side", ko: "사이드" },
 
   dish_order: { vi: "Đặt món", en: "Order", ko: "주문" },
+  dish_ordered: { vi: "Đã đặt ✓", en: "Ordered ✓", ko: "주문완료 ✓" },
+  dish_sold_out: { vi: "Hết hàng", en: "Sold out", ko: "품절" },
 
   // Dish sheet
   dish_ingredients: { vi: "Nguyên liệu", en: "Ingredients", ko: "재료" },
@@ -95,6 +110,18 @@ const dict = {
   owner_nav_tables: { vi: "Mã QR bàn", en: "Table QR Codes", ko: "테이블 QR 코드" },
   owner_view_customer: { vi: "Xem app khách hàng", en: "View customer app", ko: "고객 앱 보기" },
   owner_logout: { vi: "Đăng xuất", en: "Log out", ko: "로그아웃" },
+
+  // Menu management table
+  menu_table_img: { vi: "Ảnh", en: "Img", ko: "이미지" },
+  menu_table_name: { vi: "Món", en: "Menu", ko: "메뉴" },
+  menu_table_price: { vi: "Giá", en: "Price", ko: "가격" },
+  menu_table_desc: { vi: "Mô tả", en: "Desc", ko: "설명" },
+  menu_table_tags: { vi: "Tag", en: "Tags", ko: "태그" },
+  menu_table_status: { vi: "Trạng thái", en: "Status", ko: "상태" },
+  menu_delete_selected: { vi: "Xoá mục đã chọn", en: "Delete Selected", ko: "선택 삭제" },
+  menu_set_sold_out: { vi: "Đánh dấu hết hàng", en: "Set Sold Out", ko: "품절 처리" },
+  menu_mark_available: { vi: "Còn hàng trở lại", en: "Mark Available", ko: "판매 재개" },
+  menu_edit: { vi: "Sửa", en: "Edit", ko: "수정" },
 
   // Menu AI bot replies (templates; {placeholders} filled in by assistant.ts)
   bot_greeting: {
@@ -161,6 +188,11 @@ const dict = {
     vi: "Nếu chưa biết chọn gì, mình gợi ý món phổ biến nhất: {dish}! 🍔",
     en: "If you can't decide, I recommend our most popular dish: {dish}! 🍔",
     ko: "고르기 어려우시다면 저희 인기 메뉴 {dish}를 추천드려요! 🍔",
+  },
+  bot_sold_out: {
+    vi: "Xin lỗi, {dish} hiện đã hết hàng. Bạn muốn mình gợi ý món khác không?",
+    en: "Sorry, {dish} is sold out right now. Want me to suggest something else?",
+    ko: "죄송해요, {dish}는 현재 품절이에요. 다른 메뉴를 추천해드릴까요?",
   },
   bot_fallback: {
     vi: "Hãy cho mình biết bạn đang thèm gì hoặc cảm thấy thế nào, hoặc hỏi mình về giờ mở cửa, món bán chạy, hay dị ứng thực phẩm nhé!",

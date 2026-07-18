@@ -45,6 +45,12 @@ export function DishSheet() {
             <span className="text-[18px] font-bold text-[#2D5A3D] shrink-0">${dish.price.toFixed(2)}</span>
           </div>
 
+          {dish.soldOut && (
+            <span className="inline-block mt-2 text-[11px] font-bold uppercase tracking-wide text-white bg-[#B0553C] px-2.5 py-1 rounded-full">
+              {t("dish_sold_out")}
+            </span>
+          )}
+
           <div className="flex flex-wrap gap-1.5 mt-2.5">
             {dish.tags.map((t) => (
               <TagPill key={t} tag={t} />
@@ -94,10 +100,10 @@ export function DishSheet() {
                 setAdded(true);
                 setTimeout(close, 700);
               }}
-              className="flex-1 bg-[#2D5A3D] text-white font-semibold text-[14px] py-3 rounded-full active:scale-[0.98] transition-transform disabled:opacity-70"
-              disabled={added}
+              className="flex-1 bg-[#2D5A3D] text-white font-semibold text-[14px] py-3 rounded-full active:scale-[0.98] transition-transform disabled:opacity-50"
+              disabled={added || dish.soldOut}
             >
-              {added ? t("dish_added") : `${t("dish_add_to_cart")} · $${(dish.price * qty).toFixed(2)}`}
+              {dish.soldOut ? t("dish_sold_out") : added ? t("dish_added") : `${t("dish_add_to_cart")} · $${(dish.price * qty).toFixed(2)}`}
             </button>
           </div>
         </div>

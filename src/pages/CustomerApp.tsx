@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { PhoneFrame } from "../components/PhoneFrame";
 import { TabBar } from "../components/TabBar";
 import { DishSheet } from "../components/DishSheet";
+import { WelcomeScreen } from "../components/WelcomeScreen";
 import { ChatScreen } from "../screens/ChatScreen";
 import { MenuScreen } from "../screens/MenuScreen";
 import { CartScreen } from "../screens/CartScreen";
@@ -21,10 +23,15 @@ function Screens() {
 }
 
 export function CustomerApp() {
+  const [showWelcome, setShowWelcome] = useState(true);
+
   return (
     <PhoneFrame>
-      <Screens />
-      <TabBar />
+      <div className="relative flex-1 min-h-0 flex flex-col">
+        <Screens />
+        <TabBar />
+        {showWelcome && <WelcomeScreen onStart={() => setShowWelcome(false)} />}
+      </div>
     </PhoneFrame>
   );
 }

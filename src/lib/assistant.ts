@@ -100,7 +100,8 @@ const NUMBER_WORDS: Record<string, number> = {
   five: 5, "5": 5, năm: 5, "다섯": 5, "다섯개": 5, "다섯 개": 5,
 };
 
-const AFFIRMATIVE_RE = /\b(yes|yeah|yep|correct|sure|confirm|ok|okay)\b|(có|đồng ý|ừ|ok|được)|(네|예|좋아요|넵|응)/;
+const AFFIRMATIVE_RE =
+  /\b(yes|yeah|yep|correct|sure|confirm|ok|okay|order this)\b|(có|đồng ý|ừ|ok|được|đặt món này)|(네|예|좋아요|넵|응|이걸로 주문할게요)/;
 const DECLINE_RE = /(no|cancel|never mind|nevermind|no thanks)|(không|huỷ|hủy|thôi)|(아니요|취소)/;
 const DECLINE_ADDITIONAL_RE =
   /(nothing else|that's all|thats all|no more|no thanks|that is all|all good|nope)|(không còn gì|vậy thôi|hết rồi|thôi được rồi)|(없어요|그게 다예요|괜찮아요)/;
@@ -111,7 +112,7 @@ const EXCLUDE_MOOD_RE = /(spicy|light|vegan)|(cay|nhẹ|chay)|(매운|가벼운|
 const ALLERGY_RE = /(allerg|ingredient|what's in|whats in|contains)|(dị ứng|thành phần|nguyên liệu)|(알레르기|재료)/;
 const FULL_MENU_RE = /(full menu|see the menu|what do you have|show menu)|(xem thực đơn|có món gì|toàn bộ thực đơn)|(전체메뉴|전체 메뉴|메뉴 보여줘)/;
 const CANT_DECIDE_RE =
-  /(can't decide|cant decide|surprise me|not sure what|pick for me)|(không biết chọn|bất ngờ cho tôi|chọn giúp)|(고르기 어려|아무거나 추천|추천해줘)/;
+  /(can't decide|cant decide|surprise me|not sure what|pick for me|suggest something else)|(không biết chọn|bất ngờ cho tôi|chọn giúp|gợi ý món khác)|(고르기 어려|아무거나 추천|추천해줘|다른 메뉴 추천해줘)/;
 
 function normalize(s: string) {
   return s.toLowerCase().trim();
@@ -185,7 +186,11 @@ export function initialMessages(lang: Lang = "en"): ChatMessage[] {
 
 export function respond(input: string, state: ConversationState, menu: Dish[], lang: Lang = "en"): AssistantResult {
   const t = normalize(input);
+  // Named-dish lookups search the full menu (so the bot can recognize a
+  // sold-out dish and apologize) but new recommendations only ever draw
+  // from what's actually available.
   const findDish = (id: string) => menu.find((d) => d.id === id);
+  const availableMenu = menu.filter((d) => !d.soldOut);
   const tr = (key: Parameters<typeof translate>[0], vars?: Record<string, string | number>) => translate(key, lang, vars);
 
   // Stage: awaiting confirm quantity for a just-recommended dish
@@ -245,7 +250,7 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
   }
 
   if (BESTSELLER_RE.test(t) && !EXCLUDE_MOOD_RE.test(t)) {
-    const picks = menu.filter((d) => d.tags.includes("popular"));
+    const picks = availableMenu.filter((d) => d.tags.includes("popular"));
     return {
       messages: [bot(tr("bot_bestsellers"), picks)],
       state: { stage: "idle" },
@@ -271,13 +276,20 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
 
   if (FULL_MENU_RE.test(t)) {
     return {
-      messages: [bot(tr("bot_full_menu"), menu.filter((d) => d.tags.includes("popular")))],
+      messages: [bot(tr("bot_full_menu"), availableMenu.filter((d) => d.tags.includes("popular")))],
       state: { stage: "idle" },
     };
   }
 
   if (GREETING_RE.test(t) && t.length < 20) {
     return { messages: [bot(greeting(lang), undefined, greetingQuickReplies(lang))], state: { stage: "idle" } };
+  }
+
+  if (namedDish && namedDish.soldOut) {
+    return {
+      messages: [bot(tr("bot_sold_out", { dish: namedDish.name }), undefined, [tr("qr_suggest_else")])],
+      state: { stage: "idle" },
+    };
   }
 
   // Direct dish name mention -> treat as recommendation/confirmation start
@@ -289,7 +301,7 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
   }
 
   // Mood-based recommendation
-  const recs = recommendDishes(t, menu);
+  const recs = recommendDishes(t, availableMenu);
   if (recs.length > 0) {
     const top = recs[0];
     const reply =
@@ -303,7 +315,7 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
   }
 
   if (CANT_DECIDE_RE.test(t)) {
-    const pick = popularPick(menu);
+    const pick = popularPick(availableMenu);
     return {
       messages: [bot(tr("bot_surprise", { dish: pick.name }), [pick])],
       state: { stage: "awaitingConfirm", pendingDishId: pick.id },

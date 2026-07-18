@@ -9,7 +9,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 
 export function ChatScreen() {
-  const { addToCart, menu, tableNumber } = useApp();
+  const { placeDirectOrder, menu, tableNumber } = useApp();
   const { t, lang } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages(lang));
   const [state, setState] = useState<ConversationState>({ stage: "idle" });
@@ -50,7 +50,10 @@ export function ChatScreen() {
       setMessages((prev) => [...prev, ...result.messages]);
       setState(result.state);
       if (result.cartOp) {
-        addToCart(result.cartOp.dishId, result.cartOp.qty, result.cartOp.note);
+        // The bot's reply already says "sent to the kitchen" at this point, so
+        // this must actually create a real order the owner dashboard sees —
+        // not just stash the item in the customer's local cart.
+        placeDirectOrder(result.cartOp.dishId, result.cartOp.qty, result.cartOp.note);
       }
       setTyping(false);
     }, 500 + Math.random() * 350);
