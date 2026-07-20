@@ -157,7 +157,7 @@ export function DishFormModal({
                     tags.has(tag) ? "bg-[#2D5A3D] text-white" : "bg-[#EFE9D8] text-[#5C5240]"
                   }`}
                 >
-                  {TAGS[tag].emoji} {TAGS[tag].label}
+                  {TAGS[tag].label}
                 </button>
               ))}
             </div>

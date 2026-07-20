@@ -14,22 +14,21 @@ export type TagKey =
 
 export interface TagMeta {
   label: string;
-  emoji: string;
 }
 
 export const TAGS: Record<TagKey, TagMeta> = {
-  spicy: { label: "Spicy", emoji: "🌶️" },
-  lowCalorie: { label: "Low-Calorie", emoji: "🥗" },
-  hearty: { label: "Hearty", emoji: "🍔" },
-  crispy: { label: "Crispy", emoji: "🍗" },
-  beverage: { label: "Beverage", emoji: "🥤" },
-  cool: { label: "Cool", emoji: "🧊" },
-  warm: { label: "Warm", emoji: "🔥" },
-  vegan: { label: "Vegan", emoji: "🌱" },
-  glutenFree: { label: "Gluten-Free", emoji: "🌾" },
-  highProtein: { label: "High-Protein", emoji: "💪" },
-  sweetSour: { label: "Sweet & Sour", emoji: "🍅" },
-  popular: { label: "Popular", emoji: "⭐" },
+  spicy: { label: "Spicy" },
+  lowCalorie: { label: "Low-Calorie" },
+  hearty: { label: "Hearty" },
+  crispy: { label: "Crispy" },
+  beverage: { label: "Beverage" },
+  cool: { label: "Cool" },
+  warm: { label: "Warm" },
+  vegan: { label: "Vegan" },
+  glutenFree: { label: "Gluten-Free" },
+  highProtein: { label: "High-Protein" },
+  sweetSour: { label: "Sweet & Sour" },
+  popular: { label: "Popular" },
 };
 
 export interface Dish {

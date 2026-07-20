@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { TAGS, type Dish, type TagKey } from "../data/menu";
+import type { Dish, TagKey } from "../data/menu";
 import { DishCard } from "../components/DishCard";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
@@ -60,7 +60,6 @@ export function MenuScreen() {
                 filter === key ? "bg-[#2D5A3D] text-white" : "bg-white text-[#5C5240] border border-black/10"
               }`}
             >
-              {key !== "all" ? `${TAGS[key as TagKey].emoji} ` : ""}
               {key === "all" ? t("menu_filter_all") : t(`tag_${key}` as TranslationKey)}
             </button>
           ))}
