@@ -109,6 +109,7 @@ const dict = {
   cart_queue_position: { vi: "Vị trí hàng đợi", en: "Queue position", ko: "대기 순번" },
   cart_estimated_wait: { vi: "Thời gian chờ dự kiến", en: "Estimated wait", ko: "예상 대기 시간" },
   cart_your_orders: { vi: "Đơn của bạn", en: "Your orders", ko: "내 주문" },
+  cart_total_bill: { vi: "Tổng hoá đơn", en: "Total bill", ko: "총 청구액" },
   cart_cancel_order: { vi: "Huỷ đơn", en: "Cancel order", ko: "주문 취소" },
   cart_cancel_confirm: {
     vi: "Bạn có chắc muốn huỷ đơn này không?",

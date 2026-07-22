@@ -1,27 +1,44 @@
 import { useState } from "react";
-import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
-import { ACTIVE_STATUSES, ORDER_STATUS_LABEL, type Order } from "../data/orders";
+import { ACTIVE_STATUSES, ORDER_STATUS_LABEL, type Order, type OrderStatus } from "../data/orders";
+
+const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
+  new: "bg-[#FDECC8] text-[#8A6B1F]",
+  preparing: "bg-[#DCEBFB] text-[#2A5C8A]",
+  served: "bg-[#E5F3EA] text-[#2D5A3D]",
+  cancelled: "bg-[#F7E9E2] text-[#B0553C]",
+};
+
+function orderTotal(order: Order) {
+  return order.items.reduce((sum, i) => sum + i.price * i.qty, 0);
+}
 
 function MyOrdersSection() {
   const { orders, tableNumber, cancelOrder, getQueueInfo } = useApp();
   const { t } = useI18n();
-  const myActive = orders
-    .filter((o) => o.tableNumber === tableNumber && ACTIVE_STATUSES.includes(o.status))
+  // Everything this table has ordered so far (except cancelled ones, which
+  // never happened) stays visible here — including once served — so the
+  // customer can always see what they've had and the running bill total.
+  const myOrders = orders
+    .filter((o) => o.tableNumber === tableNumber && o.status !== "cancelled")
     .sort((a, b) => b.createdAt - a.createdAt);
 
-  if (myActive.length === 0) return null;
+  if (myOrders.length === 0) return null;
+
+  const billTotal = myOrders.reduce((sum, o) => sum + orderTotal(o), 0);
 
   return (
     <div className="px-4 pt-3 flex flex-col gap-2.5">
       <h2 className="text-[12px] font-bold text-[#8A8272] uppercase tracking-wide">{t("cart_your_orders")}</h2>
-      {myActive.map((order) => {
-        const queue = getQueueInfo(order);
+      {myOrders.map((order) => {
+        const active = ACTIVE_STATUSES.includes(order.status);
+        const queue = active ? getQueueInfo(order) : null;
         return (
           <div key={order.id} className="bg-white rounded-2xl p-3 border border-black/5 shadow-sm">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#FDECC8] text-[#8A6B1F]">
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE_STYLE[order.status]}`}>
                 {ORDER_STATUS_LABEL[order.status]}
               </span>
               {order.status === "new" && (
@@ -39,19 +56,33 @@ function MyOrdersSection() {
             <p className="text-[12.5px] text-[#22201B] mb-1.5">
               {order.items.map((i) => `${i.qty}× ${i.dishName}`).join(", ")}
             </p>
-            <div className="flex items-center gap-3 text-[11px] text-[#8A8272]">
-              <span className="flex items-center gap-1">
-                <Users size={11} />
-                {t("cart_queue_position")}: #{queue.position}
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock3 size={11} />
-                {t("cart_estimated_wait")}: ~{queue.estimatedMinutes} {t("nutrition_minutes")}
-              </span>
+            <div className="flex items-center justify-between">
+              {queue ? (
+                <div className="flex items-center gap-3 text-[11px] text-[#8A8272]">
+                  <span className="flex items-center gap-1">
+                    <Users size={11} />
+                    {t("cart_queue_position")}: #{queue.position}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock3 size={11} />
+                    {t("cart_estimated_wait")}: ~{queue.estimatedMinutes} {t("nutrition_minutes")}
+                  </span>
+                </div>
+              ) : (
+                <span />
+              )}
+              <span className="text-[12px] font-bold text-[#2D5A3D]">${orderTotal(order).toFixed(2)}</span>
             </div>
           </div>
         );
       })}
+      <div className="flex items-center justify-between bg-[#1F3D2B] text-white rounded-2xl px-4 py-3 mt-1">
+        <span className="flex items-center gap-1.5 text-[12.5px] font-medium">
+          <Receipt size={14} />
+          {t("cart_total_bill")}
+        </span>
+        <span className="text-[16px] font-bold">${billTotal.toFixed(2)}</span>
+      </div>
     </div>
   );
 }
