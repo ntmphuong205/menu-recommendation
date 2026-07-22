@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChefHat, Send } from "lucide-react";
 import { ChatBubble } from "../components/ChatBubble";
 import { initialMessages, respond, botMessage, type ChatMessage, type ConversationState } from "../lib/assistant";
-import { getAiRecommendation } from "../lib/aiClient";
+import { getAiChatReply, isAiChatAvailable } from "../lib/aiClient";
 import { RESTAURANT } from "../data/restaurant";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
@@ -25,28 +25,30 @@ export function ChatScreen() {
     const trimmed = text.trim();
     if (!trimmed) return;
     const userMsg: ChatMessage = { id: `u${Date.now()}`, from: "user", text: trimmed };
-    setMessages((prev) => [...prev, userMsg]);
+    const history = [...messages, userMsg];
+    setMessages(history);
     setInput("");
     setTyping(true);
 
     setTimeout(async () => {
-      const result = respond(trimmed, state, menu, lang);
-
-      // The rule engine only reaches its low-confidence fallback when it can't
-      // match anything for free — that's the one case worth a paid AI call.
-      // getAiRecommendation() resolves to null instantly if no Supabase project
-      // (or no API key) is configured, so this is a no-op until you set one up.
-      if (result.isFallback) {
-        const ai = await getAiRecommendation(trimmed, lang, menu);
-        const aiDishes = ai?.dishIds.map((id) => menu.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => !!d);
-        if (ai && ai.reply && aiDishes && aiDishes.length > 0) {
-          setMessages((prev) => [...prev, botMessage(ai.reply, aiDishes)]);
-          setState({ stage: "awaitingConfirm", pendingDishId: aiDishes[0].id });
+      // When a Supabase project is configured, the real conversational agent
+      // (RAG over the live menu + full chat history) handles every message —
+      // it decides itself when to show dishes and when to place the order.
+      // getAiChatReply() resolves to null on any failure (including "no
+      // OPENAI_API_KEY configured"), so this is a no-op until you set one up,
+      // and the rule-based engine below is the complete fallback either way.
+      if (isAiChatAvailable) {
+        const ai = await getAiChatReply(history, lang, menu);
+        if (ai) {
+          const dishes = ai.dishIds.map((id) => menu.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => !!d);
+          setMessages((prev) => [...prev, botMessage(ai.reply, dishes.length > 0 ? dishes : undefined)]);
+          ai.order?.items.forEach((item) => placeDirectOrder(item.dishId, item.qty, item.note));
           setTyping(false);
           return;
         }
       }
 
+      const result = respond(trimmed, state, menu, lang);
       setMessages((prev) => [...prev, ...result.messages]);
       setState(result.state);
       if (result.cartOp) {

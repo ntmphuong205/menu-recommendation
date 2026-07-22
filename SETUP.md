@@ -46,14 +46,21 @@ The owner dashboard (`/admin`) is only login-gated once Supabase is configured
 Add more staff the same way — every row in `staff` for a restaurant can manage
 that restaurant's menu and orders.
 
-## 3. (Optional) Turn on real AI for hard requests
+## 3. (Optional) Turn on the real conversational AI
 
-The rule-based engine (`src/lib/assistant.ts`) handles the large majority of
-requests for free by matching keywords to menu tags — in English, Vietnamese,
-and Korean. It only reaches for AI on the rare request it can't confidently
-match (its "I don't understand" fallback), which is exactly the "start with
-low-cost rules, only pay for AI where it adds value" approach from the
-business plan.
+By default Menu AI is the free rule-based engine (`src/lib/assistant.ts`) —
+keyword matching against menu tags in English, Vietnamese, and Korean. It's
+fast, free, and good enough to demo, but it's still a script, not a
+conversation.
+
+Once you deploy this function, **every message goes through a real AI
+agent instead** (RAG: it's given the live menu + restaurant hours/FAQ + the
+full chat history on every turn) — it talks naturally like a genuine staff
+member, decides for itself when to show a dish photo card, and decides for
+itself when the customer has actually confirmed an order and places it. The
+rule-based engine automatically becomes the fallback: if the function isn't
+deployed, has no key, or a request fails, that one message quietly uses the
+free engine instead — nothing ever breaks for lack of a key.
 
 1. Install the [Supabase CLI](https://supabase.com/docs/guides/cli) and log in
    (`supabase login`), then link it to your project (`supabase link`).
@@ -64,8 +71,13 @@ business plan.
    supabase secrets set OPENAI_API_KEY=sk-...
    ```
 4. That's it — no frontend change needed. `src/lib/aiClient.ts` calls this
-   function automatically once it's deployed, and silently keeps using the free
-   rule-based fallback if the function or key isn't there.
+   function automatically once it's deployed.
+
+Cost note: unlike the old "only call AI when the rules fail" design, this
+calls the model on every message once deployed — with `gpt-4o-mini` (the
+default; change via the `OPENAI_MODEL` secret) that's a small fraction of a
+cent per message, but it's no longer free. This is the real per-customer
+running cost the business plan's monthly fee is meant to cover.
 
 ## What stays true either way
 

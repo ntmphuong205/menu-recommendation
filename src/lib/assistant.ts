@@ -23,9 +23,6 @@ export interface AssistantResult {
   messages: ChatMessage[];
   state: ConversationState;
   cartOp?: { type: "add"; dishId: string; qty: number; note?: string };
-  /** True only for the low-confidence catch-all reply — the one case where a
-   *  paid AI call can add real value over the free rule-based match. */
-  isFallback?: boolean;
 }
 
 let idCounter = 0;
@@ -333,7 +330,6 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
       bot(tr("bot_fallback"), undefined, [tr("chat_quick_spicy_low"), tr("qr_opening_hours"), tr("qr_best_sellers")]),
     ],
     state: { stage: "idle" },
-    isFallback: true,
   };
 }
 
