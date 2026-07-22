@@ -160,7 +160,7 @@ export function DishFormModal({
                   <select
                     value={line.ingredient}
                     onChange={(e) => updateLine(line.id, { ingredient: e.target.value as IngredientKey })}
-                    className={`${inputCls} flex-1`}
+                    className={`${fieldCls} flex-1 min-w-0`}
                   >
                     {ALL_INGREDIENTS.map((key) => (
                       <option key={key} value={key}>
@@ -172,7 +172,7 @@ export function DishFormModal({
                     value={line.grams}
                     onChange={(e) => updateLine(line.id, { grams: e.target.value })}
                     type="number"
-                    className={`${inputCls} w-20`}
+                    className={`${fieldCls} w-20 shrink-0`}
                     placeholder="g"
                   />
                   <span className="text-[11px] text-[#8A8272] shrink-0">g</span>
@@ -257,8 +257,13 @@ export function DishFormModal({
   );
 }
 
-const inputCls =
-  "w-full border border-black/10 rounded-lg px-3 py-2 text-[13px] text-[#22201B] outline-none focus:border-[#2D5A3D]";
+// Border/padding/text styles shared by every field. Deliberately excludes
+// width so it can be composed with flex-1/w-20/etc. without the two width
+// utilities fighting each other (Tailwind doesn't resolve that by class
+// order, so w-full silently squashed the ingredient <select> down to ~26px).
+const fieldCls =
+  "border border-black/10 rounded-lg px-3 py-2 text-[13px] text-[#22201B] outline-none focus:border-[#2D5A3D]";
+const inputCls = `w-full ${fieldCls}`;
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
