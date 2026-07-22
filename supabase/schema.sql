@@ -39,7 +39,7 @@ create table if not exists menu_items (
   protein int,
   carbs int,
   fat int,
-  ingredient_lines jsonb, -- [{ ingredient: "beef", grams: 70 }, ...] — used to compute the four fields above
+  ingredient_lines jsonb, -- [{ name: "Beef", grams: 70 }, ...] — free-text name, used to compute the four fields above
   ingredients text[] not null default '{}',
   allergy_note text not null default '',
   category text not null default 'Main',

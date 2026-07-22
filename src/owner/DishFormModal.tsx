@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { X, Upload, Plus, Trash2 } from "lucide-react";
 import { TAGS, type Dish, type TagKey } from "../data/menu";
-import { INGREDIENT_DB, computeNutrition, type IngredientKey, type IngredientLine } from "../data/ingredients";
+import { INGREDIENT_NAMES, findIngredientByName, computeNutrition, type IngredientLine } from "../data/ingredients";
 
 const CATEGORIES: Dish["category"][] = ["Main", "Starter", "Beverage", "Side"];
 const ALL_TAGS = Object.keys(TAGS) as TagKey[];
-const ALL_INGREDIENTS = Object.keys(INGREDIENT_DB) as IngredientKey[];
+const INGREDIENT_DATALIST_ID = "known-ingredients";
 
 function slugify(name: string) {
   return name
@@ -15,7 +15,48 @@ function slugify(name: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+interface LineState {
+  id: number;
+  name: string;
+  grams: string;
+  customCalories: string;
+  customProtein: string;
+  customCarbs: string;
+  customFat: string;
+}
+
 let lineIdCounter = 0;
+
+function toLineState(line: IngredientLine): LineState {
+  return {
+    id: lineIdCounter++,
+    name: line.name,
+    grams: String(line.grams),
+    customCalories: line.custom ? String(line.custom.calories) : "",
+    customProtein: line.custom ? String(line.custom.protein) : "",
+    customCarbs: line.custom ? String(line.custom.carbs) : "",
+    customFat: line.custom ? String(line.custom.fat) : "",
+  };
+}
+
+function toIngredientLine(line: LineState): IngredientLine | null {
+  const grams = parseFloat(line.grams);
+  if (!line.name.trim() || !(grams > 0)) return null;
+  const known = findIngredientByName(line.name);
+  if (known) return { name: line.name.trim(), grams };
+  const hasCustom = [line.customCalories, line.customProtein, line.customCarbs, line.customFat].some((v) => v.trim());
+  if (!hasCustom) return { name: line.name.trim(), grams };
+  return {
+    name: line.name.trim(),
+    grams,
+    custom: {
+      calories: parseFloat(line.customCalories) || 0,
+      protein: parseFloat(line.customProtein) || 0,
+      carbs: parseFloat(line.customCarbs) || 0,
+      fat: parseFloat(line.customFat) || 0,
+    },
+  };
+}
 
 export function DishFormModal({
   initial,
@@ -32,9 +73,7 @@ export function DishFormModal({
   const [description, setDescription] = useState(initial?.description ?? "");
   const [image, setImage] = useState(initial?.image ?? "");
   const [prepTime, setPrepTime] = useState(initial?.prepTimeMinutes?.toString() ?? "");
-  const [lines, setLines] = useState<{ id: number; ingredient: IngredientKey; grams: string }[]>(
-    initial?.ingredientLines?.map((l) => ({ id: lineIdCounter++, ingredient: l.ingredient, grams: String(l.grams) })) ?? []
-  );
+  const [lines, setLines] = useState<LineState[]>(initial?.ingredientLines?.map(toLineState) ?? []);
   const [allergyNote, setAllergyNote] = useState(initial?.allergyNote ?? "");
   const [tags, setTags] = useState<Set<TagKey>>(new Set(initial?.tags ?? []));
 
@@ -54,14 +93,18 @@ export function DishFormModal({
     });
   };
 
-  const addLine = () => setLines((prev) => [...prev, { id: lineIdCounter++, ingredient: ALL_INGREDIENTS[0], grams: "100" }]);
+  const addLine = () =>
+    setLines((prev) => [
+      ...prev,
+      { id: lineIdCounter++, name: "", grams: "100", customCalories: "", customProtein: "", customCarbs: "", customFat: "" },
+    ]);
   const removeLine = (id: number) => setLines((prev) => prev.filter((l) => l.id !== id));
-  const updateLine = (id: number, patch: Partial<{ ingredient: IngredientKey; grams: string }>) =>
+  const updateLine = (id: number, patch: Partial<LineState>) =>
     setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
 
   const ingredientLines: IngredientLine[] = lines
-    .filter((l) => parseFloat(l.grams) > 0)
-    .map((l) => ({ ingredient: l.ingredient, grams: parseFloat(l.grams) }));
+    .map(toIngredientLine)
+    .filter((l): l is IngredientLine => l !== null);
   const nutrition = computeNutrition(ingredientLines);
 
   const canSave = name.trim().length > 0 && price.trim().length > 0;
@@ -80,7 +123,7 @@ export function DishFormModal({
       protein: ingredientLines.length > 0 ? Math.round(nutrition.protein) : undefined,
       carbs: ingredientLines.length > 0 ? Math.round(nutrition.carbs) : undefined,
       fat: ingredientLines.length > 0 ? Math.round(nutrition.fat) : undefined,
-      ingredients: ingredientLines.map((l) => INGREDIENT_DB[l.ingredient].label),
+      ingredients: ingredientLines.map((l) => l.name),
       allergyNote: allergyNote.trim(),
       category,
       prepTimeMinutes: prepTime.trim() ? parseInt(prepTime, 10) : undefined,
@@ -151,40 +194,60 @@ export function DishFormModal({
           <div>
             <p className="text-[12px] font-semibold text-[#5C5240] mb-1">Ingredients</p>
             <p className="text-[11px] text-[#8A8272] mb-2">
-              Add each ingredient and how many grams go into one serving — calories, protein, carbs, and fat are worked
-              out for you.
+              Type any ingredient and how many grams go into one serving. Known ingredients auto-fill their nutrition;
+              for anything else, add its calories/protein/carbs/fat per 100g yourself.
             </p>
-            <div className="flex flex-col gap-2">
-              {lines.map((line) => (
-                <div key={line.id} className="flex items-center gap-2">
-                  <select
-                    value={line.ingredient}
-                    onChange={(e) => updateLine(line.id, { ingredient: e.target.value as IngredientKey })}
-                    className={`${fieldCls} flex-1 min-w-0`}
-                  >
-                    {ALL_INGREDIENTS.map((key) => (
-                      <option key={key} value={key}>
-                        {INGREDIENT_DB[key].label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    value={line.grams}
-                    onChange={(e) => updateLine(line.id, { grams: e.target.value })}
-                    type="number"
-                    className={`${fieldCls} w-20 shrink-0`}
-                    placeholder="g"
-                  />
-                  <span className="text-[11px] text-[#8A8272] shrink-0">g</span>
-                  <button
-                    type="button"
-                    onClick={() => removeLine(line.id)}
-                    className="w-7 h-7 rounded-full bg-[#F7E9E2] text-[#B0553C] flex items-center justify-center shrink-0"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
+            <datalist id={INGREDIENT_DATALIST_ID}>
+              {INGREDIENT_NAMES.map((n) => (
+                <option key={n} value={n} />
               ))}
+            </datalist>
+            <div className="flex flex-col gap-2">
+              {lines.map((line) => {
+                const known = findIngredientByName(line.name);
+                const showCustomFields = line.name.trim().length > 0 && !known;
+                return (
+                  <div key={line.id} className="bg-[#FBF7EF] rounded-lg p-2 flex flex-col gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        list={INGREDIENT_DATALIST_ID}
+                        value={line.name}
+                        onChange={(e) => updateLine(line.id, { name: e.target.value })}
+                        className={`${fieldCls} bg-white flex-1 min-w-0`}
+                        placeholder="e.g. Beef, or type your own"
+                      />
+                      <input
+                        value={line.grams}
+                        onChange={(e) => updateLine(line.id, { grams: e.target.value })}
+                        type="number"
+                        className={`${fieldCls} bg-white w-20 shrink-0`}
+                        placeholder="g"
+                      />
+                      <span className="text-[11px] text-[#8A8272] shrink-0">g</span>
+                      <button
+                        type="button"
+                        onClick={() => removeLine(line.id)}
+                        className="w-7 h-7 rounded-full bg-[#F7E9E2] text-[#B0553C] flex items-center justify-center shrink-0"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                    {showCustomFields && (
+                      <div className="pl-0.5">
+                        <p className="text-[10.5px] text-[#B0553C] mb-1">
+                          Not in our database — enter nutrition per 100g, or leave blank to skip it in the total.
+                        </p>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          <LabeledMiniInput label="kcal" value={line.customCalories} onChange={(v) => updateLine(line.id, { customCalories: v })} />
+                          <LabeledMiniInput label="Protein g" value={line.customProtein} onChange={(v) => updateLine(line.id, { customProtein: v })} />
+                          <LabeledMiniInput label="Carbs g" value={line.customCarbs} onChange={(v) => updateLine(line.id, { customCarbs: v })} />
+                          <LabeledMiniInput label="Fat g" value={line.customFat} onChange={(v) => updateLine(line.id, { customFat: v })} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               <button
                 type="button"
                 onClick={addLine}
@@ -260,7 +323,8 @@ export function DishFormModal({
 // Border/padding/text styles shared by every field. Deliberately excludes
 // width so it can be composed with flex-1/w-20/etc. without the two width
 // utilities fighting each other (Tailwind doesn't resolve that by class
-// order, so w-full silently squashed the ingredient <select> down to ~26px).
+// order, so w-full silently squashed the ingredient <select> down to ~26px
+// the last time this form combined the two).
 const fieldCls =
   "border border-black/10 rounded-lg px-3 py-2 text-[13px] text-[#22201B] outline-none focus:border-[#2D5A3D]";
 const inputCls = `w-full ${fieldCls}`;
@@ -270,6 +334,21 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     <label className="block">
       <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{label}</p>
       {children}
+    </label>
+  );
+}
+
+function LabeledMiniInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="block">
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        type="number"
+        placeholder="0"
+        className={`${fieldCls} bg-white w-full text-center`}
+      />
+      <p className="text-[9.5px] text-[#8A8272] text-center mt-0.5">{label}</p>
     </label>
   );
 }

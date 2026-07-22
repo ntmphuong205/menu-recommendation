@@ -58,9 +58,23 @@ export const INGREDIENT_DB: Record<string, IngredientNutrition> = {
 
 export type IngredientKey = keyof typeof INGREDIENT_DB;
 
+/** All known ingredient display names, for the owner-facing autocomplete list. */
+export const INGREDIENT_NAMES: string[] = Object.values(INGREDIENT_DB).map((i) => i.label);
+
+/** Case-insensitive lookup by display name — the owner types a name, not a key. */
+export function findIngredientByName(name: string): IngredientNutrition | undefined {
+  const normalized = name.trim().toLowerCase();
+  if (!normalized) return undefined;
+  return Object.values(INGREDIENT_DB).find((info) => info.label.toLowerCase() === normalized);
+}
+
 export interface IngredientLine {
-  ingredient: IngredientKey;
+  /** Free text — the owner isn't limited to the built-in database. */
+  name: string;
   grams: number;
+  /** Per-100g nutrition the owner enters by hand when `name` doesn't match
+   *  anything in INGREDIENT_DB (an ingredient we don't have on file). */
+  custom?: { calories: number; protein: number; carbs: number; fat: number };
 }
 
 export interface NutritionTotals {
@@ -73,7 +87,10 @@ export interface NutritionTotals {
 export function computeNutrition(lines: IngredientLine[]): NutritionTotals {
   return lines.reduce(
     (totals, line) => {
-      const info = INGREDIENT_DB[line.ingredient];
+      const known = findIngredientByName(line.name);
+      const info = known ?? (line.custom
+        ? { caloriesPer100g: line.custom.calories, proteinPer100g: line.custom.protein, carbsPer100g: line.custom.carbs, fatPer100g: line.custom.fat }
+        : undefined);
       if (!info) return totals;
       const factor = line.grams / 100;
       return {
