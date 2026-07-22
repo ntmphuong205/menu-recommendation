@@ -6,9 +6,9 @@ import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 
 export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "chat" | "grid" }) {
-  const { setSelectedDishId, placeDirectOrder, getDishRating } = useApp();
+  const { setSelectedDishId, addToCart, getDishRating } = useApp();
   const { t } = useI18n();
-  const [ordered, setOrdered] = useState(false);
+  const [added, setAdded] = useState(false);
   const soldOut = !!dish.soldOut;
   const rating = getDishRating(dish.id);
 
@@ -68,14 +68,14 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
           <span className="text-[15px] font-bold text-[#2D5A3D]">${dish.price.toFixed(2)}</span>
           <button
             onClick={() => {
-              placeDirectOrder(dish.id, 1);
-              setOrdered(true);
+              addToCart(dish.id, 1);
+              setAdded(true);
             }}
-            disabled={soldOut || ordered}
+            disabled={soldOut || added}
             className="flex items-center gap-1 bg-[#2D5A3D] text-white text-[12px] font-semibold px-2.5 py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
           >
-            {ordered ? <Check size={13} strokeWidth={3} /> : <Plus size={13} strokeWidth={3} />}
-            {soldOut ? t("dish_sold_out") : ordered ? t("dish_ordered") : t("dish_order")}
+            {added ? <Check size={13} strokeWidth={3} /> : <Plus size={13} strokeWidth={3} />}
+            {soldOut ? t("dish_sold_out") : added ? t("dish_added") : t("dish_add")}
           </button>
         </div>
       </div>

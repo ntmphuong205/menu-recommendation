@@ -10,6 +10,7 @@ export function DishSheet() {
   const { selectedDishId, setSelectedDishId, addToCart, findDish } = useApp();
   const { t, lang } = useI18n();
   const [qty, setQty] = useState(1);
+  const [note, setNote] = useState("");
   const [added, setAdded] = useState(false);
 
   if (!selectedDishId) return null;
@@ -19,6 +20,7 @@ export function DishSheet() {
   const close = () => {
     setSelectedDishId(null);
     setQty(1);
+    setNote("");
     setAdded(false);
   };
 
@@ -102,6 +104,16 @@ export function DishSheet() {
 
           <ReviewSection dishId={dish.id} />
 
+          <label className="block mt-4">
+            <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("dish_note_label")}</p>
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={t("dish_note_placeholder")}
+              className="w-full border border-black/10 rounded-lg px-3 py-2 text-[13px] text-[#22201B] outline-none focus:border-[#2D5A3D]"
+            />
+          </label>
+
           <div className="flex items-center gap-3 mt-6">
             <div className="flex items-center gap-3 bg-white border border-black/10 rounded-full px-3 py-2">
               <button
@@ -120,7 +132,7 @@ export function DishSheet() {
             </div>
             <button
               onClick={() => {
-                addToCart(dish.id, qty);
+                addToCart(dish.id, qty, note.trim() || undefined);
                 setAdded(true);
                 setTimeout(close, 700);
               }}

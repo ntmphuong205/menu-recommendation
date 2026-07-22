@@ -7,7 +7,7 @@ import { RESTAURANT, FAQ } from "../data/restaurant";
 export interface AiChatReply {
   reply: string;
   dishIds: string[];
-  order?: { items: { dishId: string; qty: number; note?: string }[] };
+  cartAdditions?: { items: { dishId: string; qty: number; note?: string }[] };
 }
 
 /** True whenever a Supabase project is configured, so the app should try the
@@ -47,7 +47,7 @@ export async function getAiChatReply(
       },
     });
     if (error || !data?.available) return null;
-    return { reply: data.reply ?? "", dishIds: data.dishIds ?? [], order: data.order };
+    return { reply: data.reply ?? "", dishIds: data.dishIds ?? [], cartAdditions: data.cartAdditions };
   } catch {
     return null;
   }

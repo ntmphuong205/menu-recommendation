@@ -9,7 +9,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 
 export function ChatScreen() {
-  const { placeDirectOrder, menu, tableNumber } = useApp();
+  const { addToCart, menu, tableNumber } = useApp();
   const { t, lang } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages(lang));
   const [state, setState] = useState<ConversationState>({ stage: "idle" });
@@ -33,16 +33,16 @@ export function ChatScreen() {
     setTimeout(async () => {
       // When a Supabase project is configured, the real conversational agent
       // (RAG over the live menu + full chat history) handles every message —
-      // it decides itself when to show dishes and when to place the order.
-      // getAiChatReply() resolves to null on any failure (including "no
-      // OPENAI_API_KEY configured"), so this is a no-op until you set one up,
-      // and the rule-based engine below is the complete fallback either way.
+      // it decides itself when to show dishes and when to add something to
+      // the cart. getAiChatReply() resolves to null on any failure (including
+      // "no OPENAI_API_KEY configured"), so this is a no-op until you set one
+      // up, and the rule-based engine below is the complete fallback either way.
       if (isAiChatAvailable) {
         const ai = await getAiChatReply(history, lang, menu);
         if (ai) {
           const dishes = ai.dishIds.map((id) => menu.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => !!d);
           setMessages((prev) => [...prev, botMessage(ai.reply, dishes.length > 0 ? dishes : undefined)]);
-          ai.order?.items.forEach((item) => placeDirectOrder(item.dishId, item.qty, item.note));
+          ai.cartAdditions?.items.forEach((item) => addToCart(item.dishId, item.qty, item.note));
           setTyping(false);
           return;
         }
@@ -52,10 +52,9 @@ export function ChatScreen() {
       setMessages((prev) => [...prev, ...result.messages]);
       setState(result.state);
       if (result.cartOp) {
-        // The bot's reply already says "sent to the kitchen" at this point, so
-        // this must actually create a real order the owner dashboard sees —
-        // not just stash the item in the customer's local cart.
-        placeDirectOrder(result.cartOp.dishId, result.cartOp.qty, result.cartOp.note);
+        // Chat only ever adds to the customer's cart — placing the real order
+        // happens explicitly from the Cart tab's "Confirm order" button.
+        addToCart(result.cartOp.dishId, result.cartOp.qty, result.cartOp.note);
       }
       setTyping(false);
     }, 500 + Math.random() * 350);

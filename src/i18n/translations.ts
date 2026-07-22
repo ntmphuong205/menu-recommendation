@@ -68,8 +68,7 @@ const dict = {
   menu_category_beverage: { vi: "Đồ uống", en: "Beverage", ko: "음료" },
   menu_category_side: { vi: "Món phụ", en: "Side", ko: "사이드" },
 
-  dish_order: { vi: "Đặt món", en: "Order", ko: "주문" },
-  dish_ordered: { vi: "Đã đặt ✓", en: "Ordered ✓", ko: "주문완료 ✓" },
+  dish_add: { vi: "Thêm", en: "Add", ko: "담기" },
   dish_sold_out: { vi: "Hết hàng", en: "Sold out", ko: "품절" },
 
   // Dish sheet
@@ -82,6 +81,12 @@ const dict = {
   nutrition_minutes: { vi: "phút", en: "min", ko: "분" },
   dish_add_to_cart: { vi: "Thêm vào giỏ", en: "Add to cart", ko: "장바구니에 담기" },
   dish_added: { vi: "Đã thêm ✓", en: "Added to cart ✓", ko: "담았어요 ✓" },
+  dish_note_label: { vi: "Yêu cầu thêm (không bắt buộc)", en: "Special request (optional)", ko: "요청사항 (선택)" },
+  dish_note_placeholder: {
+    vi: "vd: ít đường, không hành...",
+    en: "e.g. less sugar, no onions...",
+    ko: "예: 설탕 적게, 양파 빼주세요...",
+  },
 
   // Cart screen
   cart_title: { vi: "Giỏ hàng", en: "Cart", ko: "장바구니" },
@@ -180,14 +185,14 @@ const dict = {
     ko: "확인할게요: {dish} {qty}개 맞으신가요? 추가 요청 있으신가요 (예: 양파 빼주세요, 소스 추가)?",
   },
   bot_order_done: {
-    vi: "Đã ghi nhận, {qty} phần {dish}. Đơn của bạn đã được gửi tới bếp! 🎉",
-    en: "Got it, {qty} {dish}. Your order has been submitted to the kitchen! 🎉",
-    ko: "네, {dish} {qty}개 확인했어요. 주방으로 주문이 전달되었습니다! 🎉",
+    vi: "Đã ghi nhận, {qty} phần {dish}! Mình đã thêm vào giỏ hàng — bạn xem lại và xác nhận ở tab Giỏ hàng nhé 🛒",
+    en: "Got it, {qty} {dish}! I've added it to your cart — head to the Cart tab whenever you're ready to confirm 🛒",
+    ko: "네, {dish} {qty}개! 장바구니에 담았어요 — 준비되면 장바구니 탭에서 확인해주세요 🛒",
   },
   bot_order_done_note: {
-    vi: "Đã ghi nhận! {qty} phần {dish} ({note}). Đơn của bạn đã được gửi tới bếp! 🎉",
-    en: "Got it! {qty} {dish} ({note}). Your order has been submitted to the kitchen! 🎉",
-    ko: "네! {dish} {qty}개 ({note}). 주방으로 주문이 전달되었습니다! 🎉",
+    vi: "Đã ghi nhận! {qty} phần {dish} ({note}). Mình đã thêm vào giỏ hàng — bạn xem lại và xác nhận ở tab Giỏ hàng nhé 🛒",
+    en: "Got it! {qty} {dish} ({note}). I've added it to your cart — head to the Cart tab whenever you're ready to confirm 🛒",
+    ko: "네! {dish} {qty}개 ({note}). 장바구니에 담았어요 — 준비되면 장바구니 탭에서 확인해주세요 🛒",
   },
   bot_hours: {
     vi: "{restaurant} mở cửa:\n{hours}",

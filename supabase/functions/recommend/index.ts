@@ -3,11 +3,13 @@
 // This is the primary chat channel once OPENAI_API_KEY is configured — the
 // client sends the full conversation history plus the restaurant's real menu
 // (retrieval), and this function answers naturally like a waiter, using tool
-// calls to (a) surface specific dishes as photo cards and (b) place a real
-// order once the customer has actually confirmed what they want. If no key is
-// configured, it returns { available: false } and the client falls back to
-// the free rule-based engine (src/lib/assistant.ts) — nothing breaks without
-// a key, and this function is never required for the app to work.
+// calls to (a) surface specific dishes as photo cards and (b) add dish(es) to
+// the customer's cart once they've actually confirmed what they want. Placing
+// the real order always happens explicitly from the Cart tab's "Confirm
+// order" button — chat only ever builds up the cart, never orders directly.
+// If no key is configured, it returns { available: false } and the client
+// falls back to the free rule-based engine (src/lib/assistant.ts) — nothing
+// breaks without a key, and this function is never required for the app to work.
 //
 // Deploy with: supabase functions deploy recommend
 // Configure the key with: supabase secrets set OPENAI_API_KEY=sk-...
@@ -76,9 +78,9 @@ const TOOLS = [
   {
     type: "function",
     function: {
-      name: "place_order",
+      name: "add_to_cart",
       description:
-        "Place a real order once the customer has clearly confirmed what they want (which dish(es), how many, and any special requests). Only call this when they've actually confirmed — not just when they show interest.",
+        "Add dish(es) to the customer's cart once they've clearly confirmed what they want (which dish(es), how many, and any special requests). Only call this when they've actually confirmed — not just when they show interest. This does not place the order; the customer still confirms it themselves from the Cart tab.",
       parameters: {
         type: "object",
         properties: {
@@ -110,12 +112,12 @@ function buildSystemPrompt(menu: Dish[], restaurant: RestaurantInfo, lang: Reque
 
   return `You are Menu AI, a warm, friendly staff member at ${restaurant.name} — think of a genuinely helpful waiter, not a corporate bot. Keep replies short and conversational (1-3 sentences), match the customer's energy, and reply in ${LANG_NAME[lang] ?? "English"}.
 
-Help the customer find something they'll enjoy based on their mood or cravings, answer questions using the restaurant info below, and take their order the way a real waiter would: ask about quantity or any customization if it's not already clear, then confirm before finalizing.
+Help the customer find something they'll enjoy based on their mood or cravings, answer questions using the restaurant info below, and take their order the way a real waiter would: ask about quantity or any customization if it's not already clear, then confirm before adding it to their cart.
 
 Rules:
-- Only ever recommend or order dishes from the menu below. Never invent a dish or a price.
+- Only ever recommend or add dishes from the menu below. Never invent a dish or a price.
 - Call show_dishes whenever you recommend or reference specific dishes, so the customer sees a photo card.
-- Call place_order only once the customer has clearly confirmed what they want — not on a first recommendation.
+- Call add_to_cart only once the customer has clearly confirmed what they want — not on a first recommendation. This adds it to their cart; it does not place the order. Let them know they can review it and confirm from the Cart tab whenever they're ready.
 - If something the customer wants isn't on the menu (or is out of scope), say so honestly and suggest the closest real alternative.
 
 Restaurant hours: ${hoursList}
@@ -147,7 +149,7 @@ serve(async (req) => {
     const messages: any[] = [{ role: "system", content: systemPrompt }, ...history];
 
     const dishIds = new Set<string>();
-    let orderItems: { dishId: string; qty: number; note?: string }[] | null = null;
+    let cartItems: { dishId: string; qty: number; note?: string }[] | null = null;
     let finalReply = "";
 
     // Up to two rounds: first call may request tool(s), second gets the natural-language reply.
@@ -187,8 +189,8 @@ serve(async (req) => {
         if (call.function.name === "show_dishes" && Array.isArray(args.dishIds)) {
           (args.dishIds as unknown[]).forEach((id) => typeof id === "string" && dishIds.add(id));
         }
-        if (call.function.name === "place_order" && Array.isArray(args.items)) {
-          orderItems = (args.items as Record<string, unknown>[])
+        if (call.function.name === "add_to_cart" && Array.isArray(args.items)) {
+          cartItems = (args.items as Record<string, unknown>[])
             .filter((i) => typeof i.dishId === "string" && menu.some((d) => d.id === i.dishId))
             .map((i) => ({
               dishId: i.dishId as string,
@@ -205,7 +207,7 @@ serve(async (req) => {
         available: true,
         reply: finalReply || FALLBACK_ACK[lang] ?? FALLBACK_ACK.en,
         dishIds: Array.from(dishIds),
-        order: orderItems && orderItems.length > 0 ? { items: orderItems } : undefined,
+        cartAdditions: cartItems && cartItems.length > 0 ? { items: cartItems } : undefined,
       }),
       { headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
     );

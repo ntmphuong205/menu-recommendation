@@ -45,9 +45,6 @@ interface AppContextValue {
   // orders (shared, created by customer app, managed by owner dashboard)
   orders: Order[];
   placeOrder: (tableNumber: number) => void;
-  /** Places a real order for a single dish immediately, bypassing the cart —
-   *  used by one-tap "Order" actions (chat recommendations, quick order buttons). */
-  placeDirectOrder: (dishId: string, qty: number, note?: string) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   cancelOrder: (orderId: string) => void;
   getQueueInfo: (order: Order) => QueueInfo;
@@ -122,12 +119,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     placeOrderRaw(tableNum, items);
   };
 
-  const placeDirectOrder = (dishId: string, qty: number, note?: string) => {
-    const dish = findDish(dishId);
-    if (!dish) return;
-    placeOrderRaw(tableNumber, [{ dishId, dishName: dish.name, qty, price: dish.price, note }]);
-  };
-
   const cancelOrder = (orderId: string) => updateOrderStatus(orderId, "cancelled");
 
   const getQueueInfo = (order: Order): QueueInfo => {
@@ -162,7 +153,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         totalPrice,
         orders,
         placeOrder,
-        placeDirectOrder,
         updateOrderStatus,
         cancelOrder,
         getQueueInfo,

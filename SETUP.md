@@ -57,10 +57,13 @@ Once you deploy this function, **every message goes through a real AI
 agent instead** (RAG: it's given the live menu + restaurant hours/FAQ + the
 full chat history on every turn) — it talks naturally like a genuine staff
 member, decides for itself when to show a dish photo card, and decides for
-itself when the customer has actually confirmed an order and places it. The
-rule-based engine automatically becomes the fallback: if the function isn't
-deployed, has no key, or a request fails, that one message quietly uses the
-free engine instead — nothing ever breaks for lack of a key.
+itself when the customer has confirmed enough to add something to their
+cart. Like every other path into the cart, placing the actual order still
+always happens explicitly from the Cart tab's "Confirm order" button — chat
+never places an order directly. The rule-based engine automatically becomes
+the fallback: if the function isn't deployed, has no key, or a request
+fails, that one message quietly uses the free engine instead — nothing
+ever breaks for lack of a key.
 
 1. Install the [Supabase CLI](https://supabase.com/docs/guides/cli) and log in
    (`supabase login`), then link it to your project (`supabase link`).
