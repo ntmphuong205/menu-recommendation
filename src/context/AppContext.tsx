@@ -1,9 +1,15 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import { useMenuData } from "../store/useMenuData";
 import { useOrdersData } from "../store/useOrdersData";
+import { useReviewsData } from "../store/useReviewsData";
+import { useTableRequestsData } from "../store/useTableRequestsData";
 import { useRestaurantId } from "../store/useRestaurantId";
 import type { Dish } from "../data/menu";
 import type { Order, OrderStatus } from "../data/orders";
+import { ACTIVE_STATUSES } from "../data/orders";
+import type { Review, DishRatingSummary } from "../data/reviews";
+import { summarizeRatings } from "../data/reviews";
+import type { TableRequest } from "../data/tableRequests";
 
 export interface CartItem {
   id: string;
@@ -11,6 +17,13 @@ export interface CartItem {
   qty: number;
   note?: string;
 }
+
+export interface QueueInfo {
+  position: number;
+  estimatedMinutes: number;
+}
+
+const AVG_MINUTES_PER_ORDER_AHEAD = 6;
 
 interface AppContextValue {
   // menu (shared, editable by the owner dashboard, read by the customer app)
@@ -36,6 +49,18 @@ interface AppContextValue {
    *  used by one-tap "Order" actions (chat recommendations, quick order buttons). */
   placeDirectOrder: (dishId: string, qty: number, note?: string) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  cancelOrder: (orderId: string) => void;
+  getQueueInfo: (order: Order) => QueueInfo;
+
+  // per-dish ratings & reviews
+  reviews: Review[];
+  addReview: (dishId: string, rating: number, comment: string) => void;
+  getDishRating: (dishId: string) => DishRatingSummary;
+
+  // "call staff" table requests
+  tableRequests: TableRequest[];
+  callStaff: (reason: string) => void;
+  resolveRequest: (id: string) => void;
 
   // customer app navigation
   activeTab: TabKey;
@@ -61,6 +86,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const restaurantId = useRestaurantId();
   const { menu, addDish, updateDish, deleteDish } = useMenuData(restaurantId);
   const { orders, placeOrder: placeOrderRaw, updateOrderStatus } = useOrdersData(restaurantId);
+  const { reviews, addReview: addReviewRaw } = useReviewsData(restaurantId);
+  const { tableRequests, callStaff: callStaffRaw, resolveRequest } = useTableRequestsData(restaurantId);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>("chat");
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
@@ -101,6 +128,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     placeOrderRaw(tableNumber, [{ dishId, dishName: dish.name, qty, price: dish.price, note }]);
   };
 
+  const cancelOrder = (orderId: string) => updateOrderStatus(orderId, "cancelled");
+
+  const getQueueInfo = (order: Order): QueueInfo => {
+    const active = orders.filter((o) => ACTIVE_STATUSES.includes(o.status)).sort((a, b) => a.createdAt - b.createdAt);
+    const position = active.findIndex((o) => o.id === order.id) + 1;
+    const ordersAhead = Math.max(0, position - 1);
+    const maxPrepTime = Math.max(0, ...order.items.map((i) => findDish(i.dishId)?.prepTimeMinutes ?? 10));
+    return {
+      position: position > 0 ? position : active.length + 1,
+      estimatedMinutes: ordersAhead * AVG_MINUTES_PER_ORDER_AHEAD + maxPrepTime,
+    };
+  };
+
+  const addReview = (dishId: string, rating: number, comment: string) => addReviewRaw(dishId, tableNumber, rating, comment);
+  const getDishRating = (dishId: string) => summarizeRatings(reviews, dishId);
+  const callStaff = (reason: string) => callStaffRaw(tableNumber, reason);
+
   return (
     <AppContext.Provider
       value={{
@@ -120,6 +164,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         placeOrder,
         placeDirectOrder,
         updateOrderStatus,
+        cancelOrder,
+        getQueueInfo,
+        reviews,
+        addReview,
+        getDishRating,
+        tableRequests,
+        callStaff,
+        resolveRequest,
         activeTab,
         setActiveTab,
         selectedDishId,

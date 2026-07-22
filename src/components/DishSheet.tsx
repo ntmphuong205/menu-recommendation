@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { X, Minus, Plus, Flame, TriangleAlert } from "lucide-react";
+import { X, Minus, Plus, Flame, TriangleAlert, Clock3 } from "lucide-react";
 import { TagPill } from "./TagPill";
+import { ReviewSection } from "./ReviewSection";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { getDishDescription } from "../data/menu";
@@ -59,12 +60,33 @@ export function DishSheet() {
 
           <p className="text-[13.5px] text-[#5C5240] leading-relaxed mt-3">{getDishDescription(dish, lang)}</p>
 
-          {dish.calories && (
-            <div className="flex items-center gap-1.5 mt-3 text-[12.5px] text-[#8A6B3F] bg-[#F3E9D2] px-3 py-2 rounded-xl">
-              <Flame size={14} />
-              <span className="font-medium">
-                {dish.calories} kcal{dish.detail ? ` · ${dish.detail}` : ""}
-              </span>
+          {dish.calories !== undefined && (
+            <div className="mt-3 bg-[#F3E9D2] rounded-xl px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-[12.5px] text-[#8A6B3F] font-semibold mb-2">
+                <Flame size={14} />
+                {dish.calories} kcal
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="text-[13px] font-bold text-[#22201B]">{dish.protein ?? 0}g</p>
+                  <p className="text-[10px] text-[#8A6B3F]">{t("nutrition_protein")}</p>
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-[#22201B]">{dish.carbs ?? 0}g</p>
+                  <p className="text-[10px] text-[#8A6B3F]">{t("nutrition_carbs")}</p>
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-[#22201B]">{dish.fat ?? 0}g</p>
+                  <p className="text-[10px] text-[#8A6B3F]">{t("nutrition_fat")}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {dish.prepTimeMinutes !== undefined && (
+            <div className="flex items-center gap-1.5 mt-2 text-[12px] text-[#8A8272]">
+              <Clock3 size={12} />
+              {t("nutrition_prep_time")}: ~{dish.prepTimeMinutes} {t("nutrition_minutes")}
             </div>
           )}
 
@@ -77,6 +99,8 @@ export function DishSheet() {
             <TriangleAlert size={14} className="mt-0.5 shrink-0" />
             <span>{dish.allergyNote}</span>
           </div>
+
+          <ReviewSection dishId={dish.id} />
 
           <div className="flex items-center gap-3 mt-6">
             <div className="flex items-center gap-3 bg-white border border-black/10 rounded-full px-3 py-2">

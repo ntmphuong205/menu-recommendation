@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from "react";
-import { X, Upload } from "lucide-react";
+import { X, Upload, Plus, Trash2 } from "lucide-react";
 import { TAGS, type Dish, type TagKey } from "../data/menu";
+import { INGREDIENT_DB, computeNutrition, type IngredientKey, type IngredientLine } from "../data/ingredients";
 
 const CATEGORIES: Dish["category"][] = ["Main", "Starter", "Beverage", "Side"];
 const ALL_TAGS = Object.keys(TAGS) as TagKey[];
+const ALL_INGREDIENTS = Object.keys(INGREDIENT_DB) as IngredientKey[];
 
 function slugify(name: string) {
   return name
@@ -12,6 +14,8 @@ function slugify(name: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+let lineIdCounter = 0;
 
 export function DishFormModal({
   initial,
@@ -27,9 +31,10 @@ export function DishFormModal({
   const [category, setCategory] = useState<Dish["category"]>(initial?.category ?? "Main");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [image, setImage] = useState(initial?.image ?? "");
-  const [calories, setCalories] = useState(initial?.calories?.toString() ?? "");
-  const [detail, setDetail] = useState(initial?.detail ?? "");
-  const [ingredients, setIngredients] = useState(initial?.ingredients?.join(", ") ?? "");
+  const [prepTime, setPrepTime] = useState(initial?.prepTimeMinutes?.toString() ?? "");
+  const [lines, setLines] = useState<{ id: number; ingredient: IngredientKey; grams: string }[]>(
+    initial?.ingredientLines?.map((l) => ({ id: lineIdCounter++, ingredient: l.ingredient, grams: String(l.grams) })) ?? []
+  );
   const [allergyNote, setAllergyNote] = useState(initial?.allergyNote ?? "");
   const [tags, setTags] = useState<Set<TagKey>>(new Set(initial?.tags ?? []));
 
@@ -49,6 +54,16 @@ export function DishFormModal({
     });
   };
 
+  const addLine = () => setLines((prev) => [...prev, { id: lineIdCounter++, ingredient: ALL_INGREDIENTS[0], grams: "100" }]);
+  const removeLine = (id: number) => setLines((prev) => prev.filter((l) => l.id !== id));
+  const updateLine = (id: number, patch: Partial<{ ingredient: IngredientKey; grams: string }>) =>
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+
+  const ingredientLines: IngredientLine[] = lines
+    .filter((l) => parseFloat(l.grams) > 0)
+    .map((l) => ({ ingredient: l.ingredient, grams: parseFloat(l.grams) }));
+  const nutrition = computeNutrition(ingredientLines);
+
   const canSave = name.trim().length > 0 && price.trim().length > 0;
 
   const handleSave = () => {
@@ -60,14 +75,15 @@ export function DishFormModal({
       description: description.trim(),
       image: image.trim() || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80",
       tags: Array.from(tags),
-      calories: calories.trim() ? parseInt(calories, 10) : undefined,
-      detail: detail.trim() || undefined,
-      ingredients: ingredients
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      ingredientLines: ingredientLines.length > 0 ? ingredientLines : undefined,
+      calories: ingredientLines.length > 0 ? Math.round(nutrition.calories) : undefined,
+      protein: ingredientLines.length > 0 ? Math.round(nutrition.protein) : undefined,
+      carbs: ingredientLines.length > 0 ? Math.round(nutrition.carbs) : undefined,
+      fat: ingredientLines.length > 0 ? Math.round(nutrition.fat) : undefined,
+      ingredients: ingredientLines.map((l) => INGREDIENT_DB[l.ingredient].label),
       allergyNote: allergyNote.trim(),
       category,
+      prepTimeMinutes: prepTime.trim() ? parseInt(prepTime, 10) : undefined,
     };
     onSave(dish);
   };
@@ -128,18 +144,78 @@ export function DishFormModal({
             <input value={image} onChange={(e) => setImage(e.target.value)} className={inputCls} placeholder="https://..." />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Calories (optional)">
-              <input value={calories} onChange={(e) => setCalories(e.target.value)} type="number" className={inputCls} placeholder="520" />
-            </Field>
-            <Field label="Extra detail (optional)">
-              <input value={detail} onChange={(e) => setDetail(e.target.value)} className={inputCls} placeholder="Protein: 25g" />
-            </Field>
-          </div>
-
-          <Field label="Ingredients (comma-separated)">
-            <input value={ingredients} onChange={(e) => setIngredients(e.target.value)} className={inputCls} placeholder="Beef patty, cheese, lettuce..." />
+          <Field label="Prep time (minutes, optional)">
+            <input value={prepTime} onChange={(e) => setPrepTime(e.target.value)} type="number" className={inputCls} placeholder="12" />
           </Field>
+
+          <div>
+            <p className="text-[12px] font-semibold text-[#5C5240] mb-1">Ingredients</p>
+            <p className="text-[11px] text-[#8A8272] mb-2">
+              Add each ingredient and how many grams go into one serving — calories, protein, carbs, and fat are worked
+              out for you.
+            </p>
+            <div className="flex flex-col gap-2">
+              {lines.map((line) => (
+                <div key={line.id} className="flex items-center gap-2">
+                  <select
+                    value={line.ingredient}
+                    onChange={(e) => updateLine(line.id, { ingredient: e.target.value as IngredientKey })}
+                    className={`${inputCls} flex-1`}
+                  >
+                    {ALL_INGREDIENTS.map((key) => (
+                      <option key={key} value={key}>
+                        {INGREDIENT_DB[key].label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={line.grams}
+                    onChange={(e) => updateLine(line.id, { grams: e.target.value })}
+                    type="number"
+                    className={`${inputCls} w-20`}
+                    placeholder="g"
+                  />
+                  <span className="text-[11px] text-[#8A8272] shrink-0">g</span>
+                  <button
+                    type="button"
+                    onClick={() => removeLine(line.id)}
+                    className="w-7 h-7 rounded-full bg-[#F7E9E2] text-[#B0553C] flex items-center justify-center shrink-0"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addLine}
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-3 py-1.5 rounded-full self-start"
+              >
+                <Plus size={13} />
+                Add ingredient
+              </button>
+            </div>
+
+            {ingredientLines.length > 0 && (
+              <div className="mt-3 bg-[#F3E9D2] rounded-xl px-3 py-2.5 grid grid-cols-4 gap-2 text-center">
+                <div>
+                  <p className="text-[13px] font-bold text-[#22201B]">{Math.round(nutrition.calories)}</p>
+                  <p className="text-[10px] text-[#8A6B3F]">kcal</p>
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-[#22201B]">{Math.round(nutrition.protein)}g</p>
+                  <p className="text-[10px] text-[#8A6B3F]">Protein</p>
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-[#22201B]">{Math.round(nutrition.carbs)}g</p>
+                  <p className="text-[10px] text-[#8A6B3F]">Carbs</p>
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-[#22201B]">{Math.round(nutrition.fat)}g</p>
+                  <p className="text-[10px] text-[#8A6B3F]">Fat</p>
+                </div>
+              </div>
+            )}
+          </div>
 
           <Field label="Allergy note">
             <input value={allergyNote} onChange={(e) => setAllergyNote(e.target.value)} className={inputCls} placeholder="Contains gluten, dairy." />

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabaseClient";
 import { usePersistentState } from "./usePersistentState";
 import { DEFAULT_MENU, type Dish } from "../data/menu";
+import type { IngredientLine } from "../data/ingredients";
 
 interface MenuRow {
   id: string;
@@ -12,11 +13,15 @@ interface MenuRow {
   image: string;
   tags: Dish["tags"];
   calories: number | null;
-  detail: string | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  ingredient_lines: IngredientLine[] | null;
   ingredients: string[];
   allergy_note: string;
   category: Dish["category"];
   sold_out: boolean;
+  prep_time_minutes: number | null;
 }
 
 function fromRow(row: MenuRow): Dish {
@@ -29,11 +34,15 @@ function fromRow(row: MenuRow): Dish {
     image: row.image,
     tags: row.tags,
     calories: row.calories ?? undefined,
-    detail: row.detail ?? undefined,
+    protein: row.protein ?? undefined,
+    carbs: row.carbs ?? undefined,
+    fat: row.fat ?? undefined,
+    ingredientLines: row.ingredient_lines ?? undefined,
     ingredients: row.ingredients,
     allergyNote: row.allergy_note,
     category: row.category,
     soldOut: row.sold_out,
+    prepTimeMinutes: row.prep_time_minutes ?? undefined,
   };
 }
 
@@ -48,11 +57,15 @@ function toRow(restaurantId: string, dish: Dish) {
     image: dish.image,
     tags: dish.tags,
     calories: dish.calories ?? null,
-    detail: dish.detail ?? null,
+    protein: dish.protein ?? null,
+    carbs: dish.carbs ?? null,
+    fat: dish.fat ?? null,
+    ingredient_lines: dish.ingredientLines ?? null,
     ingredients: dish.ingredients,
     allergy_note: dish.allergyNote,
     category: dish.category,
     sold_out: dish.soldOut ?? false,
+    prep_time_minutes: dish.prepTimeMinutes ?? null,
   };
 }
 

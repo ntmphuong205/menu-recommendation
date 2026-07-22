@@ -1,3 +1,5 @@
+import { computeNutrition, type IngredientLine } from "./ingredients";
+
 export type TagKey =
   | "spicy"
   | "lowCalorie"
@@ -39,12 +41,19 @@ export interface Dish {
   descriptions?: Partial<Record<"vi" | "en" | "ko", string>>;
   image: string;
   tags: TagKey[];
+  /** Computed from ingredientLines via computeNutrition() — the owner enters
+   *  ingredients + grams, the app works these numbers out automatically. */
   calories?: number;
-  detail?: string; // extra nutrition fact e.g. "Protein: 25g"
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  ingredientLines?: IngredientLine[];
   ingredients: string[];
   allergyNote: string;
   category: "Main" | "Starter" | "Beverage" | "Side";
   soldOut?: boolean;
+  /** Kitchen prep time, used to estimate wait time and queue position. */
+  prepTimeMinutes?: number;
 }
 
 export const DEFAULT_MENU: Dish[] = [
@@ -60,11 +69,18 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1597345637412-9fd611e758f3?w=600&q=80",
     tags: ["spicy", "warm", "hearty"],
-    calories: 480,
-    detail: "Protein: 28g",
+    ingredientLines: [
+      { ingredient: "riceVermicelli", grams: 180 },
+      { ingredient: "beef", grams: 70 },
+      { ingredient: "pork", grams: 50 },
+      { ingredient: "lemongrass", grams: 5 },
+      { ingredient: "herbs", grams: 8 },
+      { ingredient: "chili", grams: 3 },
+    ],
     ingredients: ["Rice vermicelli", "Beef shank", "Pork knuckle", "Lemongrass", "Chili oil", "Herbs"],
     allergyNote: "Contains shrimp paste (mắm ruốc) and shellfish.",
     category: "Main",
+    prepTimeMinutes: 12,
   },
   {
     id: "bun-cha",
@@ -77,11 +93,17 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1763703544688-2ac7839b0659?w=600&q=80",
     tags: ["hearty", "warm"],
-    calories: 520,
-    detail: "Protein: 26g",
+    ingredientLines: [
+      { ingredient: "groundPork", grams: 120 },
+      { ingredient: "riceVermicelli", grams: 150 },
+      { ingredient: "fishSauce", grams: 20 },
+      { ingredient: "herbs", grams: 15 },
+      { ingredient: "carrot", grams: 20 },
+    ],
     ingredients: ["Grilled pork patties", "Rice vermicelli", "Fish sauce broth", "Fresh herbs", "Pickled vegetables"],
     allergyNote: "Contains fish sauce and peanuts (garnish).",
     category: "Main",
+    prepTimeMinutes: 15,
   },
   {
     id: "cha-gio",
@@ -94,10 +116,18 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1679310290259-78d9eaa32700?w=600&q=80",
     tags: ["crispy", "popular"],
-    calories: 310,
+    ingredientLines: [
+      { ingredient: "ricePaper", grams: 40 },
+      { ingredient: "groundPork", grams: 60 },
+      { ingredient: "mushroom", grams: 15 },
+      { ingredient: "glassNoodles", grams: 20 },
+      { ingredient: "carrot", grams: 15 },
+      { ingredient: "driedShrimp", grams: 10 },
+    ],
     ingredients: ["Rice paper", "Ground pork", "Wood ear mushroom", "Glass noodles", "Carrot", "Dried shrimp"],
     allergyNote: "Contains shellfish (dried shrimp) and gluten.",
     category: "Starter",
+    prepTimeMinutes: 10,
   },
   {
     id: "banh-mi-thit-nuong",
@@ -110,11 +140,18 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1700937244987-92488ab2ada5?w=600&q=80",
     tags: ["hearty", "crispy", "popular"],
-    calories: 450,
-    detail: "Protein: 24g",
+    ingredientLines: [
+      { ingredient: "baguette", grams: 120 },
+      { ingredient: "pork", grams: 70 },
+      { ingredient: "carrot", grams: 20 },
+      { ingredient: "daikon", grams: 20 },
+      { ingredient: "herbs", grams: 5 },
+      { ingredient: "liverPate", grams: 20 },
+    ],
     ingredients: ["Baguette", "Grilled pork", "Pickled carrot & daikon", "Cilantro", "Chili", "Pork liver pâté"],
     allergyNote: "Contains gluten and liver pâté (not vegetarian).",
     category: "Main",
+    prepTimeMinutes: 8,
   },
   {
     id: "com-tam-suon",
@@ -127,11 +164,17 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1766050587783-1c90751275dd?w=600&q=80",
     tags: ["hearty", "highProtein", "popular"],
-    calories: 650,
-    detail: "Protein: 32g",
+    ingredientLines: [
+      { ingredient: "rice", grams: 200 },
+      { ingredient: "pork", grams: 120 },
+      { ingredient: "egg", grams: 55 },
+      { ingredient: "sesameOil", grams: 5 },
+      { ingredient: "fishSauce", grams: 10 },
+    ],
     ingredients: ["Broken rice", "Grilled pork chop", "Fried egg", "Scallion oil", "Fish sauce"],
     allergyNote: "Contains egg and fish sauce.",
     category: "Main",
+    prepTimeMinutes: 15,
   },
   {
     id: "ca-phe-sua-da",
@@ -144,9 +187,15 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1578314675249-a6910f80cc4e?w=600&q=80",
     tags: ["beverage", "cool"],
+    ingredientLines: [
+      { ingredient: "coffee", grams: 150 },
+      { ingredient: "condensedMilk", grams: 30 },
+      { ingredient: "ice", grams: 100 },
+    ],
     ingredients: ["Robusta coffee", "Condensed milk", "Ice"],
     allergyNote: "Contains dairy.",
     category: "Beverage",
+    prepTimeMinutes: 4,
   },
   // --- Korean ---
   {
@@ -160,10 +209,18 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1580651315530-69c8e0026377?w=600&q=80",
     tags: ["spicy", "warm", "hearty"],
-    calories: 560,
+    ingredientLines: [
+      { ingredient: "riceCake", grams: 100 },
+      { ingredient: "ramenNoodles", grams: 80 },
+      { ingredient: "kimchi", grams: 40 },
+      { ingredient: "fishCake", grams: 40 },
+      { ingredient: "egg", grams: 55 },
+      { ingredient: "gochujangSauce", grams: 20 },
+    ],
     ingredients: ["Rice cakes", "Ramen noodles", "Kimchi", "Fish cake", "Boiled egg", "Gochujang broth"],
     allergyNote: "Contains gluten, egg, and seafood (fish cake).",
     category: "Main",
+    prepTimeMinutes: 12,
   },
   {
     id: "bibimbap",
@@ -176,11 +233,19 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1718777791239-c473e9ce7376?w=600&q=80",
     tags: ["lowCalorie", "highProtein", "popular"],
-    calories: 420,
-    detail: "Protein: 22g",
+    ingredientLines: [
+      { ingredient: "rice", grams: 180 },
+      { ingredient: "beef", grams: 60 },
+      { ingredient: "carrot", grams: 20 },
+      { ingredient: "lettuce", grams: 30 },
+      { ingredient: "beanSprouts", grams: 20 },
+      { ingredient: "egg", grams: 55 },
+      { ingredient: "gochujangSauce", grams: 15 },
+    ],
     ingredients: ["Rice", "Marinated beef", "Carrot", "Spinach", "Bean sprouts", "Fried egg", "Gochujang sauce"],
     allergyNote: "Contains egg, soy, and sesame.",
     category: "Main",
+    prepTimeMinutes: 10,
   },
   {
     id: "bulgogi",
@@ -193,11 +258,17 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1632558610168-8377309e34c7?w=600&q=80",
     tags: ["hearty", "highProtein", "popular"],
-    calories: 580,
-    detail: "Protein: 38g",
+    ingredientLines: [
+      { ingredient: "beef", grams: 180 },
+      { ingredient: "onion", grams: 30 },
+      { ingredient: "sesameOil", grams: 10 },
+      { ingredient: "scallion", grams: 10 },
+      { ingredient: "soySauce", grams: 20 },
+    ],
     ingredients: ["Beef sirloin", "Soy-garlic marinade", "Onion", "Sesame oil", "Scallion"],
     allergyNote: "Contains soy and sesame.",
     category: "Main",
+    prepTimeMinutes: 14,
   },
   {
     id: "tteokbokki",
@@ -210,10 +281,16 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1679581083578-94eae6e8d7a4?w=600&q=80",
     tags: ["spicy"],
-    calories: 380,
+    ingredientLines: [
+      { ingredient: "riceCake", grams: 150 },
+      { ingredient: "fishCake", grams: 50 },
+      { ingredient: "gochujangSauce", grams: 30 },
+      { ingredient: "scallion", grams: 10 },
+    ],
     ingredients: ["Rice cakes", "Fish cake", "Gochujang sauce", "Scallion"],
     allergyNote: "Contains gluten and seafood (fish cake).",
     category: "Side",
+    prepTimeMinutes: 10,
   },
   {
     id: "japchae",
@@ -226,10 +303,19 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1583032015879-e5022cb87c3b?w=600&q=80",
     tags: ["vegan", "lowCalorie"],
-    calories: 340,
+    ingredientLines: [
+      { ingredient: "glassNoodles", grams: 100 },
+      { ingredient: "lettuce", grams: 20 },
+      { ingredient: "carrot", grams: 20 },
+      { ingredient: "mushroom", grams: 15 },
+      { ingredient: "onion", grams: 15 },
+      { ingredient: "sesameOil", grams: 10 },
+      { ingredient: "soySauce", grams: 15 },
+    ],
     ingredients: ["Sweet potato glass noodles", "Spinach", "Carrot", "Mushroom", "Onion", "Sesame oil", "Soy sauce"],
     allergyNote: "Contains soy and sesame.",
     category: "Starter",
+    prepTimeMinutes: 12,
   },
   {
     id: "yuja-cha",
@@ -242,11 +328,25 @@ export const DEFAULT_MENU: Dish[] = [
     },
     image: "https://images.unsplash.com/photo-1623084921164-4a8c5c37a912?w=600&q=80",
     tags: ["beverage", "cool", "vegan"],
+    ingredientLines: [
+      { ingredient: "citronMarmalade", grams: 40 },
+      { ingredient: "ice", grams: 150 },
+    ],
     ingredients: ["Citron marmalade", "Hot or cold water", "Ice"],
     allergyNote: "No common allergens.",
     category: "Beverage",
+    prepTimeMinutes: 3,
   },
 ];
+
+DEFAULT_MENU.forEach((dish) => {
+  if (!dish.ingredientLines) return;
+  const totals = computeNutrition(dish.ingredientLines);
+  dish.calories = Math.round(totals.calories);
+  dish.protein = Math.round(totals.protein);
+  dish.carbs = Math.round(totals.carbs);
+  dish.fat = Math.round(totals.fat);
+});
 
 export const BEST_SELLERS = ["com-tam-suon", "bulgogi", "banh-mi-thit-nuong"];
 

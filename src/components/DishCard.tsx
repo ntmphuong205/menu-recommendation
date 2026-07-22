@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, Star } from "lucide-react";
 import type { Dish } from "../data/menu";
 import { TagPill } from "./TagPill";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 
 export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "chat" | "grid" }) {
-  const { setSelectedDishId, placeDirectOrder } = useApp();
+  const { setSelectedDishId, placeDirectOrder, getDishRating } = useApp();
   const { t } = useI18n();
   const [ordered, setOrdered] = useState(false);
   const soldOut = !!dish.soldOut;
+  const rating = getDishRating(dish.id);
 
   if (variant === "grid") {
     return (
@@ -27,7 +28,15 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
         </div>
         <div className="p-2.5">
           <p className="text-[13px] font-semibold text-[#22201B] leading-tight line-clamp-1">{dish.name}</p>
-          <p className="text-[12px] text-[#2D5A3D] font-bold mt-0.5">${dish.price.toFixed(2)}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <p className="text-[12px] text-[#2D5A3D] font-bold">${dish.price.toFixed(2)}</p>
+            {rating.count > 0 && (
+              <span className="flex items-center gap-0.5 text-[10.5px] text-[#8A8272]">
+                <Star size={10} className="text-[#E0A83C] fill-[#E0A83C]" />
+                {rating.average.toFixed(1)}
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap gap-1 mt-1.5">
             {dish.tags.slice(0, 2).map((tag) => (
               <TagPill key={tag} tag={tag} />

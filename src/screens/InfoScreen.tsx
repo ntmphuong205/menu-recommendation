@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Clock, MapPin, Star, ChevronDown, MessageCircle } from "lucide-react";
+import { Clock, MapPin, Star, ChevronDown, MessageCircle, Bell } from "lucide-react";
 import { RESTAURANT, FAQ } from "../data/restaurant";
 import { BEST_SELLERS } from "../data/menu";
 import { DishCard } from "../components/DishCard";
+import { CallStaffModal } from "../components/CallStaffModal";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 
@@ -10,6 +11,7 @@ export function InfoScreen() {
   const { setActiveTab, menu } = useApp();
   const { t } = useI18n();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [showCallStaff, setShowCallStaff] = useState(false);
   const bestSellers = menu.filter((d) => BEST_SELLERS.includes(d.id));
 
   return (
@@ -81,15 +83,26 @@ export function InfoScreen() {
             </div>
           </div>
 
-          <button
-            onClick={() => setActiveTab("chat")}
-            className="flex items-center justify-center gap-2 w-full bg-[#2D5A3D] text-white font-semibold text-[13px] py-3 rounded-full active:scale-[0.98] transition-transform mt-1"
-          >
-            <MessageCircle size={15} />
-            {t("info_ask_chat")}
-          </button>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={() => setActiveTab("chat")}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#2D5A3D] text-white font-semibold text-[13px] py-3 rounded-full active:scale-[0.98] transition-transform"
+            >
+              <MessageCircle size={15} />
+              {t("info_ask_chat")}
+            </button>
+            <button
+              onClick={() => setShowCallStaff(true)}
+              className="flex-1 flex items-center justify-center gap-2 bg-white border border-black/10 text-[#22201B] font-semibold text-[13px] py-3 rounded-full active:scale-[0.98] transition-transform"
+            >
+              <Bell size={15} />
+              {t("info_call_staff")}
+            </button>
+          </div>
         </div>
       </div>
+
+      {showCallStaff && <CallStaffModal onClose={() => setShowCallStaff(false)} />}
     </div>
   );
 }

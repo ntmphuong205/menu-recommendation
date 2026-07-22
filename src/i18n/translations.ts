@@ -74,6 +74,12 @@ const dict = {
 
   // Dish sheet
   dish_ingredients: { vi: "Nguyên liệu", en: "Ingredients", ko: "재료" },
+  nutrition_calories: { vi: "Calo", en: "Calories", ko: "칼로리" },
+  nutrition_protein: { vi: "Đạm", en: "Protein", ko: "단백질" },
+  nutrition_carbs: { vi: "Tinh bột", en: "Carbs", ko: "탄수화물" },
+  nutrition_fat: { vi: "Chất béo", en: "Fat", ko: "지방" },
+  nutrition_prep_time: { vi: "Thời gian chế biến", en: "Prep time", ko: "조리 시간" },
+  nutrition_minutes: { vi: "phút", en: "min", ko: "분" },
   dish_add_to_cart: { vi: "Thêm vào giỏ", en: "Add to cart", ko: "장바구니에 담기" },
   dish_added: { vi: "Đã thêm ✓", en: "Added to cart ✓", ko: "담았어요 ✓" },
 
@@ -95,12 +101,44 @@ const dict = {
     ko: "테이블 {table}의 주문이 주방으로 전달되었습니다. 곧 음식이 준비됩니다!",
   },
   cart_back_to_chat: { vi: "Về trò chuyện", en: "Back to Chat", ko: "채팅으로 돌아가기" },
+  cart_queue_position: { vi: "Vị trí hàng đợi", en: "Queue position", ko: "대기 순번" },
+  cart_estimated_wait: { vi: "Thời gian chờ dự kiến", en: "Estimated wait", ko: "예상 대기 시간" },
+  cart_your_orders: { vi: "Đơn của bạn", en: "Your orders", ko: "내 주문" },
+  cart_cancel_order: { vi: "Huỷ đơn", en: "Cancel order", ko: "주문 취소" },
+  cart_cancel_confirm: {
+    vi: "Bạn có chắc muốn huỷ đơn này không?",
+    en: "Are you sure you want to cancel this order?",
+    ko: "정말 이 주문을 취소하시겠습니까?",
+  },
 
   // Info screen
   info_best_sellers: { vi: "Món bán chạy", en: "Best Sellers", ko: "인기 메뉴" },
   info_hours: { vi: "Giờ mở cửa", en: "Opening Hours", ko: "영업시간" },
   info_faq: { vi: "Câu hỏi thường gặp", en: "Frequently Asked Questions", ko: "자주 묻는 질문" },
   info_ask_chat: { vi: "Hỏi thêm qua Chat", en: "Ask more via Chat", ko: "채팅으로 더 물어보기" },
+  info_call_staff: { vi: "Gọi nhân viên", en: "Call Staff", ko: "직원 호출" },
+  call_reason_help: { vi: "Cần hỗ trợ", en: "Need help", ko: "도움이 필요해요" },
+  call_reason_change_order: { vi: "Muốn đổi món", en: "Change my order", ko: "메뉴 변경 요청" },
+  call_reason_bill: { vi: "Xin thanh toán", en: "Ask for the bill", ko: "계산서 요청" },
+  call_sent_title: { vi: "Đã gửi yêu cầu!", en: "Request sent!", ko: "요청을 보냈어요!" },
+  call_sent_desc: {
+    vi: "Nhân viên sẽ tới bàn {table} ngay.",
+    en: "A staff member is on their way to Table {table}.",
+    ko: "직원이 곧 테이블 {table}로 갈게요.",
+  },
+  call_close: { vi: "Đóng", en: "Close", ko: "닫기" },
+
+  // Reviews
+  review_title: { vi: "Đánh giá", en: "Reviews", ko: "리뷰" },
+  review_none: { vi: "Chưa có đánh giá nào", en: "No reviews yet", ko: "아직 리뷰가 없어요" },
+  review_write: { vi: "Viết đánh giá", en: "Write a review", ko: "리뷰 작성" },
+  review_placeholder: {
+    vi: "Bạn thấy món này thế nào?",
+    en: "How was this dish?",
+    ko: "이 메뉴는 어땠나요?",
+  },
+  review_submit: { vi: "Gửi đánh giá", en: "Submit review", ko: "리뷰 등록" },
+  review_thanks: { vi: "Cảm ơn bạn đã đánh giá! ✓", en: "Thanks for your review! ✓", ko: "리뷰 감사합니다! ✓" },
 
   // Owner dashboard
   owner_dashboard: { vi: "Trang quản lý", en: "Owner Dashboard", ko: "사장님 대시보드" },
@@ -109,6 +147,8 @@ const dict = {
   owner_nav_analytics: { vi: "Thống kê", en: "Analytics", ko: "분석" },
   owner_nav_tables: { vi: "Mã QR bàn", en: "Table QR Codes", ko: "테이블 QR 코드" },
   owner_view_customer: { vi: "Xem app khách hàng", en: "View customer app", ko: "고객 앱 보기" },
+  owner_table_requests: { vi: "Yêu cầu từ bàn", en: "Table Requests", ko: "테이블 요청" },
+  owner_resolve: { vi: "Đã xử lý", en: "Resolve", ko: "처리 완료" },
   owner_logout: { vi: "Đăng xuất", en: "Log out", ko: "로그아웃" },
 
   // Menu management table
