@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt, Sparkles } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
+import { LangSwitcher } from "../components/LangSwitcher";
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL, type Order, type OrderStatus } from "../data/orders";
 import { getPairingReason, type Dish } from "../data/menu";
 
@@ -208,6 +209,10 @@ export function CartScreen() {
   if (cart.length === 0) {
     return (
       <div className="flex flex-col h-full">
+        <div className="shrink-0 px-4 pt-2 pb-3 border-b border-black/5 bg-[#FBF7EF] flex items-center justify-between">
+          <h1 className="text-[19px] font-bold text-[#22201B]">{t("cart_title")}</h1>
+          <LangSwitcher />
+        </div>
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center gap-3">
           <div className="w-16 h-16 rounded-full bg-[#EFE9D8] flex items-center justify-center">
             <ShoppingBag size={28} className="text-[#B0A794]" />
@@ -235,6 +240,7 @@ export function CartScreen() {
             {t("chat_table")} {tableNumber}
           </p>
         </div>
+        <LangSwitcher />
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">

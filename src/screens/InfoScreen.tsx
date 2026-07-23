@@ -4,6 +4,7 @@ import { RESTAURANT, FAQ, getRestaurantText, getHoursLabel, getFaqText } from ".
 import { BEST_SELLERS } from "../data/menu";
 import { DishCard } from "../components/DishCard";
 import { CallStaffModal } from "../components/CallStaffModal";
+import { LangSwitcher } from "../components/LangSwitcher";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 
@@ -18,7 +19,10 @@ export function InfoScreen() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="h-28 bg-gradient-to-br from-[#2D5A3D] to-[#1F3D2B] flex items-end px-4 pb-4">
+        <div className="relative h-28 bg-gradient-to-br from-[#2D5A3D] to-[#1F3D2B] flex items-end px-4 pb-4">
+          <div className="absolute top-4 right-4">
+            <LangSwitcher dark />
+          </div>
           <div>
             <h1 className="text-[20px] font-bold text-white">{RESTAURANT.name}</h1>
             <p className="text-[12px] text-white/80">{restaurantText.tagline}</p>

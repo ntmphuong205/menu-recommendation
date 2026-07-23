@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { Dish, TagKey } from "../data/menu";
 import { DishCard } from "../components/DishCard";
+import { LangSwitcher } from "../components/LangSwitcher";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
@@ -41,7 +42,10 @@ export function MenuScreen() {
   return (
     <div className="flex flex-col h-full">
       <div className="shrink-0 px-4 pt-2 pb-3 border-b border-black/5 bg-[#FBF7EF]">
-        <h1 className="text-[19px] font-bold text-[#22201B] mb-2.5">{t("menu_title")}</h1>
+        <div className="flex items-center justify-between mb-2.5">
+          <h1 className="text-[19px] font-bold text-[#22201B]">{t("menu_title")}</h1>
+          <LangSwitcher />
+        </div>
         <div className="flex items-center gap-2 bg-white rounded-full px-3.5 py-2 border border-black/10 mb-2.5">
           <Search size={15} className="text-[#B0A794]" />
           <input
