@@ -21,6 +21,15 @@ export function ChatScreen() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, typing]);
 
+  // The greeting is created once on mount (often before the customer picks a
+  // language on the Welcome screen). Re-generate it in the new language as
+  // long as nothing has actually been said yet — once the customer has sent
+  // a message, leave the conversation history alone.
+  useEffect(() => {
+    setMessages((prev) => (prev.some((m) => m.from === "user") ? prev : initialMessages(lang)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
+
   const send = (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
