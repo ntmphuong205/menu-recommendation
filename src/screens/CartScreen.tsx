@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt, Sparkles } from "lucide-react";
 import { useApp } from "../context/AppContext";
+import type { QueueInfo } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
-import { ACTIVE_STATUSES, ORDER_STATUS_LABEL, type Order, type OrderStatus } from "../data/orders";
+import { ACTIVE_STATUSES, ORDER_STATUS_LABEL, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { getPairingReason, type Dish } from "../data/menu";
 
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
@@ -12,10 +13,6 @@ const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
   served: "bg-[#E5F3EA] text-[#2D5A3D]",
   cancelled: "bg-[#F7E9E2] text-[#B0553C]",
 };
-
-function orderTotal(order: Order) {
-  return order.items.reduce((sum, i) => sum + i.price * i.qty, 0);
-}
 
 function MyOrdersSection() {
   const { orders, tableNumber, cancelOrder, getQueueInfo } = useApp();
@@ -29,25 +26,27 @@ function MyOrdersSection() {
 
   if (myOrders.length === 0) return null;
 
-  // Cancelled orders never happened — they show in the list but don't count
-  // toward the running bill total.
+  // Cancelled orders/items never happened — orderTotal() already excludes
+  // individually-cancelled items; skip fully-cancelled orders too.
   const billTotal = myOrders.filter((o) => o.status !== "cancelled").reduce((sum, o) => sum + orderTotal(o), 0);
 
   return (
     <div className="px-4 pt-3 flex flex-col gap-2.5">
       <h2 className="text-[12px] font-bold text-[#8A8272] uppercase tracking-wide">{t("cart_your_orders")}</h2>
       {myOrders.map((order) => {
-        const active = ACTIVE_STATUSES.includes(order.status);
-        const queue = active ? getQueueInfo(order) : null;
+        const firstActiveIdx = order.items.findIndex((i) => ACTIVE_STATUSES.includes(i.status));
+        const orderQueue = firstActiveIdx >= 0 ? getQueueInfo(order, firstActiveIdx) : null;
         return (
-          <div
-            key={order.id}
-            className={`bg-white rounded-2xl p-3 border border-black/5 shadow-sm ${order.status === "cancelled" ? "opacity-60" : ""}`}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE_STYLE[order.status]}`}>
-                {ORDER_STATUS_LABEL[order.status]}
-              </span>
+          <div key={order.id} className="bg-white rounded-2xl p-3 border border-black/5 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              {orderQueue ? (
+                <span className="flex items-center gap-1 text-[11px] text-[#8A8272]">
+                  <Users size={11} />
+                  {t("cart_queue_position")}: #{orderQueue.position}
+                </span>
+              ) : (
+                <span />
+              )}
               {order.status === "new" && (
                 <button
                   onClick={() => {
@@ -60,25 +59,34 @@ function MyOrdersSection() {
                 </button>
               )}
             </div>
-            <p className="text-[12.5px] text-[#22201B] mb-1.5">
-              {order.items.map((i) => `${i.qty}× ${i.dishName}`).join(", ")}
-            </p>
-            <div className="flex items-center justify-between">
-              {queue ? (
-                <div className="flex items-center gap-3 text-[11px] text-[#8A8272]">
-                  <span className="flex items-center gap-1">
-                    <Users size={11} />
-                    {t("cart_queue_position")}: #{queue.position}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock3 size={11} />
-                    {t("cart_estimated_wait")}: ~{queue.estimatedMinutes} {t("nutrition_minutes")}
-                  </span>
-                </div>
-              ) : (
-                <span />
-              )}
-              <span className="text-[12px] font-bold text-[#2D5A3D]">${orderTotal(order).toFixed(2)}</span>
+            <div className="flex flex-col gap-2">
+              {order.items.map((item, idx) => {
+                const queue = getQueueInfo(order, idx);
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-center justify-between gap-2 ${item.status === "cancelled" ? "opacity-50" : ""}`}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[12.5px] text-[#22201B] font-medium truncate">
+                        {item.qty}× {item.dishName}
+                      </p>
+                      {queue && (
+                        <p className="flex items-center gap-1 text-[10.5px] text-[#8A8272] mt-0.5">
+                          <Clock3 size={10} />
+                          {t("cart_estimated_wait")}: ~{queue.estimatedMinutes} {t("nutrition_minutes")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_BADGE_STYLE[item.status]}`}>
+                        {ORDER_STATUS_LABEL[item.status]}
+                      </span>
+                      <span className="text-[12px] font-bold text-[#2D5A3D]">${(item.price * item.qty).toFixed(2)}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
@@ -160,7 +168,15 @@ function PairingSuggestions() {
 function OrderPlacedScreen({ order, onDone }: { order: Order | undefined; onDone: () => void }) {
   const { setActiveTab, tableNumber, getQueueInfo } = useApp();
   const { t } = useI18n();
-  const queue = order ? getQueueInfo(order) : null;
+  // All items just went in as "new" — summarize with the first item's queue
+  // position and the longest individual wait across the order.
+  const itemQueues = order
+    ? order.items.map((_, idx) => getQueueInfo(order, idx)).filter((q): q is QueueInfo => q !== null)
+    : [];
+  const queue =
+    itemQueues.length > 0
+      ? { position: itemQueues[0].position, estimatedMinutes: Math.max(...itemQueues.map((q) => q.estimatedMinutes)) }
+      : null;
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 text-center gap-3">

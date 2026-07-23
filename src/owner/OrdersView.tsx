@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { Clock3, ArrowRight, PackageCheck, XCircle, Ban, BellRing, Check } from "lucide-react";
+import { Clock3, ArrowRight, PackageCheck, XCircle, Ban, BellRing, Check, X } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import { NEXT_STATUS, ORDER_STATUS_LABEL, ACTIVE_STATUSES, type Order, type OrderStatus } from "../data/orders";
+import { NEXT_STATUS, ORDER_STATUS_LABEL, ACTIVE_STATUSES, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { useI18n } from "../i18n/I18nContext";
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
@@ -20,12 +20,8 @@ function timeAgo(ts: number): string {
   return `${diffHr} hr ago`;
 }
 
-function orderTotal(order: Order) {
-  return order.items.reduce((sum, i) => sum + i.price * i.qty, 0);
-}
-
 export function OrdersView() {
-  const { orders, updateOrderStatus, cancelOrder, tableRequests, resolveRequest } = useApp();
+  const { orders, updateItemStatus, cancelOrder, tableRequests, resolveRequest } = useApp();
   const { t } = useI18n();
 
   const pendingRequests = useMemo(() => tableRequests.filter((r) => !r.resolved), [tableRequests]);
@@ -110,47 +106,64 @@ export function OrdersView() {
               {tableOrders.map((order) => (
                 <div key={order.id} className="border-b border-black/5 last:border-0 pb-4 last:pb-0">
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[order.status]}`}>
-                      {ORDER_STATUS_LABEL[order.status]}
-                    </span>
-                    <span className="flex items-center gap-1 text-[11px] text-[#B0A794]">
+                    <span className="flex items-center gap-1 text-[11px] text-[#B0A774]">
                       <Clock3 size={11} />
                       {timeAgo(order.createdAt)}
                     </span>
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Cancel this whole order for Table ${order.tableNumber}?`)) cancelOrder(order.id);
+                      }}
+                      className="flex items-center gap-1 text-[11px] font-semibold text-[#B0553C]"
+                    >
+                      <Ban size={11} />
+                      Cancel order
+                    </button>
                   </div>
-                  <div className="flex flex-col gap-1 mb-2">
+                  <div className="flex flex-col gap-2 mb-2">
                     {order.items.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between text-[13px]">
-                        <span className="text-[#22201B]">
-                          {item.qty}× {item.dishName}
-                          {item.note && <span className="text-[#B0553C]"> ({item.note})</span>}
-                        </span>
-                        <span className="text-[#5C5240] font-medium">${(item.price * item.qty).toFixed(2)}</span>
+                      <div
+                        key={i}
+                        className={`flex items-center justify-between gap-2 text-[13px] ${item.status === "cancelled" ? "opacity-50" : ""}`}
+                      >
+                        <div className="min-w-0">
+                          <span className="text-[#22201B]">
+                            {item.qty}× {item.dishName}
+                            {item.note && <span className="text-[#B0553C]"> ({item.note})</span>}
+                          </span>
+                          <span className="text-[#5C5240] font-medium ml-2">${(item.price * item.qty).toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[item.status]}`}>
+                            {ORDER_STATUS_LABEL[item.status]}
+                          </span>
+                          {NEXT_STATUS[item.status] && (
+                            <button
+                              onClick={() => updateItemStatus(order.id, i, NEXT_STATUS[item.status]!)}
+                              title={`Mark ${ORDER_STATUS_LABEL[NEXT_STATUS[item.status]!]}`}
+                              className="flex items-center gap-0.5 text-[10.5px] font-semibold text-white bg-[#2D5A3D] px-2 py-1 rounded-full active:scale-95 transition-transform whitespace-nowrap"
+                            >
+                              <ArrowRight size={10} />
+                            </button>
+                          )}
+                          {ACTIVE_STATUSES.includes(item.status) && (
+                            <button
+                              onClick={() => updateItemStatus(order.id, i, "cancelled")}
+                              title="Cancel this item"
+                              className="flex items-center justify-center w-6 h-6 rounded-full text-[#B0553C] bg-[#F7E9E2] active:scale-95 transition-transform shrink-0"
+                            >
+                              <X size={11} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
                   <div className="flex items-center justify-between">
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[order.status]}`}>
+                      {ORDER_STATUS_LABEL[order.status]}
+                    </span>
                     <span className="text-[12px] font-bold text-[#2D5A3D]">${orderTotal(order).toFixed(2)}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`Cancel this order for Table ${order.tableNumber}?`)) cancelOrder(order.id);
-                        }}
-                        className="flex items-center gap-1 text-[12px] font-semibold text-[#B0553C] bg-[#F7E9E2] px-3 py-1.5 rounded-full active:scale-95 transition-transform"
-                      >
-                        <Ban size={12} />
-                        Cancel
-                      </button>
-                      {NEXT_STATUS[order.status] && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, NEXT_STATUS[order.status]!)}
-                          className="flex items-center gap-1 text-[12px] font-semibold text-white bg-[#2D5A3D] px-3 py-1.5 rounded-full active:scale-95 transition-transform"
-                        >
-                          Mark {ORDER_STATUS_LABEL[NEXT_STATUS[order.status]!]}
-                          <ArrowRight size={12} />
-                        </button>
-                      )}
-                    </div>
                   </div>
                 </div>
               ))}

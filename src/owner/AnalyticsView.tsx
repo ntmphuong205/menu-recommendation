@@ -1,13 +1,9 @@
 import { useMemo, useState } from "react";
 import { TrendingUp, Receipt, Wallet, Table2, BarChart3 } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import type { Order } from "../data/orders";
+import { orderTotal } from "../data/orders";
 
 const BRAND_GREEN = "#2D5A3D";
-
-function orderTotal(order: Order) {
-  return order.items.reduce((sum, i) => sum + i.price * i.qty, 0);
-}
 
 function formatMoney(n: number) {
   return `$${n.toFixed(2)}`;
@@ -22,7 +18,8 @@ export function AnalyticsView() {
   const [view, setView] = useState<"chart" | "table">("chart");
 
   const totalRevenue = useMemo(() => orders.reduce((sum, o) => sum + orderTotal(o), 0), [orders]);
-  const totalOrders = orders.length;
+  // Cancelled orders never happened — don't let them drag down average order value.
+  const totalOrders = orders.filter((o) => o.status !== "cancelled").length;
   const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
   const revenueByDay = useMemo(() => {
@@ -40,6 +37,7 @@ export function AnalyticsView() {
     const map = new Map<string, { name: string; revenue: number; qty: number }>();
     for (const o of orders) {
       for (const item of o.items) {
+        if (item.status === "cancelled") continue;
         const entry = map.get(item.dishId) ?? { name: item.dishName, revenue: 0, qty: 0 };
         entry.revenue += item.price * item.qty;
         entry.qty += item.qty;

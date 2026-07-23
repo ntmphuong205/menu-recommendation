@@ -62,8 +62,8 @@ create table if not exists orders (
   id uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null references restaurants(id) on delete cascade,
   table_number int not null,
-  items jsonb not null,
-  status text not null default 'new', -- 'new' | 'preparing' | 'served' | 'cancelled'
+  items jsonb not null, -- [{ dishId, dishName, qty, price, note?, status }, ...] — each item tracks its own kitchen status independently
+  status text not null default 'new', -- 'new' | 'preparing' | 'served' | 'cancelled' — kept in sync with item statuses via deriveOrderStatus()
   created_at timestamptz not null default now()
 );
 

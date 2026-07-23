@@ -46,8 +46,10 @@ interface AppContextValue {
   orders: Order[];
   placeOrder: (tableNumber: number) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  updateItemStatus: (orderId: string, itemIndex: number, status: OrderStatus) => void;
   cancelOrder: (orderId: string) => void;
-  getQueueInfo: (order: Order) => QueueInfo;
+  /** Wait/queue info for one item within an order — null once that item is no longer active. */
+  getQueueInfo: (order: Order, itemIndex: number) => QueueInfo | null;
 
   // per-dish ratings & reviews
   reviews: Review[];
@@ -82,7 +84,7 @@ function getTableFromUrl(): number {
 export function AppProvider({ children }: { children: ReactNode }) {
   const restaurantId = useRestaurantId();
   const { menu, addDish, updateDish, deleteDish } = useMenuData(restaurantId);
-  const { orders, placeOrder: placeOrderRaw, updateOrderStatus } = useOrdersData(restaurantId);
+  const { orders, placeOrder: placeOrderRaw, updateOrderStatus, updateItemStatus } = useOrdersData(restaurantId);
   const { reviews, addReview: addReviewRaw } = useReviewsData(restaurantId);
   const { tableRequests, callStaff: callStaffRaw, resolveRequest } = useTableRequestsData(restaurantId);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -121,14 +123,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const cancelOrder = (orderId: string) => updateOrderStatus(orderId, "cancelled");
 
-  const getQueueInfo = (order: Order): QueueInfo => {
+  const getQueueInfo = (order: Order, itemIndex: number): QueueInfo | null => {
+    const item = order.items[itemIndex];
+    if (!item || !ACTIVE_STATUSES.includes(item.status)) return null;
     const active = orders.filter((o) => ACTIVE_STATUSES.includes(o.status)).sort((a, b) => a.createdAt - b.createdAt);
     const position = active.findIndex((o) => o.id === order.id) + 1;
     const ordersAhead = Math.max(0, position - 1);
-    const maxPrepTime = Math.max(0, ...order.items.map((i) => findDish(i.dishId)?.prepTimeMinutes ?? 10));
+    const prepTime = findDish(item.dishId)?.prepTimeMinutes ?? 10;
     return {
       position: position > 0 ? position : active.length + 1,
-      estimatedMinutes: ordersAhead * AVG_MINUTES_PER_ORDER_AHEAD + maxPrepTime,
+      estimatedMinutes: ordersAhead * AVG_MINUTES_PER_ORDER_AHEAD + prepTime,
     };
   };
 
@@ -154,6 +158,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         orders,
         placeOrder,
         updateOrderStatus,
+        updateItemStatus,
         cancelOrder,
         getQueueInfo,
         reviews,
