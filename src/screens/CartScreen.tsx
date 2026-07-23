@@ -20,16 +20,18 @@ function orderTotal(order: Order) {
 function MyOrdersSection() {
   const { orders, tableNumber, cancelOrder, getQueueInfo } = useApp();
   const { t } = useI18n();
-  // Everything this table has ordered so far (except cancelled ones, which
-  // never happened) stays visible here — including once served — so the
-  // customer can always see what they've had and the running bill total.
+  // Everything this table has ordered so far — new, preparing, served, and
+  // cancelled — stays visible here, so the customer always sees the current
+  // status of every item they ordered, not just the ones still active.
   const myOrders = orders
-    .filter((o) => o.tableNumber === tableNumber && o.status !== "cancelled")
+    .filter((o) => o.tableNumber === tableNumber)
     .sort((a, b) => b.createdAt - a.createdAt);
 
   if (myOrders.length === 0) return null;
 
-  const billTotal = myOrders.reduce((sum, o) => sum + orderTotal(o), 0);
+  // Cancelled orders never happened — they show in the list but don't count
+  // toward the running bill total.
+  const billTotal = myOrders.filter((o) => o.status !== "cancelled").reduce((sum, o) => sum + orderTotal(o), 0);
 
   return (
     <div className="px-4 pt-3 flex flex-col gap-2.5">
@@ -38,7 +40,10 @@ function MyOrdersSection() {
         const active = ACTIVE_STATUSES.includes(order.status);
         const queue = active ? getQueueInfo(order) : null;
         return (
-          <div key={order.id} className="bg-white rounded-2xl p-3 border border-black/5 shadow-sm">
+          <div
+            key={order.id}
+            className={`bg-white rounded-2xl p-3 border border-black/5 shadow-sm ${order.status === "cancelled" ? "opacity-60" : ""}`}
+          >
             <div className="flex items-center justify-between mb-1.5">
               <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE_STYLE[order.status]}`}>
                 {ORDER_STATUS_LABEL[order.status]}
@@ -213,20 +218,22 @@ export function CartScreen() {
           <h1 className="text-[19px] font-bold text-[#22201B]">{t("cart_title")}</h1>
           <LangSwitcher />
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center px-8 text-center gap-3">
-          <div className="w-16 h-16 rounded-full bg-[#EFE9D8] flex items-center justify-center">
-            <ShoppingBag size={28} className="text-[#B0A794]" />
+        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
+          <div className="flex flex-col items-center justify-center px-8 py-10 text-center gap-3">
+            <div className="w-16 h-16 rounded-full bg-[#EFE9D8] flex items-center justify-center">
+              <ShoppingBag size={28} className="text-[#B0A794]" />
+            </div>
+            <h2 className="text-[15px] font-bold text-[#22201B]">{t("cart_empty_title")}</h2>
+            <p className="text-[13px] text-[#8A8272] leading-relaxed">{t("cart_empty_desc")}</p>
+            <button
+              onClick={() => setActiveTab("chat")}
+              className="mt-2 px-5 py-2.5 rounded-full bg-[#2D5A3D] text-white text-[13px] font-semibold active:scale-95 transition-transform"
+            >
+              {t("cart_ask_ai")}
+            </button>
           </div>
-          <h2 className="text-[15px] font-bold text-[#22201B]">{t("cart_empty_title")}</h2>
-          <p className="text-[13px] text-[#8A8272] leading-relaxed">{t("cart_empty_desc")}</p>
-          <button
-            onClick={() => setActiveTab("chat")}
-            className="mt-2 px-5 py-2.5 rounded-full bg-[#2D5A3D] text-white text-[13px] font-semibold active:scale-95 transition-transform"
-          >
-            {t("cart_ask_ai")}
-          </button>
+          <MyOrdersSection />
         </div>
-        <MyOrdersSection />
       </div>
     );
   }
