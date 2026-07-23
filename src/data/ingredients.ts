@@ -54,6 +54,18 @@ export const INGREDIENT_DB: Record<string, IngredientNutrition> = {
   citronMarmalade: { label: "Citron marmalade", caloriesPer100g: 250, proteinPer100g: 0.3, carbsPer100g: 62, fatPer100g: 0.1 },
   coffee: { label: "Brewed coffee", caloriesPer100g: 2, proteinPer100g: 0.1, carbsPer100g: 0, fatPer100g: 0 },
   ice: { label: "Ice / water", caloriesPer100g: 0, proteinPer100g: 0, carbsPer100g: 0, fatPer100g: 0 },
+
+  phoNoodles: { label: "Rice noodles (phở)", caloriesPer100g: 110, proteinPer100g: 2, carbsPer100g: 25, fatPer100g: 0.2 },
+  peanutSauce: { label: "Peanut dipping sauce", caloriesPer100g: 280, proteinPer100g: 9, carbsPer100g: 20, fatPer100g: 18 },
+  riceFlourBatter: { label: "Rice flour batter", caloriesPer100g: 150, proteinPer100g: 2.5, carbsPer100g: 32, fatPer100g: 1 },
+  coconutMilk: { label: "Coconut milk", caloriesPer100g: 230, proteinPer100g: 2.3, carbsPer100g: 6, fatPer100g: 24 },
+  fish: { label: "Fish fillet", caloriesPer100g: 105, proteinPer100g: 20, carbsPer100g: 0, fatPer100g: 2.5 },
+  tomato: { label: "Tomato", caloriesPer100g: 18, proteinPer100g: 0.9, carbsPer100g: 3.9, fatPer100g: 0.2 },
+  pineapple: { label: "Pineapple", caloriesPer100g: 50, proteinPer100g: 0.5, carbsPer100g: 13, fatPer100g: 0.1 },
+  tamarindSauce: { label: "Tamarind sauce", caloriesPer100g: 130, proteinPer100g: 1, carbsPer100g: 32, fatPer100g: 0.1 },
+  mungBean: { label: "Mung bean paste", caloriesPer100g: 340, proteinPer100g: 22, carbsPer100g: 60, fatPer100g: 1 },
+  jelly: { label: "Grass jelly / tapioca pearls", caloriesPer100g: 70, proteinPer100g: 0.2, carbsPer100g: 17, fatPer100g: 0.1 },
+  friedDough: { label: "Fried dough sticks (quẩy)", caloriesPer100g: 360, proteinPer100g: 7, carbsPer100g: 45, fatPer100g: 16 },
 };
 
 export type IngredientKey = keyof typeof INGREDIENT_DB;

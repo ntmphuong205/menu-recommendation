@@ -45,6 +45,7 @@ create table if not exists menu_items (
   category text not null default 'Main',
   sold_out boolean not null default false,
   prep_time_minutes int,
+  pairings jsonb, -- [{ dishId: "...", reason: "...", reasons: { vi, ko } }, ...] — upsell suggestions shown on the dish sheet and in the cart
   created_at timestamptz not null default now()
 );
 
@@ -55,6 +56,7 @@ alter table menu_items add column if not exists carbs int;
 alter table menu_items add column if not exists fat int;
 alter table menu_items add column if not exists ingredient_lines jsonb;
 alter table menu_items add column if not exists prep_time_minutes int;
+alter table menu_items add column if not exists pairings jsonb;
 
 create table if not exists orders (
   id uuid primary key default gen_random_uuid(),

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabaseClient";
 import { usePersistentState } from "./usePersistentState";
-import { DEFAULT_MENU, type Dish } from "../data/menu";
+import { DEFAULT_MENU, type Dish, type Pairing } from "../data/menu";
 import type { IngredientLine } from "../data/ingredients";
 
 interface MenuRow {
@@ -22,6 +22,7 @@ interface MenuRow {
   category: Dish["category"];
   sold_out: boolean;
   prep_time_minutes: number | null;
+  pairings: Pairing[] | null;
 }
 
 function fromRow(row: MenuRow): Dish {
@@ -43,6 +44,7 @@ function fromRow(row: MenuRow): Dish {
     category: row.category,
     soldOut: row.sold_out,
     prepTimeMinutes: row.prep_time_minutes ?? undefined,
+    pairings: row.pairings ?? undefined,
   };
 }
 
@@ -66,6 +68,7 @@ function toRow(restaurantId: string, dish: Dish) {
     category: dish.category,
     sold_out: dish.soldOut ?? false,
     prep_time_minutes: dish.prepTimeMinutes ?? null,
+    pairings: dish.pairings ?? null,
   };
 }
 

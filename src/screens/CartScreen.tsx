@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt, Sparkles } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL, type Order, type OrderStatus } from "../data/orders";
+import { getPairingReason, type Dish } from "../data/menu";
 
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
   new: "bg-[#FDECC8] text-[#8A6B1F]",
@@ -82,6 +83,69 @@ function MyOrdersSection() {
           {t("cart_total_bill")}
         </span>
         <span className="text-[16px] font-bold">${billTotal.toFixed(2)}</span>
+      </div>
+    </div>
+  );
+}
+
+function PairingSuggestions() {
+  const { cart, menu, findDish, addToCart } = useApp();
+  const { t, lang } = useI18n();
+  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+
+  const suggestions = useMemo(() => {
+    const inCart = new Set(cart.map((i) => i.dishId));
+    const seen = new Set<string>();
+    const result: { dish: Dish; reason: string }[] = [];
+    for (const item of cart) {
+      const dish = findDish(item.dishId);
+      for (const pairing of dish?.pairings ?? []) {
+        if (inCart.has(pairing.dishId) || seen.has(pairing.dishId)) continue;
+        const paired = menu.find((d) => d.id === pairing.dishId);
+        if (!paired || paired.soldOut) continue;
+        seen.add(pairing.dishId);
+        result.push({ dish: paired, reason: getPairingReason(pairing, lang) });
+      }
+    }
+    return result.slice(0, 3);
+  }, [cart, menu, lang]);
+
+  if (suggestions.length === 0) return null;
+
+  return (
+    <div className="px-4 pt-1 pb-2 flex flex-col gap-2">
+      <p className="flex items-center gap-1.5 text-[12px] font-bold text-[#8A8272] uppercase tracking-wide">
+        <Sparkles size={12} className="text-[#E0A83C]" />
+        {t("cart_pairs_title")}
+      </p>
+      <div className="flex gap-2 overflow-x-auto pb-0.5">
+        {suggestions.map(({ dish, reason }) => (
+          <div
+            key={dish.id}
+            className="shrink-0 w-[168px] bg-white rounded-xl border border-black/5 shadow-sm p-2 flex flex-col gap-1.5"
+          >
+            <div className="flex gap-2">
+              <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-[#EFE9D8]">
+                <img src={dish.image} alt={dish.name} className="w-full h-full object-cover" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[12px] font-semibold text-[#22201B] leading-tight line-clamp-1">{dish.name}</p>
+                <p className="text-[11px] text-[#2D5A3D] font-bold">${dish.price.toFixed(2)}</p>
+              </div>
+            </div>
+            <p className="text-[10.5px] text-[#8A8272] leading-snug line-clamp-2">{reason}</p>
+            <button
+              onClick={() => {
+                addToCart(dish.id, 1);
+                setAddedIds((prev) => new Set(prev).add(dish.id));
+              }}
+              disabled={addedIds.has(dish.id)}
+              className="flex items-center justify-center gap-1 bg-[#2D5A3D] text-white text-[11px] font-semibold py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
+            >
+              {addedIds.has(dish.id) ? t("dish_added") : t("dish_add")}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -216,6 +280,7 @@ export function CartScreen() {
             );
           })}
         </div>
+        <PairingSuggestions />
         <MyOrdersSection />
       </div>
 

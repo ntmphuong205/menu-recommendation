@@ -1,10 +1,47 @@
 import { useState } from "react";
-import { X, Minus, Plus, Flame, TriangleAlert, Clock3 } from "lucide-react";
+import { X, Minus, Plus, Flame, TriangleAlert, Clock3, Sparkles } from "lucide-react";
 import { TagPill } from "./TagPill";
 import { ReviewSection } from "./ReviewSection";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
-import { getDishDescription } from "../data/menu";
+import { getDishDescription, getPairingReason } from "../data/menu";
+
+function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
+  const { findDish, addToCart, setSelectedDishId } = useApp();
+  const { t } = useI18n();
+  const [added, setAdded] = useState(false);
+  const paired = findDish(dishId);
+  if (!paired || paired.soldOut) return null;
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => setSelectedDishId(paired.id)}
+      onKeyDown={(e) => e.key === "Enter" && setSelectedDishId(paired.id)}
+      className="w-full flex items-center gap-2.5 bg-white rounded-xl border border-black/5 p-2 text-left cursor-pointer"
+    >
+      <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-[#EFE9D8]">
+        <img src={paired.image} alt={paired.name} className="w-full h-full object-cover" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[12.5px] font-semibold text-[#22201B] leading-tight">{paired.name}</p>
+        <p className="text-[11px] text-[#8A8272] leading-snug line-clamp-2">{reason}</p>
+      </div>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          addToCart(paired.id, 1);
+          setAdded(true);
+        }}
+        disabled={added}
+        className="shrink-0 flex items-center gap-1 bg-[#2D5A3D] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
+      >
+        {added ? t("dish_added") : t("dish_add")}
+      </button>
+    </div>
+  );
+}
 
 export function DishSheet() {
   const { selectedDishId, setSelectedDishId, addToCart, findDish } = useApp();
@@ -101,6 +138,20 @@ export function DishSheet() {
             <TriangleAlert size={14} className="mt-0.5 shrink-0" />
             <span>{dish.allergyNote}</span>
           </div>
+
+          {dish.pairings && dish.pairings.length > 0 && (
+            <div className="mt-4">
+              <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#22201B] mb-1.5">
+                <Sparkles size={13} className="text-[#E0A83C]" />
+                {t("dish_pairs_with")}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {dish.pairings.map((p) => (
+                  <PairingRow key={p.dishId} dishId={p.dishId} reason={getPairingReason(p, lang)} />
+                ))}
+              </div>
+            </div>
+          )}
 
           <ReviewSection dishId={dish.id} />
 

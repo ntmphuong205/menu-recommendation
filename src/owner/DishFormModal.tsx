@@ -127,6 +127,7 @@ export function DishFormModal({
       allergyNote: allergyNote.trim(),
       category,
       prepTimeMinutes: prepTime.trim() ? parseInt(prepTime, 10) : undefined,
+      pairings: initial?.pairings,
     };
     onSave(dish);
   };

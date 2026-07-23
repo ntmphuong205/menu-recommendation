@@ -73,6 +73,7 @@ const dict = {
 
   // Dish sheet
   dish_ingredients: { vi: "Nguyên liệu", en: "Ingredients", ko: "재료" },
+  dish_pairs_with: { vi: "Kết hợp ngon nhất với", en: "Pairs perfectly with", ko: "찰떡궁합 메뉴" },
   nutrition_calories: { vi: "Calo", en: "Calories", ko: "칼로리" },
   nutrition_protein: { vi: "Đạm", en: "Protein", ko: "단백질" },
   nutrition_carbs: { vi: "Tinh bột", en: "Carbs", ko: "탄수화물" },
@@ -116,6 +117,7 @@ const dict = {
     en: "Are you sure you want to cancel this order?",
     ko: "정말 이 주문을 취소하시겠습니까?",
   },
+  cart_pairs_title: { vi: "Gợi ý dùng kèm", en: "Goes great with your order", ko: "함께 드시면 좋은 메뉴" },
 
   // Info screen
   info_best_sellers: { vi: "Món bán chạy", en: "Best Sellers", ko: "인기 메뉴" },
