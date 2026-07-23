@@ -569,7 +569,7 @@ export const DEFAULT_MENU: Dish[] = [
       vi: "Bánh xèo giòn rụm vàng ươm nghệ, nhân tôm thịt và giá đỗ, cuốn cùng rau sống.",
       ko: "강황을 넣은 바삭한 쌀가루 팬케이크에 새우, 돼지고기, 숙주나물을 채우고 신선한 허브에 싸 먹어요.",
     },
-    image: "https://images.unsplash.com/photo-1626804475297-411a58a09a45?w=600&q=80",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/B%C3%A1nh_x%C3%A8o_1.jpg/960px-B%C3%A1nh_x%C3%A8o_1.jpg",
     tags: ["crispy", "hearty"],
     ingredientLines: [
       { name: "Rice flour batter", grams: 120 },
@@ -653,7 +653,7 @@ export const DEFAULT_MENU: Dish[] = [
       vi: "Chè ba màu với đậu xanh, đậu đỏ và thạch, phủ nước cốt dừa và đá bào.",
       ko: "녹두, 팥, 젤리를 층층이 쌓고 코코넛 밀크와 얼음을 올린 삼색 디저트.",
     },
-    image: "https://images.unsplash.com/photo-1608219994488-cbb2f4f56685?w=600&q=80",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Ch%C3%A8_b%C3%A0_ba.jpg/960px-Ch%C3%A8_b%C3%A0_ba.jpg",
     tags: ["beverage", "cool", "sweetSour"],
     ingredientLines: [
       { name: "Mung bean paste", grams: 40 },
@@ -696,7 +696,7 @@ export const DEFAULT_MENU: Dish[] = [
       vi: "Quẩy chiên giòn nhẹ — món ăn kèm kinh điển của phở và cháo.",
       ko: "가볍고 바삭한 튀김빵 — 포와 죽에 곁들이는 클래식한 사이드.",
     },
-    image: "https://images.unsplash.com/photo-1585325701956-60dd0f5b6f2d?w=600&q=80",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Youtiao.jpg/960px-Youtiao.jpg",
     tags: ["crispy", "hearty"],
     ingredientLines: [{ name: "Fried dough sticks (quẩy)", grams: 60 }],
     ingredients: ["Wheat flour", "Yeast", "Oil"],
