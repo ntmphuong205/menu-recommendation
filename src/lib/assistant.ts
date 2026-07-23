@@ -1,6 +1,6 @@
 import type { Dish, TagKey } from "../data/menu";
 import { getDishDescription } from "../data/menu";
-import { RESTAURANT, FAQ } from "../data/restaurant";
+import { RESTAURANT, FAQ, getHoursLabel, getFaqText } from "../data/restaurant";
 import { t as translate, type Lang } from "../i18n/translations";
 
 export interface ChatMessage {
@@ -239,7 +239,12 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
 
   // Restaurant info intents
   if (HOURS_RE.test(t)) {
-    const hoursText = RESTAURANT.hours.map((h) => `${h.day}: ${h.time}`).join("\n");
+    const hoursText = RESTAURANT.hours
+      .map((h) => {
+        const label = getHoursLabel(h, lang);
+        return `${label.day}: ${label.time}`;
+      })
+      .join("\n");
     return {
       messages: [bot(tr("bot_hours", { restaurant: RESTAURANT.name, hours: hoursText }))],
       state: { stage: "idle" },
@@ -319,10 +324,11 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
     };
   }
 
-  // FAQ fallback (English-only data source; shown as-is regardless of UI language)
+  // FAQ fallback — matching is against the English question text (customers asking in
+  // their own language mostly won't hit this), but the reply itself is localized.
   const faqHit = FAQ.find((f) => t.includes(normalize(f.question.replace("?", "").slice(0, 8))));
   if (faqHit) {
-    return { messages: [bot(faqHit.answer)], state: { stage: "idle" } };
+    return { messages: [bot(getFaqText(faqHit, lang).answer)], state: { stage: "idle" } };
   }
 
   return {

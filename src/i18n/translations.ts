@@ -121,6 +121,7 @@ const dict = {
 
   // Info screen
   info_best_sellers: { vi: "Món bán chạy", en: "Best Sellers", ko: "인기 메뉴" },
+  info_reviews_count: { vi: "{count} đánh giá", en: "{count} reviews", ko: "리뷰 {count}개" },
   info_hours: { vi: "Giờ mở cửa", en: "Opening Hours", ko: "영업시간" },
   info_faq: { vi: "Câu hỏi thường gặp", en: "Frequently Asked Questions", ko: "자주 묻는 질문" },
   info_ask_chat: { vi: "Hỏi thêm qua Chat", en: "Ask more via Chat", ko: "채팅으로 더 물어보기" },
