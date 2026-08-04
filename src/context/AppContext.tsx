@@ -1,9 +1,13 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { useMenuData } from "../store/useMenuData";
 import { useOrdersData } from "../store/useOrdersData";
 import { useReviewsData } from "../store/useReviewsData";
 import { useTableRequestsData } from "../store/useTableRequestsData";
-import { useRestaurantId } from "../store/useRestaurantId";
+import { useTablesData } from "../store/useTablesData";
+import { useReservationsData } from "../store/useReservationsData";
+import { useStoreData } from "../store/useStoreData";
+import type { ApiTable, ApiReservation, ApiStore } from "../lib/apiClient";
 import type { Dish } from "../data/menu";
 import type { Order, OrderStatus } from "../data/orders";
 import { ACTIVE_STATUSES } from "../data/orders";
@@ -44,16 +48,26 @@ interface AppContextValue {
 
   // orders (shared, created by customer app, managed by owner dashboard)
   orders: Order[];
-  placeOrder: (tableNumber: number) => void;
+  placeOrder: (tableId: string) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
-  updateItemStatus: (orderId: string, itemIndex: number, status: OrderStatus) => void;
+  updateItemStatus: (itemId: string, status: OrderStatus) => void;
   cancelOrder: (orderId: string) => void;
   /** Wait/queue info for one item within an order — null once that item is no longer active. */
   getQueueInfo: (order: Order, itemIndex: number) => QueueInfo | null;
 
+  // seating layout + reservations
+  tables: ApiTable[];
+  reservations: ApiReservation[];
+  requestReservation: (tableId: string, partySize: number) => Promise<void>;
+  updateReservationStatus: (id: string, status: "accepted" | "cancelled") => void;
+
+  // store info (read side only — StoreSettingsView writes via useStoreData() directly)
+  store: ApiStore | null;
+
   // per-dish ratings & reviews
   reviews: Review[];
   addReview: (dishId: string, rating: number, comment: string) => void;
+  replyToReview: (id: string, reply: string) => void;
   getDishRating: (dishId: string) => DishRatingSummary;
 
   // "call staff" table requests
@@ -66,7 +80,10 @@ interface AppContextValue {
   setActiveTab: (tab: TabKey) => void;
   selectedDishId: string | null;
   setSelectedDishId: (id: string | null) => void;
-  tableNumber: number;
+  tableId: string;
+  /** "web" QR codes (general/AI browsing only) vs "store" QR codes printed on
+   *  a physical table (full ordering + reservation) — see TableQrView. */
+  mode: "web" | "store";
 }
 
 export type TabKey = "chat" | "menu" | "cart" | "info";
@@ -75,22 +92,36 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 let itemCounter = 0;
 
-function getTableFromUrl(): number {
+/** The QR code a table's printout encodes puts its table_code (e.g. "T1")
+ *  in `?table=`, matching Wexit's convention. Falls back to "T1" so the app
+ *  still works when opened without a table param (e.g. during dev). */
+function getTableFromUrl(): string {
   const param = new URLSearchParams(window.location.search).get("table");
-  const n = param ? parseInt(param, 10) : 1;
-  return Number.isFinite(n) && n > 0 ? n : 1;
+  return param?.trim().toUpperCase() || "T1";
+}
+
+function getModeFromUrl(): "web" | "store" {
+  return new URLSearchParams(window.location.search).get("mode") === "web" ? "web" : "store";
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const restaurantId = useRestaurantId();
-  const { menu, addDish, updateDish, deleteDish } = useMenuData(restaurantId);
-  const { orders, placeOrder: placeOrderRaw, updateOrderStatus, updateItemStatus } = useOrdersData(restaurantId);
-  const { reviews, addReview: addReviewRaw } = useReviewsData(restaurantId);
-  const { tableRequests, callStaff: callStaffRaw, resolveRequest } = useTableRequestsData(restaurantId);
+  const location = useLocation();
+  const isOwnerRoute = location.pathname.startsWith("/admin");
+  const { menu, addDish, updateDish, deleteDish } = useMenuData();
+  const { orders, placeOrder: placeOrderRaw, updateOrderStatus, updateItemStatus } = useOrdersData();
+  const { reviews, addReview: addReviewRaw, replyToReview } = useReviewsData();
+  const { tableRequests, callStaff: callStaffRaw, resolveRequest } = useTableRequestsData(isOwnerRoute);
+  // Owner views that need to write the layout (SeatLayoutView) call
+  // useTablesData() directly for its saveLayout() — only the read side is
+  // shared here.
+  const { tables } = useTablesData();
+  const { reservations, createReservation, updateReservationStatus } = useReservationsData(isOwnerRoute);
+  const { store } = useStoreData();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>("chat");
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
-  const [tableNumber] = useState<number>(getTableFromUrl);
+  const [tableId] = useState<string>(getTableFromUrl);
+  const [mode] = useState<"web" | "store">(getModeFromUrl);
 
   const findDish = (id: string) => menu.find((d) => d.id === id);
 
@@ -113,12 +144,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [cart, menu]
   );
 
-  const placeOrder = (tableNum: number) => {
+  const placeOrder = (tableIdToUse: string) => {
     const items = cart.map((i) => {
       const dish = findDish(i.dishId);
       return { dishId: i.dishId, dishName: dish?.name ?? "Unknown dish", qty: i.qty, price: dish?.price ?? 0, note: i.note };
     });
-    placeOrderRaw(tableNum, items);
+    placeOrderRaw(tableIdToUse, items, mode);
+  };
+
+  const requestReservation = async (tableIdToReserve: string, partySize: number) => {
+    const table = tables.find((t) => t.id === tableIdToReserve);
+    await createReservation(tableIdToReserve, table?.status ?? "available", partySize, mode);
   };
 
   const cancelOrder = (orderId: string) => updateOrderStatus(orderId, "cancelled");
@@ -136,9 +172,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   };
 
-  const addReview = (dishId: string, rating: number, comment: string) => addReviewRaw(dishId, tableNumber, rating, comment);
+  const addReview = (dishId: string, rating: number, comment: string) => addReviewRaw(dishId, tableId, rating, comment);
   const getDishRating = (dishId: string) => summarizeRatings(reviews, dishId);
-  const callStaff = (reason: string) => callStaffRaw(tableNumber, reason);
+  const callStaff = (reason: string) => callStaffRaw(tableId, reason);
 
   return (
     <AppContext.Provider
@@ -161,8 +197,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateItemStatus,
         cancelOrder,
         getQueueInfo,
+        tables,
+        reservations,
+        requestReservation,
+        updateReservationStatus,
+        store,
         reviews,
         addReview,
+        replyToReview,
         getDishRating,
         tableRequests,
         callStaff,
@@ -171,7 +213,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setActiveTab,
         selectedDishId,
         setSelectedDishId,
-        tableNumber,
+        tableId,
+        mode,
       }}
     >
       {children}

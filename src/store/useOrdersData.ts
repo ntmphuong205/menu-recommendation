@@ -1,135 +1,95 @@
-import { useEffect, useState } from "react";
-import { supabase, isSupabaseConfigured } from "../lib/supabaseClient";
-import { usePersistentState } from "./usePersistentState";
+import { useCallback } from "react";
+import { apiClient, getCustomerSessionId, type ApiOrder, type ApiOrderStatus } from "../lib/apiClient";
+import { usePollingData } from "./usePollingData";
 import { deriveOrderStatus, type Order, type OrderItem, type OrderStatus } from "../data/orders";
 
-interface OrderRow {
-  id: string;
-  table_number: number;
-  items: Order["items"];
-  status: OrderStatus;
-  created_at: string;
-}
-
-/** Orders placed before per-item status existed have items with no `status`
- *  field — default those to the order's own status so old data still renders. */
-function normalizeItems(items: OrderItem[], orderStatus: OrderStatus): OrderItem[] {
-  return items.map((item) => ({ ...item, status: item.status ?? orderStatus }));
-}
-
-function fromRow(row: OrderRow): Order {
+function itemFromApi(row: ApiOrder): OrderItem {
   return {
     id: row.id,
-    tableNumber: row.table_number,
-    items: normalizeItems(row.items, row.status),
+    dishId: row.menu_id,
+    dishName: row.menu_name,
+    qty: row.quantity,
+    price: row.quantity > 0 ? row.total_price / row.quantity : 0,
+    note: row.note || undefined,
     status: row.status,
-    createdAt: new Date(row.created_at).getTime(),
   };
+}
+
+/** Reconstructs ICAPS's "one Order has many items" grouping on top of the
+ *  backend's one-row-per-dish schema, keyed by order_group_id. */
+function groupOrders(rows: ApiOrder[]): Order[] {
+  const groups = new Map<string, ApiOrder[]>();
+  for (const row of rows) {
+    const list = groups.get(row.order_group_id) ?? [];
+    list.push(row);
+    groups.set(row.order_group_id, list);
+  }
+  return Array.from(groups.entries()).map(([groupId, groupRows]) => {
+    const items = groupRows.map(itemFromApi);
+    return {
+      id: groupId,
+      tableId: groupRows[0].table_id,
+      items,
+      status: deriveOrderStatus(items),
+      createdAt: Math.min(...groupRows.map((r) => new Date(r.created_at).getTime())),
+    };
+  });
+}
+
+export interface NewOrderItem {
+  dishId: string;
+  dishName: string;
+  qty: number;
+  price: number;
+  note?: string;
 }
 
 export interface OrdersData {
   orders: Order[];
-  placeOrder: (tableNumber: number, items: Omit<OrderItem, "status">[]) => void;
+  placeOrder: (tableId: string, items: NewOrderItem[], mode: "web" | "store") => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
-  updateItemStatus: (orderId: string, itemIndex: number, status: OrderStatus) => void;
+  updateItemStatus: (itemId: string, status: OrderStatus) => void;
 }
 
-let localIdCounter = 0;
+export function useOrdersData(): OrdersData {
+  const fetcher = useCallback(() => apiClient.getOrders(), []);
+  const rows = usePollingData(fetcher);
+  const orders = groupOrders(rows ?? []).sort((a, b) => b.createdAt - a.createdAt);
 
-export function useOrdersData(restaurantId: string | null): OrdersData {
-  const [local, setLocal] = usePersistentState<Order[]>("fb_orders", []);
-  const [cloud, setCloud] = useState<Order[]>([]);
-  const usingCloud = isSupabaseConfigured && restaurantId != null;
-
-  useEffect(() => {
-    if (!usingCloud || !supabase) return;
-    let cancelled = false;
-
-    const refresh = async () => {
-      const { data } = await supabase!
-        .from("orders")
-        .select("*")
-        .eq("restaurant_id", restaurantId)
-        .order("created_at", { ascending: false });
-      if (!cancelled) setCloud((data ?? []).map(fromRow));
-    };
-
-    refresh();
-    const channel = supabase
-      .channel(`orders-${restaurantId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
-        () => refresh()
-      )
-      .subscribe();
-
-    return () => {
-      cancelled = true;
-      supabase!.removeChannel(channel);
-    };
-  }, [usingCloud, restaurantId]);
-
-  const orders = usingCloud
-    ? cloud
-    : local.map((o) => ({ ...o, items: normalizeItems(o.items, o.status) }));
-
-  const placeOrder = (tableNumber: number, items: Omit<OrderItem, "status">[]) => {
-    const itemsWithStatus: OrderItem[] = items.map((i) => ({ ...i, status: "new" }));
-    if (usingCloud && supabase && restaurantId) {
-      supabase
-        .from("orders")
-        .insert({ restaurant_id: restaurantId, table_number: tableNumber, items: itemsWithStatus, status: "new" })
-        .then();
-    } else {
-      const order: Order = {
-        id: `o${Date.now()}_${localIdCounter++}`,
-        tableNumber,
-        items: itemsWithStatus,
-        status: "new",
-        createdAt: Date.now(),
-      };
-      setLocal((prev) => [order, ...prev]);
+  const placeOrder = (tableId: string, items: NewOrderItem[], mode: "web" | "store") => {
+    const sessionId = getCustomerSessionId();
+    const groupId = crypto.randomUUID();
+    for (const item of items) {
+      apiClient
+        .createOrder({
+          table_id: tableId,
+          menu_id: item.dishId,
+          quantity: item.qty,
+          note: item.note ?? "",
+          customer_session_id: sessionId,
+          mode,
+          order_group_id: groupId,
+        })
+        .catch((err) => console.error("[MenuPilot] Failed to place order", err));
     }
   };
 
   // Whole-order actions (e.g. the customer cancelling before the kitchen
-  // starts) cascade the new status to every item too, keeping them in sync.
+  // starts) cascade the new status to every item in the group.
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
-    if (usingCloud && supabase) {
-      const current = cloud.find((o) => o.id === orderId);
-      const items = current ? current.items.map((i) => ({ ...i, status })) : undefined;
-      supabase
-        .from("orders")
-        .update(items ? { status, items } : { status })
-        .eq("id", orderId)
-        .then();
-    } else {
-      setLocal((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status, items: o.items.map((i) => ({ ...i, status })) } : o))
-      );
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
+    for (const item of order.items) {
+      apiClient
+        .updateOrderStatus(item.id, status as ApiOrderStatus)
+        .catch((err) => console.error("[MenuPilot] Failed to update order status", err));
     }
   };
 
-  const updateItemStatus = (orderId: string, itemIndex: number, status: OrderStatus) => {
-    if (usingCloud && supabase) {
-      const current = cloud.find((o) => o.id === orderId);
-      if (!current) return;
-      const items = current.items.map((item, idx) => (idx === itemIndex ? { ...item, status } : item));
-      supabase
-        .from("orders")
-        .update({ items, status: deriveOrderStatus(items) })
-        .eq("id", orderId)
-        .then();
-    } else {
-      setLocal((prev) =>
-        prev.map((o) => {
-          if (o.id !== orderId) return o;
-          const items = o.items.map((item, idx) => (idx === itemIndex ? { ...item, status } : item));
-          return { ...o, items, status: deriveOrderStatus(items) };
-        })
-      );
-    }
+  const updateItemStatus = (itemId: string, status: OrderStatus) => {
+    apiClient
+      .updateOrderStatus(itemId, status as ApiOrderStatus)
+      .catch((err) => console.error("[MenuPilot] Failed to update item status", err));
   };
 
   return { orders, placeOrder, updateOrderStatus, updateItemStatus };

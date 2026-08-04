@@ -4,14 +4,15 @@ import { TagPill } from "./TagPill";
 import { ReviewSection } from "./ReviewSection";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
-import { getDishDescription, getPairingReason } from "../data/menu";
+import { getDishName, getDishDescription, getPairingReason } from "../data/menu";
 
 function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
   const { findDish, addToCart, setSelectedDishId } = useApp();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [added, setAdded] = useState(false);
   const paired = findDish(dishId);
   if (!paired || paired.soldOut) return null;
+  const pairedName = getDishName(paired, lang);
 
   return (
     <div
@@ -22,10 +23,10 @@ function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
       className="w-full flex items-center gap-2.5 bg-white rounded-xl border border-black/5 p-2 text-left cursor-pointer"
     >
       <div className="w-11 h-11 rounded-lg overflow-hidden shrink-0 bg-[#EFE9D8]">
-        <img src={paired.image} alt={paired.name} className="w-full h-full object-cover" />
+        <img src={paired.image} alt={pairedName} className="w-full h-full object-cover" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[12.5px] font-semibold text-[#22201B] leading-tight">{paired.name}</p>
+        <p className="text-[12.5px] font-semibold text-[#22201B] leading-tight">{pairedName}</p>
         <p className="text-[11px] text-[#8A8272] leading-snug line-clamp-2">{reason}</p>
       </div>
       <button
@@ -53,6 +54,7 @@ export function DishSheet() {
   if (!selectedDishId) return null;
   const dish = findDish(selectedDishId);
   if (!dish) return null;
+  const dishName = getDishName(dish, lang);
 
   const close = () => {
     setSelectedDishId(null);
@@ -76,12 +78,12 @@ export function DishSheet() {
         </button>
 
         <div className="h-52 w-full overflow-hidden">
-          <img src={dish.image} alt={dish.name} className="w-full h-full object-cover" />
+          <img src={dish.image} alt={dishName} className="w-full h-full object-cover" />
         </div>
 
         <div className="p-5 pb-8">
           <div className="flex items-start justify-between gap-3">
-            <h2 className="text-[19px] font-bold text-[#22201B] leading-tight">{dish.name}</h2>
+            <h2 className="text-[19px] font-bold text-[#22201B] leading-tight">{dishName}</h2>
             <span className="text-[18px] font-bold text-[#2D5A3D] shrink-0">${dish.price.toFixed(2)}</span>
           </div>
 

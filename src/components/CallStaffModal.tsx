@@ -6,7 +6,7 @@ import { useI18n } from "../i18n/I18nContext";
 const REASON_KEYS = ["call_reason_help", "call_reason_change_order", "call_reason_bill"] as const;
 
 export function CallStaffModal({ onClose }: { onClose: () => void }) {
-  const { callStaff, tableNumber } = useApp();
+  const { callStaff, tableId } = useApp();
   const { t } = useI18n();
   const [sent, setSent] = useState(false);
 
@@ -31,7 +31,7 @@ export function CallStaffModal({ onClose }: { onClose: () => void }) {
               <CheckCircle2 size={28} className="text-[#2D5A3D]" />
             </div>
             <h2 className="text-[16px] font-bold text-[#22201B]">{t("call_sent_title")}</h2>
-            <p className="text-[13px] text-[#8A8272]">{t("call_sent_desc", { table: tableNumber })}</p>
+            <p className="text-[13px] text-[#8A8272]">{t("call_sent_desc", { table: tableId })}</p>
             <button
               onClick={onClose}
               className="mt-2 px-5 py-2.5 rounded-full bg-[#2D5A3D] text-white text-[13px] font-semibold active:scale-95 transition-transform"

@@ -5,7 +5,7 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = Boolean(url && anonKey);
 
-// When no project is configured, the app transparently falls back to the
-// browser-local persistence it already had — see store/usePersistentState.ts
-// and store/restaurantData.ts. Nothing else needs to check this flag directly.
+// Used only for Supabase Auth (owner login, see store/useOwnerAuth.ts) — all
+// business data goes through the FastAPI backend in src/lib/apiClient.ts,
+// never through this client directly.
 export const supabase = url && anonKey ? createClient(url, anonKey) : null;

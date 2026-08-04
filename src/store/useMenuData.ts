@@ -1,74 +1,67 @@
-import { useEffect, useState } from "react";
-import { supabase, isSupabaseConfigured } from "../lib/supabaseClient";
-import { usePersistentState } from "./usePersistentState";
-import { DEFAULT_MENU, type Dish, type Pairing } from "../data/menu";
-import type { IngredientLine } from "../data/ingredients";
+import { useCallback } from "react";
+import { apiClient, type ApiMenu } from "../lib/apiClient";
+import { usePollingData } from "./usePollingData";
+import type { Dish, Pairing, TagKey } from "../data/menu";
 
-interface MenuRow {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  descriptions: Partial<Record<"vi" | "en" | "ko", string>> | null;
-  image: string;
-  tags: Dish["tags"];
-  calories: number | null;
-  protein: number | null;
-  carbs: number | null;
-  fat: number | null;
-  ingredient_lines: IngredientLine[] | null;
-  ingredients: string[];
-  allergy_note: string;
-  category: Dish["category"];
-  sold_out: boolean;
-  prep_time_minutes: number | null;
-  pairings: Pairing[] | null;
-}
-
-function fromRow(row: MenuRow): Dish {
+function fromApi(row: ApiMenu): Dish {
   return {
     id: row.id,
-    name: row.name,
+    name: row.name.en || row.name.ko || row.name.vi || "",
+    names: { vi: row.name.vi || undefined, en: row.name.en || undefined, ko: row.name.ko || undefined },
     price: Number(row.price),
-    description: row.description,
-    descriptions: row.descriptions ?? undefined,
-    image: row.image,
-    tags: row.tags,
+    description: row.desc.en || row.desc.ko || row.desc.vi || "",
+    descriptions: { vi: row.desc.vi || undefined, ko: row.desc.ko || undefined },
+    image: row.img,
+    tags: (row.tags ?? []) as TagKey[],
     calories: row.calories ?? undefined,
     protein: row.protein ?? undefined,
     carbs: row.carbs ?? undefined,
     fat: row.fat ?? undefined,
-    ingredientLines: row.ingredient_lines ?? undefined,
-    ingredients: row.ingredients,
-    allergyNote: row.allergy_note,
-    category: row.category,
-    soldOut: row.sold_out,
-    prepTimeMinutes: row.prep_time_minutes ?? undefined,
-    pairings: row.pairings ?? undefined,
+    ingredientLines: row.ingredientLines?.length
+      ? row.ingredientLines.map((l) => ({
+          name: l.name,
+          grams: l.grams,
+          custom: l.custom as { calories: number; protein: number; carbs: number; fat: number } | undefined,
+        }))
+      : undefined,
+    ingredients: (row.ingredientLines ?? []).map((l) => l.name),
+    allergyNote: row.allergyNote.en || row.allergyNote.ko || row.allergyNote.vi || "",
+    category: (row.category || "Main") as Dish["category"],
+    soldOut: row.isSoldOut,
+    prepTimeMinutes: row.prepTimeMinutes,
+    pairings: row.pairings?.length
+      ? row.pairings.map(
+          (p): Pairing => ({
+            dishId: p.menu_id,
+            reason: p.reason.en || p.reason.ko || p.reason.vi || "",
+            reasons: { vi: p.reason.vi || undefined, ko: p.reason.ko || undefined },
+          })
+        )
+      : undefined,
   };
 }
 
-function toRow(restaurantId: string, dish: Dish) {
+function toPayload(dish: Dish) {
   return {
-    id: dish.id,
-    restaurant_id: restaurantId,
-    name: dish.name,
+    name: { en: dish.name, ko: dish.names?.ko ?? "", vi: dish.names?.vi ?? "" },
     price: dish.price,
-    description: dish.description,
-    descriptions: dish.descriptions ?? {},
-    image: dish.image,
+    currency: "USD",
+    desc: { en: dish.description, ko: dish.descriptions?.ko ?? "", vi: dish.descriptions?.vi ?? "" },
+    category: dish.category,
     tags: dish.tags,
+    img: dish.image,
+    isSoldOut: dish.soldOut ?? false,
     calories: dish.calories ?? null,
     protein: dish.protein ?? null,
     carbs: dish.carbs ?? null,
     fat: dish.fat ?? null,
-    ingredient_lines: dish.ingredientLines ?? null,
-    ingredients: dish.ingredients,
-    allergy_note: dish.allergyNote,
-    category: dish.category,
-    sold_out: dish.soldOut ?? false,
-    prep_time_minutes: dish.prepTimeMinutes ?? null,
-    pairings: dish.pairings ?? null,
+    ingredientLines: dish.ingredientLines ?? [],
+    allergyNote: { en: dish.allergyNote, ko: "", vi: "" },
+    prepTimeMinutes: dish.prepTimeMinutes ?? 10,
+    pairings: (dish.pairings ?? []).map((p) => ({
+      menu_id: p.dishId,
+      reason: { en: p.reason, ko: p.reasons?.ko ?? "", vi: p.reasons?.vi ?? "" },
+    })),
   };
 }
 
@@ -79,74 +72,25 @@ export interface MenuData {
   deleteDish: (id: string) => void;
 }
 
-export function useMenuData(restaurantId: string | null): MenuData {
-  const [local, setLocal] = usePersistentState<Dish[]>("fb_menu", DEFAULT_MENU);
-  const [cloud, setCloud] = useState<Dish[] | null>(null);
-  const usingCloud = isSupabaseConfigured && restaurantId != null;
-
-  useEffect(() => {
-    if (!usingCloud || !supabase) return;
-    let cancelled = false;
-
-    const refresh = async () => {
-      const { data } = await supabase!.from("menu_items").select("*").eq("restaurant_id", restaurantId);
-      if (cancelled) return;
-      if (data && data.length === 0) {
-        // First time this restaurant has been opened: seed from the app's default menu.
-        await supabase!.from("menu_items").insert(DEFAULT_MENU.map((d) => toRow(restaurantId!, d)));
-        const { data: seeded } = await supabase!.from("menu_items").select("*").eq("restaurant_id", restaurantId);
-        if (!cancelled) setCloud((seeded ?? []).map(fromRow));
-      } else {
-        setCloud((data ?? []).map(fromRow));
-      }
-    };
-
-    refresh();
-    const channel = supabase
-      .channel(`menu-items-${restaurantId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "menu_items", filter: `restaurant_id=eq.${restaurantId}` },
-        () => refresh()
-      )
-      .subscribe();
-
-    return () => {
-      cancelled = true;
-      supabase!.removeChannel(channel);
-    };
-  }, [usingCloud, restaurantId]);
-
-  const menu = usingCloud ? cloud ?? [] : local;
+export function useMenuData(): MenuData {
+  const fetcher = useCallback(() => apiClient.getMenus(), []);
+  const rows = usePollingData(fetcher);
+  const menu = (rows ?? []).map(fromApi);
 
   const addDish = (dish: Dish) => {
-    if (usingCloud && supabase && restaurantId) {
-      supabase.from("menu_items").insert(toRow(restaurantId, dish)).then();
-    } else {
-      setLocal((prev) => [...prev, dish]);
-    }
+    apiClient.createMenu(toPayload(dish)).catch((err) => console.error("[MenuPilot] Failed to add dish", err));
   };
 
   const updateDish = (id: string, patch: Partial<Dish>) => {
-    if (usingCloud && supabase && restaurantId) {
-      const current = (cloud ?? []).find((d) => d.id === id);
-      if (!current) return;
-      supabase
-        .from("menu_items")
-        .update(toRow(restaurantId, { ...current, ...patch }))
-        .eq("id", id)
-        .then();
-    } else {
-      setLocal((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)));
-    }
+    const current = menu.find((d) => d.id === id);
+    if (!current) return;
+    apiClient
+      .updateMenu(id, toPayload({ ...current, ...patch }))
+      .catch((err) => console.error("[MenuPilot] Failed to update dish", err));
   };
 
   const deleteDish = (id: string) => {
-    if (usingCloud && supabase) {
-      supabase.from("menu_items").delete().eq("id", id).then();
-    } else {
-      setLocal((prev) => prev.filter((d) => d.id !== id));
-    }
+    apiClient.deleteMenu(id).catch((err) => console.error("[MenuPilot] Failed to delete dish", err));
   };
 
   return { menu, addDish, updateDish, deleteDish };

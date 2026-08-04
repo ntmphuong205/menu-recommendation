@@ -1,23 +1,29 @@
 import { useState } from "react";
-import { ChefHat, ClipboardList, UtensilsCrossed, ExternalLink, BarChart3, QrCode, LogOut } from "lucide-react";
+import { ChefHat, ClipboardList, UtensilsCrossed, ExternalLink, BarChart3, QrCode, LogOut, Armchair, Star, Settings } from "lucide-react";
 import { RESTAURANT } from "../data/restaurant";
 import { OrdersView } from "../owner/OrdersView";
 import { MenuManagementView } from "../owner/MenuManagementView";
 import { AnalyticsView } from "../owner/AnalyticsView";
 import { TableQrView } from "../owner/TableQrView";
+import { SeatLayoutView } from "../owner/SeatLayoutView";
+import { ReviewsView } from "../owner/ReviewsView";
+import { StoreSettingsView } from "../owner/StoreSettingsView";
 import { OwnerLogin } from "../owner/OwnerLogin";
 import { useOwnerAuth } from "../store/useOwnerAuth";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 import type { TranslationKey } from "../i18n/translations";
 
-type Section = "orders" | "menu" | "analytics" | "tables";
+type Section = "orders" | "menu" | "analytics" | "seating" | "tables" | "reviews" | "store";
 
 const NAV: { key: Section; labelKey: TranslationKey; icon: typeof ClipboardList }[] = [
   { key: "orders", labelKey: "owner_nav_orders", icon: ClipboardList },
   { key: "menu", labelKey: "owner_nav_menu", icon: UtensilsCrossed },
   { key: "analytics", labelKey: "owner_nav_analytics", icon: BarChart3 },
+  { key: "seating", labelKey: "owner_nav_seating", icon: Armchair },
   { key: "tables", labelKey: "owner_nav_tables", icon: QrCode },
+  { key: "reviews", labelKey: "owner_nav_reviews", icon: Star },
+  { key: "store", labelKey: "owner_nav_store", icon: Settings },
 ];
 
 export function OwnerApp() {
@@ -90,7 +96,10 @@ export function OwnerApp() {
         {section === "orders" && <OrdersView />}
         {section === "menu" && <MenuManagementView />}
         {section === "analytics" && <AnalyticsView />}
+        {section === "seating" && <SeatLayoutView />}
         {section === "tables" && <TableQrView />}
+        {section === "reviews" && <ReviewsView />}
+        {section === "store" && <StoreSettingsView />}
       </main>
     </div>
   );

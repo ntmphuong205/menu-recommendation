@@ -1,20 +1,30 @@
 import { useState } from "react";
-import { Clock, MapPin, Star, ChevronDown, MessageCircle, Bell } from "lucide-react";
+import { Clock, MapPin, Star, ChevronDown, MessageCircle, Bell, Armchair } from "lucide-react";
 import { RESTAURANT, FAQ, getRestaurantText, getHoursLabel, getFaqText } from "../data/restaurant";
 import { BEST_SELLERS } from "../data/menu";
 import { DishCard } from "../components/DishCard";
 import { CallStaffModal } from "../components/CallStaffModal";
+import { ReservationSheet } from "../components/ReservationSheet";
+import { FloorPlanView } from "../components/FloorPlanView";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
+import type { ApiTable } from "../lib/apiClient";
 
 export function InfoScreen() {
-  const { setActiveTab, menu } = useApp();
+  const { setActiveTab, menu, tables, store } = useApp();
   const { t, lang } = useI18n();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showCallStaff, setShowCallStaff] = useState(false);
+  const [reservingTable, setReservingTable] = useState<ApiTable | null>(null);
   const bestSellers = menu.filter((d) => BEST_SELLERS.includes(d.id));
   const restaurantText = getRestaurantText(lang);
+  // Live store name/hours/description come from the backend once loaded;
+  // rating/cuisine/address aren't modeled server-side yet, so those still
+  // come from the static RESTAURANT object either way.
+  const storeName = store ? store.name_i18n[lang] || store.name : RESTAURANT.name;
+  const storeHours = store ? store.hours_i18n[lang] || store.hours : "";
+  const storeDescription = store ? store.description_i18n[lang] || store.description : restaurantText.tagline;
 
   return (
     <div className="flex flex-col h-full">
@@ -24,8 +34,8 @@ export function InfoScreen() {
             <LangSwitcher dark />
           </div>
           <div>
-            <h1 className="text-[20px] font-bold text-white">{RESTAURANT.name}</h1>
-            <p className="text-[12px] text-white/80">{restaurantText.tagline}</p>
+            <h1 className="text-[20px] font-bold text-white">{storeName}</h1>
+            <p className="text-[12px] text-white/80 line-clamp-1">{storeDescription}</p>
           </div>
         </div>
 
@@ -42,15 +52,19 @@ export function InfoScreen() {
             <div className="flex items-start gap-2.5">
               <Clock size={16} className="text-[#2D5A3D] mt-0.5 shrink-0" />
               <div className="text-[12.5px] text-[#5C5240]">
-                {RESTAURANT.hours.map((h) => {
-                  const label = getHoursLabel(h, lang);
-                  return (
-                    <p key={h.day}>
-                      <span className="font-medium text-[#22201B]">{label.day}: </span>
-                      {label.time}
-                    </p>
-                  );
-                })}
+                {storeHours ? (
+                  <p>{storeHours}</p>
+                ) : (
+                  RESTAURANT.hours.map((h) => {
+                    const label = getHoursLabel(h, lang);
+                    return (
+                      <p key={h.day}>
+                        <span className="font-medium text-[#22201B]">{label.day}: </span>
+                        {label.time}
+                      </p>
+                    );
+                  })
+                )}
               </div>
             </div>
             <div className="flex items-start gap-2.5">
@@ -67,6 +81,17 @@ export function InfoScreen() {
               ))}
             </div>
           </div>
+
+          {tables.length > 0 && (
+            <div>
+              <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                <Armchair size={13} />
+                {t("info_tables_title")}
+              </h2>
+              <p className="text-[11.5px] text-[#8A8272] mb-2">{t("info_tables_desc")}</p>
+              <FloorPlanView tables={tables} onSelect={setReservingTable} />
+            </div>
+          )}
 
           <div>
             <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-2">{t("info_faq")}</h2>
@@ -114,6 +139,7 @@ export function InfoScreen() {
       </div>
 
       {showCallStaff && <CallStaffModal onClose={() => setShowCallStaff(false)} />}
+      {reservingTable && <ReservationSheet table={reservingTable} onClose={() => setReservingTable(null)} />}
     </div>
   );
 }

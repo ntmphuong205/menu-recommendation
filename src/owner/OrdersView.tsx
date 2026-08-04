@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Clock3, ArrowRight, PackageCheck, XCircle, Ban, BellRing, Check, X } from "lucide-react";
+import { Clock3, ArrowRight, PackageCheck, XCircle, Ban, BellRing, Check, X, CalendarClock, Users } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { NEXT_STATUS, ORDER_STATUS_LABEL, ACTIVE_STATUSES, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { useI18n } from "../i18n/I18nContext";
@@ -21,24 +21,29 @@ function timeAgo(ts: number): string {
 }
 
 export function OrdersView() {
-  const { orders, updateItemStatus, cancelOrder, tableRequests, resolveRequest } = useApp();
+  const { orders, updateItemStatus, cancelOrder, tableRequests, resolveRequest, reservations, updateReservationStatus } =
+    useApp();
   const { t } = useI18n();
 
   const pendingRequests = useMemo(() => tableRequests.filter((r) => !r.resolved), [tableRequests]);
+  const pendingReservations = useMemo(
+    () => reservations.filter((r) => r.status === "reserved" || r.status === "waiting"),
+    [reservations]
+  );
   const active = useMemo(() => orders.filter((o) => ACTIVE_STATUSES.includes(o.status)), [orders]);
   const served = useMemo(() => orders.filter((o) => o.status === "served"), [orders]);
   const cancelled = useMemo(() => orders.filter((o) => o.status === "cancelled"), [orders]);
-  const tablesOccupied = useMemo(() => new Set(active.map((o) => o.tableNumber)).size, [active]);
+  const tablesOccupied = useMemo(() => new Set(active.map((o) => o.tableId)).size, [active]);
   const revenueToday = useMemo(() => orders.reduce((sum, o) => sum + orderTotal(o), 0), [orders]);
 
   const grouped = useMemo(() => {
-    const map = new Map<number, Order[]>();
+    const map = new Map<string, Order[]>();
     for (const o of active) {
-      const list = map.get(o.tableNumber) ?? [];
+      const list = map.get(o.tableId) ?? [];
       list.push(o);
-      map.set(o.tableNumber, list);
+      map.set(o.tableId, list);
     }
-    return Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [active]);
 
   return (
@@ -56,7 +61,7 @@ export function OrdersView() {
             {pendingRequests.map((req) => (
               <div key={req.id} className="flex items-center justify-between bg-white rounded-xl px-3.5 py-2.5">
                 <div>
-                  <span className="text-[13px] font-semibold text-[#22201B]">Table {req.tableNumber}</span>
+                  <span className="text-[13px] font-semibold text-[#22201B]">Table {req.tableId}</span>
                   <span className="text-[12px] text-[#8A8272] ml-2">{req.reason}</span>
                 </div>
                 <button
@@ -66,6 +71,52 @@ export function OrdersView() {
                   <Check size={11} />
                   {t("owner_resolve")}
                 </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pendingReservations.length > 0 && (
+        <div className="mb-6 bg-[#DCEBFB] border border-[#2A5C8A]/20 rounded-2xl p-4">
+          <h2 className="flex items-center gap-1.5 text-[13px] font-bold text-[#2A5C8A] mb-2.5">
+            <CalendarClock size={14} />
+            Reservations & waiting ({pendingReservations.length})
+          </h2>
+          <div className="flex flex-col gap-2">
+            {pendingReservations.map((r) => (
+              <div key={r.id} className="flex items-center justify-between bg-white rounded-xl px-3.5 py-2.5">
+                <div>
+                  <span className="text-[13px] font-semibold text-[#22201B]">Table {r.table_id}</span>
+                  <span
+                    className={`text-[10.5px] font-semibold ml-2 px-2 py-0.5 rounded-full ${
+                      r.status === "waiting" ? "bg-[#FDECC8] text-[#8A6B1F]" : "bg-[#E5F3EA] text-[#2D5A3D]"
+                    }`}
+                  >
+                    {r.status === "waiting" ? "Waiting" : "Reserved"}
+                  </span>
+                  {r.party_size > 0 && (
+                    <span className="flex items-center gap-1 text-[11.5px] text-[#8A8272] ml-2 inline-flex">
+                      <Users size={11} />
+                      {r.party_size}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => updateReservationStatus(r.id, "accepted")}
+                    className="flex items-center gap-1 text-[11.5px] font-semibold text-white bg-[#2D5A3D] px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+                  >
+                    <Check size={11} />
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => updateReservationStatus(r.id, "cancelled")}
+                    className="flex items-center justify-center w-7 h-7 rounded-full text-[#B0553C] bg-[#F7E9E2] active:scale-95 transition-transform"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -94,10 +145,10 @@ export function OrdersView() {
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        {grouped.map(([tableNumber, tableOrders]) => (
-          <div key={tableNumber} className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+        {grouped.map(([tableId, tableOrders]) => (
+          <div key={tableId} className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
             <div className="px-4 py-3 bg-[#1F3D2B] text-white flex items-center justify-between">
-              <span className="text-[13px] font-bold">Table {tableNumber}</span>
+              <span className="text-[13px] font-bold">Table {tableId}</span>
               <span className="text-[11px] text-white/70">
                 {tableOrders.length} order{tableOrders.length > 1 ? "s" : ""}
               </span>
@@ -112,7 +163,7 @@ export function OrdersView() {
                     </span>
                     <button
                       onClick={() => {
-                        if (window.confirm(`Cancel this whole order for Table ${order.tableNumber}?`)) cancelOrder(order.id);
+                        if (window.confirm(`Cancel this whole order for Table ${order.tableId}?`)) cancelOrder(order.id);
                       }}
                       className="flex items-center gap-1 text-[11px] font-semibold text-[#B0553C]"
                     >
@@ -139,7 +190,7 @@ export function OrdersView() {
                           </span>
                           {NEXT_STATUS[item.status] && (
                             <button
-                              onClick={() => updateItemStatus(order.id, i, NEXT_STATUS[item.status]!)}
+                              onClick={() => updateItemStatus(item.id, NEXT_STATUS[item.status]!)}
                               title={`Mark ${ORDER_STATUS_LABEL[NEXT_STATUS[item.status]!]}`}
                               className="flex items-center gap-0.5 text-[10.5px] font-semibold text-white bg-[#2D5A3D] px-2 py-1 rounded-full active:scale-95 transition-transform whitespace-nowrap"
                             >
@@ -148,7 +199,7 @@ export function OrdersView() {
                           )}
                           {ACTIVE_STATUSES.includes(item.status) && (
                             <button
-                              onClick={() => updateItemStatus(order.id, i, "cancelled")}
+                              onClick={() => updateItemStatus(item.id, "cancelled")}
                               title="Cancel this item"
                               className="flex items-center justify-center w-6 h-6 rounded-full text-[#B0553C] bg-[#F7E9E2] active:scale-95 transition-transform shrink-0"
                             >
@@ -184,7 +235,7 @@ export function OrdersView() {
                 key={order.id}
                 className="bg-white rounded-xl border border-black/5 px-4 py-2.5 flex items-center justify-between text-[12.5px]"
               >
-                <span className="font-medium text-[#22201B]">Table {order.tableNumber}</span>
+                <span className="font-medium text-[#22201B]">Table {order.tableId}</span>
                 <span className="text-[#8A8272]">
                   {order.items.map((i) => `${i.qty}× ${i.dishName}`).join(", ")}
                 </span>
@@ -207,7 +258,7 @@ export function OrdersView() {
                 key={order.id}
                 className="bg-white rounded-xl border border-black/5 px-4 py-2.5 flex items-center justify-between text-[12.5px] opacity-60"
               >
-                <span className="font-medium text-[#22201B]">Table {order.tableNumber}</span>
+                <span className="font-medium text-[#22201B]">Table {order.tableId}</span>
                 <span className="text-[#8A8272]">
                   {order.items.map((i) => `${i.qty}× ${i.dishName}`).join(", ")}
                 </span>

@@ -61,6 +61,12 @@ export function ReviewSection({ dishId }: { dishId: string }) {
           <div key={r.id} className="bg-white rounded-xl border border-black/5 px-3 py-2">
             <Stars value={r.rating} size={11} />
             {r.comment && <p className="text-[12px] text-[#5C5240] mt-1">{r.comment}</p>}
+            {r.reply && (
+              <div className="mt-1.5 pl-2.5 border-l-2 border-[#2D5A3D]/30">
+                <p className="text-[10.5px] font-semibold text-[#2D5A3D]">{t("review_owner_reply")}</p>
+                <p className="text-[11.5px] text-[#5C5240]">{r.reply}</p>
+              </div>
+            )}
           </div>
         ))}
       </div>

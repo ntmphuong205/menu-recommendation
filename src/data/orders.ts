@@ -1,6 +1,9 @@
 export type OrderStatus = "new" | "preparing" | "served" | "cancelled";
 
 export interface OrderItem {
+  /** The backend's own order-row id — per-item status updates address this
+   *  row directly (PUT /api/orders/{id}/status), not an index into `items`. */
+  id: string;
   dishId: string;
   dishName: string;
   qty: number;
@@ -12,8 +15,11 @@ export interface OrderItem {
 }
 
 export interface Order {
+  /** = order_group_id: every item confirmed together in one cart checkout
+   *  shares this id, reconstructing "one order" on top of the backend's
+   *  one-row-per-dish schema. */
   id: string;
-  tableNumber: number;
+  tableId: string;
   items: OrderItem[];
   /** Kept in sync with item statuses via deriveOrderStatus() — convenient
    *  for grouping/analytics, but per-item status is the source of truth. */

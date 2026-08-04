@@ -1,95 +1,105 @@
-# Going from demo to a real backend
+# Setup: Supabase + Gemini backend
 
-By default, this app runs in **local demo mode**: the menu and orders live only
-in your browser's `localStorage`, and Menu AI uses a free rule-based
-recommendation engine. That's enough to demo the product from a laptop with no
-setup — nothing below is required for that.
-
-This guide covers turning on the real, multi-device backend described in the
-business plan: cloud menu/order storage, staff login, and an optional real AI
-fallback.
+This app has one real backend (FastAPI, `api/index.py`) backed by Supabase
+Postgres, plus optional Google Gemini for the AI chat and auto-translation.
+There is no offline/local-only mode — the menu, orders, tables, and
+reservations all live in the database, and the app needs this setup to run
+at all (the frontend calls `/api/*`, which returns `503` until Supabase is
+configured).
 
 ## 1. Create a Supabase project
 
-1. Go to [supabase.com](https://supabase.com), create a free account and a new project.
-2. In the project dashboard, go to **SQL Editor → New query**, paste the contents
-   of [`supabase/schema.sql`](supabase/schema.sql), and run it.
-3. Do the same with [`supabase/seed.sql`](supabase/seed.sql) — this creates the
-   first restaurant row (`fresh-bites`).
-4. Go to **Project Settings → API** and copy the **Project URL** and **anon
-   public key**.
-5. In this project's root folder, copy `.env.example` to `.env.local` and paste
-   those two values in:
-   ```
-   VITE_SUPABASE_URL=https://xxxxx.supabase.co
-   VITE_SUPABASE_ANON_KEY=eyJ...
-   ```
-6. Restart `npm run dev`. The app now uses Supabase — the first time the
-   customer app or owner dashboard loads, it automatically seeds the cloud menu
-   from `src/data/menu.ts`, and every order/menu edit syncs live across every
-   device (not just tabs in the same browser, like local demo mode).
+1. Go to [supabase.com](https://supabase.com), create a project.
+2. **SQL Editor → New query**, paste [`db/schema.sql`](db/schema.sql) in full, run it.
+3. New query again, paste [`db/seed.sql`](db/seed.sql) in full, run it — this
+   creates a sample store, two menu items, and 14 tables under store id
+   `11111111-1111-4111-8111-111111111111`.
+4. **Project Settings → API Keys**: copy the **Project URL** and a **Secret
+   key** (or, on older projects, the legacy `service_role` key).
 
-## 2. Create your first staff login
+## 2. Configure environment variables
 
-The owner dashboard (`/admin`) is only login-gated once Supabase is configured
-(in local demo mode it stays open, since there's nothing to protect yet).
+Copy `.env.example` to `.env.local` and fill in:
 
-1. Supabase dashboard → **Authentication → Users → Add user**, set an email + password.
+```dotenv
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...          # Project Settings → API Keys → anon/public
+GEMINI_API_KEY=                         # from Google AI Studio (optional but recommended)
+GEMINI_MODEL=gemini-3.6-flash
+SUPABASE_URL=https://xxxxx.supabase.co  # same project, server side
+SUPABASE_SERVICE_KEY=eyJ...             # Secret key / service_role — never expose to the browser
+DEFAULT_STORE_ID=11111111-1111-4111-8111-111111111111
+ALLOWED_ORIGINS=
+```
+
+`VITE_*` vars are read by the Vite frontend (only used for Supabase Auth —
+see step 3). The rest are read server-side by `api/index.py` and must never
+be prefixed `VITE_` or they'd ship to the browser.
+
+## 3. Create your first staff login
+
+Every admin write route (menu, tables, order/reservation status, review
+replies) requires a Supabase Auth session **and** a matching row in the
+`staff` table — this is what replaced Wexit's original unauthenticated admin
+API.
+
+1. Supabase dashboard → **Authentication → Users → Add user** (email + password).
 2. Copy that user's UUID.
-3. Run in the SQL editor (see the commented block at the bottom of `seed.sql`):
+3. SQL Editor:
    ```sql
-   insert into staff (id, restaurant_id, role)
-   values ('<paste the user UUID>', (select id from restaurants where slug = 'fresh-bites'), 'owner');
+   insert into public.staff (id, store_id, role)
+   values ('<paste the user UUID>', '11111111-1111-4111-8111-111111111111', 'owner');
    ```
 4. Sign in at `/admin` with that email/password.
 
-Add more staff the same way — every row in `staff` for a restaurant can manage
-that restaurant's menu and orders.
+Add more staff the same way — any row in `staff` for a store can manage that
+store.
 
-## 3. (Optional) Turn on the real conversational AI
+## 4. Run it locally
 
-By default Menu AI is the free rule-based engine (`src/lib/assistant.ts`) —
-keyword matching against menu tags in English, Vietnamese, and Korean. It's
-fast, free, and good enough to demo, but it's still a script, not a
-conversation.
+```bash
+npm install
+python -m venv .venv && source .venv/bin/activate   # or .venv\Scripts\Activate.ps1 on Windows
+python -m pip install -r requirements.txt
+```
 
-Once you deploy this function, **every message goes through a real AI
-agent instead** (RAG: it's given the live menu + restaurant hours/FAQ + the
-full chat history on every turn) — it talks naturally like a genuine staff
-member, decides for itself when to show a dish photo card, and decides for
-itself when the customer has confirmed enough to add something to their
-cart. Like every other path into the cart, placing the actual order still
-always happens explicitly from the Cart tab's "Confirm order" button — chat
-never places an order directly. The rule-based engine automatically becomes
-the fallback: if the function isn't deployed, has no key, or a request
-fails, that one message quietly uses the free engine instead — nothing
-ever breaks for lack of a key.
+The closest match to production is Vercel's own dev server, which serves the
+Vite build and the Python function together:
 
-1. Install the [Supabase CLI](https://supabase.com/docs/guides/cli) and log in
-   (`supabase login`), then link it to your project (`supabase link`).
-2. Get an API key from [platform.openai.com](https://platform.openai.com).
-3. Deploy the function and set the key as a secret (never exposed to the browser):
-   ```
-   supabase functions deploy recommend
-   supabase secrets set OPENAI_API_KEY=sk-...
-   ```
-4. That's it — no frontend change needed. `src/lib/aiClient.ts` calls this
-   function automatically once it's deployed.
+```bash
+npm install -g vercel   # once
+vercel dev
+```
 
-Cost note: unlike the old "only call AI when the rules fail" design, this
-calls the model on every message once deployed — with `gpt-4o-mini` (the
-default; change via the `OPENAI_MODEL` secret) that's a small fraction of a
-cent per message, but it's no longer free. This is the real per-customer
-running cost the business plan's monthly fee is meant to cover.
+Frontend-only iteration (`npm run dev`) also works, but `/api/*` calls will
+404 unless the FastAPI server is running separately:
+
+```bash
+python -m uvicorn api.index:app --reload
+```
+
+## 5. (Optional) Gemini AI chat + auto-translation
+
+Without `GEMINI_API_KEY`, `/api/chat` returns a static "AI unavailable"
+message and the app falls back to the rule-based engine in
+`src/lib/assistant.ts` for every message — menu browsing, ordering, and
+reservations all keep working regardless. Menu translation
+(`auto_translate_fields` in `api/index.py`) also silently falls back to
+copying the English text into the ko/vi fields.
+
+1. Get a key from [Google AI Studio](https://aistudio.google.com).
+2. Set `GEMINI_API_KEY` (and optionally `GEMINI_MODEL`, default
+   `gemini-3.6-flash`).
+3. That's it — no frontend change needed. The admin form only collects
+   English name/description/allergy note; Korean and Vietnamese are filled
+   in automatically on save.
 
 ## What stays true either way
 
-- Without any of the above, the app is fully functional for a live demo —
-  everything in this guide is additive.
-- Ingredients/allergy notes and the FAQ are English-only for now; translating
-  those is a content task (add more locale strings to `src/i18n/translations.ts`
-  and `src/data/menu.ts`'s `descriptions` field), not an architecture change.
-- This is still single-restaurant under the hood (the `fresh-bites` slug). Real
-  multi-restaurant self-serve signup (a new restaurant creating its own account)
-  isn't built — for a 1–3 site pilot, seeding each site's row by hand via SQL
-  (like `seed.sql`) is the right amount of engineering for now.
+- This is still single-store under the hood (`DEFAULT_STORE_ID`). Real
+  multi-tenant self-serve signup isn't built — for a 1–3 site pilot, seeding
+  each site by hand via SQL is the right amount of engineering for now, and
+  the schema already carries `store_id` on every table for when that's needed.
+- `mode=web` vs `mode=store` in the URL (see `TableQrView`) is a UX gate, not
+  a security boundary — see api/index.py's docstrings before treating it as
+  an access-control mechanism.

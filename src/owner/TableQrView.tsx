@@ -1,82 +1,114 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { Download } from "lucide-react";
-import { usePersistentState } from "../store/usePersistentState";
+import { useTablesData } from "../store/useTablesData";
 import { useI18n } from "../i18n/I18nContext";
 
 export function TableQrView() {
   const { t } = useI18n();
-  const [tableCount, setTableCount] = usePersistentState("fb_table_count", 8);
-  const [qrCodes, setQrCodes] = useState<Record<number, string>>({});
+  const { tables } = useTablesData();
+  const [webQr, setWebQr] = useState("");
+  const [tableQrs, setTableQrs] = useState<Record<string, string>>({});
 
   const baseUrl = `${window.location.origin}/`;
+  const webUrl = `${baseUrl}?mode=web`;
 
   useEffect(() => {
     let cancelled = false;
+    QRCode.toDataURL(webUrl, { width: 240, margin: 1, color: { dark: "#1F3D2B" } }).then((dataUrl) => {
+      if (!cancelled) setWebQr(dataUrl);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [webUrl]);
+
+  useEffect(() => {
+    if (tables.length === 0) return;
+    let cancelled = false;
     (async () => {
       const entries = await Promise.all(
-        Array.from({ length: tableCount }, (_, i) => i + 1).map(async (n) => {
-          const url = `${baseUrl}?table=${n}`;
+        tables.map(async (table) => {
+          const url = `${baseUrl}?table=${table.id}&mode=store`;
           const dataUrl = await QRCode.toDataURL(url, { width: 240, margin: 1, color: { dark: "#1F3D2B" } });
-          return [n, dataUrl] as const;
+          return [table.id, dataUrl] as const;
         })
       );
-      if (!cancelled) setQrCodes(Object.fromEntries(entries));
+      if (!cancelled) setTableQrs(Object.fromEntries(entries));
     })();
     return () => {
       cancelled = true;
     };
-  }, [tableCount, baseUrl]);
+  }, [tables, baseUrl]);
 
-  const downloadQr = (n: number) => {
+  const downloadQr = (dataUrl: string, filename: string) => {
     const link = document.createElement("a");
-    link.href = qrCodes[n];
-    link.download = `table-${n}-qr.png`;
+    link.href = dataUrl;
+    link.download = filename;
     link.click();
   };
 
   return (
     <div className="p-8 max-w-5xl">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("owner_nav_tables")}</h1>
-          <p className="text-[13px] text-[#8A8272]">
-            Print one QR code per table. Scanning it opens the customer menu with the table number pre-filled.
-          </p>
-        </div>
-        <label className="flex items-center gap-2 text-[13px] text-[#5C5240]">
-          Number of tables
-          <input
-            type="number"
-            min={1}
-            max={50}
-            value={tableCount}
-            onChange={(e) => setTableCount(Math.max(1, Math.min(50, parseInt(e.target.value, 10) || 1)))}
-            className="w-16 border border-black/10 rounded-lg px-2 py-1.5 text-[13px] outline-none focus:border-[#2D5A3D]"
-          />
-        </label>
-      </div>
+      <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("owner_nav_tables")}</h1>
+      <p className="text-[13px] text-[#8A8272] mb-6">
+        Two kinds of QR code: one general "web" code for menus/flyers/social media (browse + AI only, no
+        ordering), and one per physical table (full ordering + reservations) — printed and left on that table.
+        Manage tables themselves in Seating.
+      </p>
 
-      <div className="grid grid-cols-4 gap-4">
-        {Array.from({ length: tableCount }, (_, i) => i + 1).map((n) => (
-          <div key={n} className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex flex-col items-center gap-2">
-            <p className="text-[13px] font-bold text-[#22201B]">Table {n}</p>
-            {qrCodes[n] ? (
-              <img src={qrCodes[n]} alt={`QR code for table ${n}`} className="w-32 h-32" />
-            ) : (
-              <div className="w-32 h-32 bg-[#F5F1E6] animate-pulse rounded-lg" />
-            )}
-            <p className="text-[10px] text-[#B0A794] break-all text-center">{baseUrl}?table={n}</p>
+      <div className="mb-8">
+        <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-3">General "web" QR</h2>
+        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center gap-4 max-w-md">
+          {webQr ? (
+            <img src={webQr} alt="General web QR code" className="w-28 h-28 shrink-0" />
+          ) : (
+            <div className="w-28 h-28 bg-[#F5F1E6] animate-pulse rounded-lg shrink-0" />
+          )}
+          <div className="min-w-0">
+            <p className="text-[11px] text-[#B0A794] break-all">{webUrl}</p>
             <button
-              onClick={() => downloadQr(n)}
-              disabled={!qrCodes[n]}
-              className="flex items-center gap-1 text-[11.5px] font-medium text-white bg-[#2D5A3D] px-3 py-1.5 rounded-full disabled:opacity-40"
+              onClick={() => webQr && downloadQr(webQr, "menu-web-qr.png")}
+              disabled={!webQr}
+              className="mt-2 flex items-center gap-1 text-[11.5px] font-medium text-white bg-[#2D5A3D] px-3 py-1.5 rounded-full disabled:opacity-40"
             >
               <Download size={12} />
               Download
             </button>
           </div>
-        ))}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-3">Per-table "store" QR</h2>
+        {tables.length === 0 && (
+          <p className="text-[13px] text-[#B0A794] bg-white rounded-2xl border border-black/5 p-6 text-center">
+            No tables yet — add tables in Seating first.
+          </p>
+        )}
+        <div className="grid grid-cols-4 gap-4">
+          {tables.map((table) => (
+            <div key={table.id} className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex flex-col items-center gap-2">
+              <p className="text-[13px] font-bold text-[#22201B]">Table {table.id}</p>
+              {tableQrs[table.id] ? (
+                <img src={tableQrs[table.id]} alt={`QR code for table ${table.id}`} className="w-32 h-32" />
+              ) : (
+                <div className="w-32 h-32 bg-[#F5F1E6] animate-pulse rounded-lg" />
+              )}
+              <p className="text-[10px] text-[#B0A794] break-all text-center">
+                {baseUrl}?table={table.id}&mode=store
+              </p>
+              <button
+                onClick={() => tableQrs[table.id] && downloadQr(tableQrs[table.id], `table-${table.id}-qr.png`)}
+                disabled={!tableQrs[table.id]}
+                className="flex items-center gap-1 text-[11.5px] font-medium text-white bg-[#2D5A3D] px-3 py-1.5 rounded-full disabled:opacity-40"
+              >
+                <Download size={12} />
+                Download
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

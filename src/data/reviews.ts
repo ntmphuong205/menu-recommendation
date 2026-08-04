@@ -1,9 +1,12 @@
 export interface Review {
   id: string;
-  dishId: string;
-  tableNumber: number;
-  rating: number; // 1-5
+  /** Absent for a store-level review (no specific dish). */
+  dishId?: string;
+  tableId?: string;
+  rating: number; // 0.5-5
   comment: string;
+  /** Owner's reply, shown alongside the review once set. */
+  reply?: string;
   createdAt: number;
 }
 

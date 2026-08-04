@@ -45,7 +45,10 @@ export interface Pairing {
 
 export interface Dish {
   id: string;
+  /** English fallback name — proper-noun dish names (e.g. "Phở Bò") are
+   *  meant to stay as-is across languages; translatable names use `names`. */
   name: string;
+  names?: Partial<Record<"vi" | "en" | "ko", string>>;
   price: number;
   description: string;
   descriptions?: Partial<Record<"vi" | "en" | "ko", string>>;
@@ -726,6 +729,10 @@ DEFAULT_MENU.forEach((dish) => {
 });
 
 export const BEST_SELLERS = ["pho-bo", "com-tam-suon", "banh-mi-thit-nuong"];
+
+export function getDishName(dish: Dish, lang: "vi" | "en" | "ko"): string {
+  return dish.names?.[lang] ?? dish.name;
+}
 
 export function getDishDescription(dish: Dish, lang: "vi" | "en" | "ko"): string {
   return dish.descriptions?.[lang] ?? dish.description;

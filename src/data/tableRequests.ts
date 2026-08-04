@@ -1,6 +1,6 @@
 export interface TableRequest {
   id: string;
-  tableNumber: number;
+  tableId: string;
   reason: string;
   createdAt: number;
   resolved: boolean;

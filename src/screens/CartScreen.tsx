@@ -5,7 +5,7 @@ import type { QueueInfo } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL, orderTotal, type Order, type OrderStatus } from "../data/orders";
-import { getPairingReason, type Dish } from "../data/menu";
+import { getDishName, getPairingReason, type Dish } from "../data/menu";
 
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
   new: "bg-[#FDECC8] text-[#8A6B1F]",
@@ -15,13 +15,13 @@ const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
 };
 
 function MyOrdersSection() {
-  const { orders, tableNumber, cancelOrder, getQueueInfo } = useApp();
+  const { orders, tableId, cancelOrder, getQueueInfo } = useApp();
   const { t } = useI18n();
   // Everything this table has ordered so far — new, preparing, served, and
   // cancelled — stays visible here, so the customer always sees the current
   // status of every item they ordered, not just the ones still active.
   const myOrders = orders
-    .filter((o) => o.tableNumber === tableNumber)
+    .filter((o) => o.tableId === tableId)
     .sort((a, b) => b.createdAt - a.createdAt);
 
   if (myOrders.length === 0) return null;
@@ -140,10 +140,10 @@ function PairingSuggestions() {
           >
             <div className="flex gap-2">
               <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 bg-[#EFE9D8]">
-                <img src={dish.image} alt={dish.name} className="w-full h-full object-cover" />
+                <img src={dish.image} alt={getDishName(dish, lang)} className="w-full h-full object-cover" />
               </div>
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-[#22201B] leading-tight line-clamp-1">{dish.name}</p>
+                <p className="text-[12px] font-semibold text-[#22201B] leading-tight line-clamp-1">{getDishName(dish, lang)}</p>
                 <p className="text-[11px] text-[#2D5A3D] font-bold">${dish.price.toFixed(2)}</p>
               </div>
             </div>
@@ -166,7 +166,7 @@ function PairingSuggestions() {
 }
 
 function OrderPlacedScreen({ order, onDone }: { order: Order | undefined; onDone: () => void }) {
-  const { setActiveTab, tableNumber, getQueueInfo } = useApp();
+  const { setActiveTab, tableId, getQueueInfo } = useApp();
   const { t } = useI18n();
   // All items just went in as "new" — summarize with the first item's queue
   // position and the longest individual wait across the order.
@@ -184,7 +184,7 @@ function OrderPlacedScreen({ order, onDone }: { order: Order | undefined; onDone
         <CheckCircle2 size={34} className="text-[#2D5A3D]" />
       </div>
       <h2 className="text-[17px] font-bold text-[#22201B]">{t("cart_placed_title")}</h2>
-      <p className="text-[13px] text-[#8A8272] leading-relaxed">{t("cart_placed_desc", { table: tableNumber })}</p>
+      <p className="text-[13px] text-[#8A8272] leading-relaxed">{t("cart_placed_desc", { table: tableId })}</p>
       {queue && (
         <div className="flex items-center gap-4 bg-white rounded-2xl border border-black/5 shadow-sm px-4 py-3 mt-1">
           <div className="text-center">
@@ -212,17 +212,17 @@ function OrderPlacedScreen({ order, onDone }: { order: Order | undefined; onDone
 }
 
 export function CartScreen() {
-  const { cart, updateQty, removeItem, clearCart, findDish, totalPrice, setActiveTab, placeOrder, tableNumber, orders } =
+  const { cart, updateQty, removeItem, clearCart, findDish, totalPrice, setActiveTab, placeOrder, tableId, orders, mode } =
     useApp();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [justSubmitted, setJustSubmitted] = useState(false);
 
   if (justSubmitted) {
     // Recomputed fresh from the live `orders` list on every render, so this
-    // picks up the just-created order as soon as it lands (local state
-    // updates in the same tick; cloud mode a beat later via realtime).
+    // picks up the just-created order as soon as it lands (the next poll
+    // tick, at most a few seconds later).
     const order = [...orders]
-      .filter((o) => o.tableNumber === tableNumber)
+      .filter((o) => o.tableId === tableId)
       .sort((a, b) => b.createdAt - a.createdAt)[0];
     return <OrderPlacedScreen order={order} onDone={() => setJustSubmitted(false)} />;
   }
@@ -260,7 +260,7 @@ export function CartScreen() {
         <div>
           <h1 className="text-[19px] font-bold text-[#22201B]">{t("cart_title")}</h1>
           <p className="text-[11px] text-[#8A8272]">
-            {t("chat_table")} {tableNumber}
+            {t("chat_table")} {tableId}
           </p>
         </div>
         <LangSwitcher />
@@ -274,11 +274,11 @@ export function CartScreen() {
             return (
               <div key={item.id} className="flex gap-3 bg-white rounded-2xl p-2.5 border border-black/5 shadow-sm">
                 <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-[#EFE9D8]">
-                  <img src={dish.image} alt={dish.name} className="w-full h-full object-cover" />
+                  <img src={dish.image} alt={getDishName(dish, lang)} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[13.5px] font-semibold text-[#22201B] leading-tight">{dish.name}</p>
+                    <p className="text-[13.5px] font-semibold text-[#22201B] leading-tight">{getDishName(dish, lang)}</p>
                     <button onClick={() => removeItem(item.id)} className="text-[#B0A794] shrink-0">
                       <Trash2 size={14} />
                     </button>
@@ -318,16 +318,22 @@ export function CartScreen() {
           <span className="text-[13px] text-[#8A8272]">{t("cart_total")}</span>
           <span className="text-[18px] font-bold text-[#22201B]">${totalPrice.toFixed(2)}</span>
         </div>
-        <button
-          onClick={() => {
-            placeOrder(tableNumber);
-            clearCart();
-            setJustSubmitted(true);
-          }}
-          className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform"
-        >
-          {t("cart_confirm_order")}
-        </button>
+        {mode === "web" ? (
+          <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-3 px-4">
+            {t("reservation_web_mode_blocked")}
+          </p>
+        ) : (
+          <button
+            onClick={() => {
+              placeOrder(tableId);
+              clearCart();
+              setJustSubmitted(true);
+            }}
+            className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform"
+          >
+            {t("cart_confirm_order")}
+          </button>
+        )}
       </div>
     </div>
   );

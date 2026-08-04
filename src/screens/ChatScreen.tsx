@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { ChefHat, Send } from "lucide-react";
 import { ChatBubble } from "../components/ChatBubble";
 import { initialMessages, respond, botMessage, type ChatMessage, type ConversationState } from "../lib/assistant";
-import { getAiChatReply, isAiChatAvailable } from "../lib/aiClient";
+import { getAiChatReply } from "../lib/aiClient";
 import { RESTAURANT } from "../data/restaurant";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 
 export function ChatScreen() {
-  const { addToCart, menu, tableNumber } = useApp();
+  const { addToCart, menu, tableId } = useApp();
   const { t, lang } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages(lang));
   const [state, setState] = useState<ConversationState>({ stage: "idle" });
@@ -40,21 +40,18 @@ export function ChatScreen() {
     setTyping(true);
 
     setTimeout(async () => {
-      // When a Supabase project is configured, the real conversational agent
-      // (RAG over the live menu + full chat history) handles every message —
-      // it decides itself when to show dishes and when to add something to
-      // the cart. getAiChatReply() resolves to null on any failure (including
-      // "no OPENAI_API_KEY configured"), so this is a no-op until you set one
-      // up, and the rule-based engine below is the complete fallback either way.
-      if (isAiChatAvailable) {
-        const ai = await getAiChatReply(history, lang, menu);
-        if (ai) {
-          const dishes = ai.dishIds.map((id) => menu.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => !!d);
-          setMessages((prev) => [...prev, botMessage(ai.reply, dishes.length > 0 ? dishes : undefined)]);
-          ai.cartAdditions?.items.forEach((item) => addToCart(item.dishId, item.qty, item.note));
-          setTyping(false);
-          return;
-        }
+      // The backend's Gemini-grounded /api/chat handles the message first —
+      // it sees the live menu/table data and answers accordingly. It never
+      // adds to the cart itself, only suggests dishes; getAiChatReply()
+      // resolves to null on any failure (no GEMINI_API_KEY configured,
+      // network error, etc.), and the rule-based engine below is the
+      // complete offline fallback either way.
+      const ai = await getAiChatReply(trimmed, lang, messages);
+      if (ai) {
+        const dishes = ai.dishIds.map((id) => menu.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => !!d);
+        setMessages((prev) => [...prev, botMessage(ai.reply, dishes.length > 0 ? dishes : undefined)]);
+        setTyping(false);
+        return;
       }
 
       const result = respond(trimmed, state, menu, lang);
@@ -84,7 +81,7 @@ export function ChatScreen() {
           </div>
         </div>
         <span className="text-[11px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-2.5 py-1 rounded-full shrink-0">
-          {t("chat_table")} {tableNumber}
+          {t("chat_table")} {tableId}
         </span>
         <LangSwitcher />
       </div>
