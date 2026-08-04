@@ -11,6 +11,11 @@ create extension if not exists "pgcrypto";
 
 create table if not exists public.stores (
     id uuid primary key default gen_random_uuid(),
+    -- URL-safe identifier for multi-tenant routing (?store=<slug> on
+    -- customer QR links, and the admin store switcher). Chosen once when
+    -- the store is provisioned; not editable through the admin UI since
+    -- changing it would break already-printed QR codes.
+    slug text not null unique,
     name text not null,
     name_en text default '',
     name_vi text default '',

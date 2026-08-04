@@ -10,6 +10,10 @@ export interface OwnerAuth {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => void;
+  /** Resolves to an error message on failure, or null on success. Requires
+   *  an already-valid session (no re-auth prompt) — fine for a small admin
+   *  tool; revisit if this ever needs to survive a stolen/shared session. */
+  changePassword: (newPassword: string) => Promise<string | null>;
 }
 
 export function useOwnerAuth(): OwnerAuth {
@@ -38,5 +42,11 @@ export function useOwnerAuth(): OwnerAuth {
     supabase?.auth.signOut();
   };
 
-  return { authRequired: isSupabaseConfigured, user, loading, signIn, signOut };
+  const changePassword = async (newPassword: string) => {
+    if (!supabase) return "Supabase is not configured.";
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return error ? error.message : null;
+  };
+
+  return { authRequired: isSupabaseConfigured, user, loading, signIn, signOut, changePassword };
 }

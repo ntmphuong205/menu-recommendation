@@ -4,12 +4,13 @@ import json
 import logging
 import os
 import re
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from google import genai
@@ -801,47 +802,82 @@ class SupabaseRepository:
 
 REPOSITORY_ERROR = ""
 
-
-def build_repository() -> SupabaseRepository | None:
-    global REPOSITORY_ERROR
-    if SUPABASE_URL and SUPABASE_SERVICE_KEY and DEFAULT_STORE_ID:
-        try:
-            UUID(DEFAULT_STORE_ID)
-            return SupabaseRepository(
-                create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY),
-                DEFAULT_STORE_ID,
-            )
-        except Exception:
-            logger.exception("Supabase client initialization failed")
-            REPOSITORY_ERROR = "Failed to initialize the Supabase client."
-            return None
-
+# One Supabase client, shared by every request/store — cheap to reuse, no
+# per-request network cost. Which store a given request operates on is
+# resolved per-request (see resolve_store_middleware) instead of being
+# fixed at import time, so one deployment can serve many restaurants.
+supabase_client: Client | None = None
+if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+    try:
+        supabase_client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    except Exception:
+        logger.exception("Supabase client initialization failed")
+        REPOSITORY_ERROR = "Failed to initialize the Supabase client."
+else:
     missing = [
         name
         for name, value in (
             ("SUPABASE_URL", SUPABASE_URL),
             ("SUPABASE_SERVICE_KEY", SUPABASE_SERVICE_KEY),
-            ("DEFAULT_STORE_ID", DEFAULT_STORE_ID),
         )
         if not value
     ]
-    REPOSITORY_ERROR = (
-        "Missing required Supabase environment variables: " + ", ".join(missing)
-    )
-    return None
+    REPOSITORY_ERROR = "Missing required Supabase environment variables: " + ", ".join(missing)
 
-
-repository = build_repository()
 gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+
+# Set once per request by resolve_store_middleware, read by get_repository().
+# ContextVars are task-scoped, so concurrent requests for different stores
+# never see each other's value — this is what makes per-request store
+# resolution safe under FastAPI's async concurrency.
+_current_store_id: ContextVar[Optional[str]] = ContextVar("current_store_id", default=None)
+_slug_cache: Dict[str, str] = {}
+
+
+def resolve_store_id_by_slug(slug: str) -> Optional[str]:
+    """Looks up a store's id from its URL slug (?store=<slug> on customer
+    links, or the admin's selected store). Cached in-process since slugs
+    rarely change once a restaurant is provisioned."""
+    if slug in _slug_cache:
+        return _slug_cache[slug]
+    if not supabase_client:
+        return None
+    try:
+        response = (
+            supabase_client.table("stores").select("id").eq("slug", slug).limit(1).execute()
+        )
+    except Exception:
+        logger.exception("Store slug lookup failed")
+        return None
+    if not response.data:
+        return None
+    store_id = response.data[0]["id"]
+    _slug_cache[slug] = store_id
+    return store_id
+
+
+@app.middleware("http")
+async def resolve_store_middleware(request: Request, call_next):
+    slug = request.headers.get("x-store-slug", "").strip()
+    store_id = resolve_store_id_by_slug(slug) if slug else None
+    # Falls back to DEFAULT_STORE_ID when no slug header is sent — keeps
+    # already-printed QR codes and any client that predates multi-tenancy
+    # working unchanged, pointed at whichever store that env var names.
+    token = _current_store_id.set(store_id or DEFAULT_STORE_ID or None)
+    try:
+        return await call_next(request)
+    finally:
+        _current_store_id.reset(token)
 
 
 def get_repository() -> SupabaseRepository:
-    if repository is None:
+    store_id = _current_store_id.get()
+    if not supabase_client or not store_id:
         raise HTTPException(
             status_code=503,
             detail=REPOSITORY_ERROR or "The database is not configured.",
         )
-    return repository
+    return SupabaseRepository(supabase_client, store_id)
 
 
 def require_staff(authorization: str = Header(default="")) -> Dict[str, Any]:
@@ -1003,6 +1039,7 @@ def complete_translation(
 def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "id": str(row["id"]),
+        "slug": row.get("slug") or "",
         "name": row["name"],
         "hours": row.get("hours") or "",
         "description": row.get("description") or "",
@@ -1031,8 +1068,10 @@ def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
 @app.get("/api/health")
 def health() -> Dict[str, Any]:
     database = "misconfigured"
-    if repository is not None:
-        database = "connected" if repository.health() else "disconnected"
+    try:
+        database = "connected" if get_repository().health() else "disconnected"
+    except HTTPException:
+        pass
     return {
         "success": database == "connected",
         "message": "Q-Menu API is running",
@@ -1041,6 +1080,47 @@ def health() -> Dict[str, Any]:
         "gemini_configured": bool(gemini_client),
         "gemini_model": GEMINI_MODEL,
     }
+
+
+@app.get("/api/my-stores")
+def get_my_stores(authorization: str = Header(default="")) -> Dict[str, Any]:
+    """Every store a logged-in user is staff of, independent of whichever
+    store the current request happens to be scoped to — this is how the
+    admin app discovers where to send someone after login (see
+    src/store/useMyStores.ts)."""
+    if not authorization.lower().startswith("bearer ") or not supabase_client:
+        raise HTTPException(status_code=401, detail="Login required.")
+    token = authorization[7:].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Login required.")
+    try:
+        user_response = supabase_client.auth.get_user(token)
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.") from exc
+    user = getattr(user_response, "user", None)
+    if not user or not getattr(user, "id", None):
+        raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
+
+    try:
+        response = (
+            supabase_client.table("staff")
+            .select("store_id, stores(slug, name, name_en)")
+            .eq("id", user.id)
+            .execute()
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Failed to load your stores.") from exc
+
+    stores = [
+        {
+            "store_id": row["store_id"],
+            "slug": (row.get("stores") or {}).get("slug"),
+            "name": (row.get("stores") or {}).get("name_en") or (row.get("stores") or {}).get("name"),
+        }
+        for row in (response.data or [])
+        if row.get("stores")
+    ]
+    return {"stores": stores}
 
 
 @app.get("/api/store")

@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { getStoreSlug } from "./storeSlug";
 
 const SESSION_KEY = "mp_customer_session_id";
 
@@ -30,7 +31,12 @@ async function authHeader(): Promise<Record<string, string>> {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = { "Content-Type": "application/json", ...(await authHeader()) };
+  const slug = getStoreSlug();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(slug ? { "X-Store-Slug": slug } : {}),
+    ...(await authHeader()),
+  };
   const res = await fetch(`/api${path}`, {
     method,
     headers,
@@ -133,6 +139,7 @@ export interface ApiTableRequest {
 
 export interface ApiStore {
   id: string;
+  slug: string;
   name: string;
   hours: string;
   description: string;
@@ -157,9 +164,19 @@ export interface ChatHistoryTurn {
   text: string;
 }
 
+export interface ApiStoreSummary {
+  store_id: string;
+  slug: string;
+  name: string;
+}
+
 export const apiClient = {
   health: () =>
     request<{ success: boolean; database: string; gemini_configured: boolean }>("GET", "/health"),
+
+  // Independent of the current X-Store-Slug — lists every store this
+  // logged-in user is staff of, for the admin store switcher.
+  getMyStores: () => request<{ stores: ApiStoreSummary[] }>("GET", "/my-stores"),
 
   getStore: () => request<ApiStore>("GET", "/store"),
   updateStore: (payload: { name: string; hours: string; description: string; menu_categories: string[] }) =>

@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { Download } from "lucide-react";
 import { useTablesData } from "../store/useTablesData";
 import { useI18n } from "../i18n/I18nContext";
+import { getStoreSlug } from "../lib/storeSlug";
 
 export function TableQrView() {
   const { t } = useI18n();
@@ -10,8 +11,13 @@ export function TableQrView() {
   const [webQr, setWebQr] = useState("");
   const [tableQrs, setTableQrs] = useState<Record<string, string>>({});
 
+  // Baked into every QR this screen prints, so scanning always resolves to
+  // this store regardless of which store the admin happens to be viewing
+  // right now (see src/lib/storeSlug.ts / api/index.py's X-Store-Slug).
+  const storeSlug = getStoreSlug();
+  const storeParam = storeSlug ? `&store=${encodeURIComponent(storeSlug)}` : "";
   const baseUrl = `${window.location.origin}/`;
-  const webUrl = `${baseUrl}?mode=web`;
+  const webUrl = `${baseUrl}?mode=web${storeParam}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -29,7 +35,7 @@ export function TableQrView() {
     (async () => {
       const entries = await Promise.all(
         tables.map(async (table) => {
-          const url = `${baseUrl}?table=${table.id}&mode=store`;
+          const url = `${baseUrl}?table=${table.id}&mode=store${storeParam}`;
           const dataUrl = await QRCode.toDataURL(url, { width: 240, margin: 1, color: { dark: "#1F3D2B" } });
           return [table.id, dataUrl] as const;
         })
@@ -39,7 +45,7 @@ export function TableQrView() {
     return () => {
       cancelled = true;
     };
-  }, [tables, baseUrl]);
+  }, [tables, baseUrl, storeParam]);
 
   const downloadQr = (dataUrl: string, filename: string) => {
     const link = document.createElement("a");
@@ -96,7 +102,7 @@ export function TableQrView() {
                 <div className="w-32 h-32 bg-[#F5F1E6] animate-pulse rounded-lg" />
               )}
               <p className="text-[10px] text-[#B0A794] break-all text-center">
-                {baseUrl}?table={table.id}&mode=store
+                {baseUrl}?table={table.id}&mode=store{storeParam}
               </p>
               <button
                 onClick={() => tableQrs[table.id] && downloadQr(tableQrs[table.id], `table-${table.id}-qr.png`)}

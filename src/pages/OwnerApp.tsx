@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChefHat, ClipboardList, UtensilsCrossed, ExternalLink, BarChart3, QrCode, LogOut, Armchair, Star, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChefHat, ClipboardList, UtensilsCrossed, ExternalLink, BarChart3, QrCode, LogOut, Armchair, Star, Settings, Store as StoreIcon, KeyRound } from "lucide-react";
 import { RESTAURANT } from "../data/restaurant";
 import { OrdersView } from "../owner/OrdersView";
 import { MenuManagementView } from "../owner/MenuManagementView";
@@ -9,9 +9,12 @@ import { SeatLayoutView } from "../owner/SeatLayoutView";
 import { ReviewsView } from "../owner/ReviewsView";
 import { StoreSettingsView } from "../owner/StoreSettingsView";
 import { OwnerLogin } from "../owner/OwnerLogin";
+import { StoreSwitcher } from "../owner/StoreSwitcher";
+import { ChangePasswordModal } from "../owner/ChangePasswordModal";
 import { useOwnerAuth } from "../store/useOwnerAuth";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
+import { getStoreSlug } from "../lib/storeSlug";
 import type { TranslationKey } from "../i18n/translations";
 
 type Section = "orders" | "menu" | "analytics" | "seating" | "tables" | "reviews" | "store";
@@ -30,6 +33,16 @@ export function OwnerApp() {
   const [section, setSection] = useState<Section>("orders");
   const { t } = useI18n();
   const { authRequired, user, loading, signIn, signOut } = useOwnerAuth();
+  // Resolved once we know which store this login belongs to (see
+  // StoreSwitcher) — null means "not resolved yet", not "no store".
+  const [storeSlug, setStoreSlug] = useState<string | null>(() => (authRequired ? null : getStoreSlug() || null));
+  const [showChangePassword, setShowChangePassword] = useState(false);
+
+  // A fresh sign-in should re-resolve which store to land on, in case the
+  // previous session (or localStorage) pointed at a different one.
+  useEffect(() => {
+    if (!user) setStoreSlug(null);
+  }, [user]);
 
   if (authRequired && loading) {
     return <div className="min-h-screen w-full flex items-center justify-center bg-[#F5F1E6]" />;
@@ -37,6 +50,10 @@ export function OwnerApp() {
 
   if (authRequired && !user) {
     return <OwnerLogin signIn={signIn} />;
+  }
+
+  if (authRequired && !storeSlug) {
+    return <StoreSwitcher onSelect={setStoreSlug} onSignOut={signOut} />;
   }
 
   return (
@@ -82,6 +99,24 @@ export function OwnerApp() {
           </a>
           {authRequired && (
             <button
+              onClick={() => setStoreSlug(null)}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
+            >
+              <StoreIcon size={14} />
+              Switch store
+            </button>
+          )}
+          {authRequired && (
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
+            >
+              <KeyRound size={14} />
+              Change password
+            </button>
+          )}
+          {authRequired && (
+            <button
               onClick={signOut}
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
             >
@@ -101,6 +136,8 @@ export function OwnerApp() {
         {section === "reviews" && <ReviewsView />}
         {section === "store" && <StoreSettingsView />}
       </main>
+
+      {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
     </div>
   );
 }

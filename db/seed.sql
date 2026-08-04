@@ -4,6 +4,7 @@
 
 insert into public.stores (
     id,
+    slug,
     name,
     name_en,
     name_vi,
@@ -17,6 +18,7 @@ insert into public.stores (
 )
 values (
     '11111111-1111-4111-8111-111111111111',
+    'la-terrazza',
     '라 테라짜 키친',
     'La Terrazza Kitchen',
     'Nhà hàng La Terrazza',
@@ -29,6 +31,7 @@ values (
     '["#스트레스", "#해장", "#혼밥", "#가성비", "#회식", "#매운맛", "#달콤한", "#국물"]'::jsonb
 )
 on conflict (id) do update set
+    slug = excluded.slug,
     name = excluded.name,
     name_en = excluded.name_en,
     name_vi = excluded.name_vi,
