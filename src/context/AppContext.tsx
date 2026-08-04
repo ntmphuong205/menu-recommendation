@@ -86,7 +86,7 @@ interface AppContextValue {
   mode: "web" | "store";
 }
 
-export type TabKey = "chat" | "menu" | "cart" | "info";
+export type TabKey = "chat" | "menu" | "cart" | "info" | "reserve";
 
 const AppContext = createContext<AppContextValue | null>(null);
 
@@ -118,7 +118,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { reservations, createReservation, updateReservationStatus } = useReservationsData(isOwnerRoute);
   const { store } = useStoreData();
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [activeTab, setActiveTab] = useState<TabKey>("chat");
+  // Web-mode QR codes (no table assigned yet) land straight on the
+  // reservation screen, since that's the primary thing to do there;
+  // table QR codes still land on Chat as before.
+  const [activeTab, setActiveTab] = useState<TabKey>(() => (getModeFromUrl() === "web" ? "reserve" : "chat"));
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const [tableId] = useState<string>(getTableFromUrl);
   const [mode] = useState<"web" | "store">(getModeFromUrl);

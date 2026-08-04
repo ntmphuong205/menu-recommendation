@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { Dish, TagKey } from "../data/menu";
 import { DishCard } from "../components/DishCard";
+import { OrderModeNotice } from "../components/OrderModeNotice";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
@@ -69,6 +70,8 @@ export function MenuScreen() {
           ))}
         </div>
       </div>
+
+      <OrderModeNotice />
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         {grouped.length === 0 && (

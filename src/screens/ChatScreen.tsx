@@ -7,9 +7,10 @@ import { RESTAURANT } from "../data/restaurant";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
+import { OrderModeNotice } from "../components/OrderModeNotice";
 
 export function ChatScreen() {
-  const { addToCart, menu, tableId } = useApp();
+  const { addToCart, menu, tableId, mode } = useApp();
   const { t, lang } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages(lang));
   const [state, setState] = useState<ConversationState>({ stage: "idle" });
@@ -80,11 +81,15 @@ export function ChatScreen() {
             <span className="text-[11px] text-[#8A8272]">{t("chat_online")}</span>
           </div>
         </div>
-        <span className="text-[11px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-2.5 py-1 rounded-full shrink-0">
-          {t("chat_table")} {tableId}
-        </span>
+        {mode === "store" && (
+          <span className="text-[11px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-2.5 py-1 rounded-full shrink-0">
+            {t("chat_table")} {tableId}
+          </span>
+        )}
         <LangSwitcher />
       </div>
+
+      <OrderModeNotice />
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-3">

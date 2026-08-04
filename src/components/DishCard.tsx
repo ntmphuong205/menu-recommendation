@@ -6,7 +6,7 @@ import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 
 export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "chat" | "grid" }) {
-  const { setSelectedDishId, addToCart, getDishRating } = useApp();
+  const { setSelectedDishId, addToCart, getDishRating, mode } = useApp();
   const { t, lang } = useI18n();
   const [added, setAdded] = useState(false);
   const [qty, setQty] = useState(1);
@@ -68,7 +68,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
         </div>
         <div className="flex items-center justify-between mt-2.5">
           <span className="text-[15px] font-bold text-[#2D5A3D]">${dish.price.toFixed(2)}</span>
-          {!soldOut && !added && (
+          {mode === "store" && !soldOut && !added && (
             <div className="flex items-center gap-2 bg-[#F5F1E6] rounded-full px-2 py-1">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -86,17 +86,19 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
             </div>
           )}
         </div>
-        <button
-          onClick={() => {
-            addToCart(dish.id, qty);
-            setAdded(true);
-          }}
-          disabled={soldOut || added}
-          className="w-full mt-2 flex items-center justify-center gap-1 bg-[#2D5A3D] text-white text-[12px] font-semibold py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
-        >
-          {added ? <Check size={13} strokeWidth={3} /> : <Plus size={13} strokeWidth={3} />}
-          {soldOut ? t("dish_sold_out") : added ? t("dish_added") : t("dish_add")}
-        </button>
+        {mode === "store" && (
+          <button
+            onClick={() => {
+              addToCart(dish.id, qty);
+              setAdded(true);
+            }}
+            disabled={soldOut || added}
+            className="w-full mt-2 flex items-center justify-center gap-1 bg-[#2D5A3D] text-white text-[12px] font-semibold py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
+          >
+            {added ? <Check size={13} strokeWidth={3} /> : <Plus size={13} strokeWidth={3} />}
+            {soldOut ? t("dish_sold_out") : added ? t("dish_added") : t("dish_add")}
+          </button>
+        )}
       </div>
     </div>
   );

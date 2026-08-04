@@ -14,6 +14,7 @@ const dict = {
   tab_menu: { vi: "Thực đơn", en: "Menu", ko: "메뉴" },
   tab_cart: { vi: "Giỏ hàng", en: "Cart", ko: "장바구니" },
   tab_info: { vi: "Thông tin", en: "Info", ko: "정보" },
+  tab_reserve: { vi: "Đặt bàn", en: "Reserve", ko: "예약" },
 
   // Welcome screen (shown once when the customer app first loads)
   welcome_greeting: {
@@ -148,6 +149,28 @@ const dict = {
     en: "Tap a table to see details and availability.",
     ko: "테이블을 눌러 상세 정보와 이용 가능 여부를 확인하세요.",
   },
+  reserve_screen_title: { vi: "Đặt bàn trước", en: "Reserve a table", ko: "테이블 예약" },
+  reserve_screen_desc: {
+    vi: "Chọn một bàn còn trống tại {store} để giữ chỗ trước khi đến.",
+    en: "Pick an available table at {store} to hold before you arrive.",
+    ko: "{store}에서 원하는 테이블을 선택해 미리 예약하세요.",
+  },
+  reserve_screen_desc_generic: {
+    vi: "Chọn một bàn còn trống để giữ chỗ trước khi đến.",
+    en: "Pick an available table to hold before you arrive.",
+    ko: "원하는 테이블을 선택해 미리 예약하세요.",
+  },
+  reserve_screen_no_tables: {
+    vi: "Hiện chưa có sơ đồ bàn. Vui lòng liên hệ nhà hàng trực tiếp.",
+    en: "No seating layout available yet. Please contact the restaurant directly.",
+    ko: "아직 좌석 배치가 없습니다. 매장에 직접 문의해 주세요.",
+  },
+  reserve_screen_browse_menu: { vi: "Xem thực đơn", en: "Browse menu", ko: "메뉴 보기" },
+  order_mode_banner: {
+    vi: "Bạn đang xem trước — cần ngồi vào bàn và quét mã QR riêng của bàn đó để gọi món.",
+    en: "You're browsing — sit at a table and scan its own QR code to place an order.",
+    ko: "지금은 둘러보는 중입니다 — 주문하려면 테이블에 앉아 해당 테이블의 QR 코드를 스캔하세요.",
+  },
   reservation_title: { vi: "Đặt bàn {table}", en: "Reserve table {table}", ko: "{table} 예약" },
   reservation_status_label: { vi: "Trạng thái", en: "Status", ko: "상태" },
   reservation_feature_label: { vi: "Đặc điểm", en: "Feature", ko: "특징" },
@@ -163,6 +186,11 @@ const dict = {
     ko: "현재 이용 중인 테이블입니다 — 웨이팅 목록에 등록됩니다.",
   },
   reservation_submitted: { vi: "Đã gửi yêu cầu đặt bàn!", en: "Reservation request sent!", ko: "예약 요청을 보냈습니다!" },
+  reservation_error: {
+    vi: "Không gửi được yêu cầu đặt bàn. Vui lòng thử lại.",
+    en: "Couldn't submit the reservation request. Please try again.",
+    ko: "예약 요청을 보내지 못했습니다. 다시 시도해 주세요.",
+  },
   reservation_web_mode_blocked: {
     vi: "Quét mã QR tại bàn để đặt chỗ hoặc gọi món.",
     en: "Scan the QR code at a table to reserve or order.",

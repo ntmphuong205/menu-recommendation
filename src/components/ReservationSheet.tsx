@@ -32,17 +32,21 @@ function PhotoCard({ label, src }: { label: string; src: string }) {
 }
 
 export function ReservationSheet({ table, onClose }: { table: ApiTable; onClose: () => void }) {
-  const { requestReservation, mode } = useApp();
+  const { requestReservation } = useApp();
   const { t } = useI18n();
   const [partySize, setPartySize] = useState(2);
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(false);
 
   const submit = async () => {
     setSubmitting(true);
+    setError(false);
     try {
       await requestReservation(table.id, partySize);
       setSent(true);
+    } catch {
+      setError(true);
     } finally {
       setSubmitting(false);
     }
@@ -108,47 +112,44 @@ export function ReservationSheet({ table, onClose }: { table: ApiTable; onClose:
               <PhotoCard label={t("reservation_view_photo")} src={table.view_image} />
             </div>
 
-            {mode === "web" ? (
-              <p className="text-[12.5px] text-[#B0553C] bg-[#F7E9E2] rounded-xl p-3 text-center">
-                {t("reservation_web_mode_blocked")}
+            {table.status !== "available" && (
+              <p className="text-[11.5px] text-[#8A6B1F] bg-[#FDECC8] rounded-xl p-2.5 mb-3">
+                {t("reservation_waiting_note")}
               </p>
-            ) : (
-              <>
-                {table.status !== "available" && (
-                  <p className="text-[11.5px] text-[#8A6B1F] bg-[#FDECC8] rounded-xl p-2.5 mb-3">
-                    {t("reservation_waiting_note")}
-                  </p>
-                )}
-                <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-black/5 mb-4">
-                  <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#5C5240]">
-                    <Users size={13} />
-                    {t("reservation_party_size")}
-                  </span>
-                  <div className="flex items-center gap-3 bg-[#F5F1E6] rounded-full px-2.5 py-1.5">
-                    <button
-                      onClick={() => setPartySize((n) => Math.max(1, n - 1))}
-                      className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-[#2D5A3D] font-bold"
-                    >
-                      −
-                    </button>
-                    <span className="text-[14px] font-semibold w-5 text-center">{partySize}</span>
-                    <button
-                      onClick={() => setPartySize((n) => Math.min(table.capacity || 20, n + 1))}
-                      className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-[#2D5A3D] font-bold"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <button
-                  onClick={submit}
-                  disabled={submitting}
-                  className="w-full bg-[#2D5A3D] text-white font-semibold text-[13.5px] py-3.5 rounded-full active:scale-[0.98] transition-transform disabled:opacity-50"
-                >
-                  {t("reservation_request_button")}
-                </button>
-              </>
             )}
+            <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-black/5 mb-4">
+              <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#5C5240]">
+                <Users size={13} />
+                {t("reservation_party_size")}
+              </span>
+              <div className="flex items-center gap-3 bg-[#F5F1E6] rounded-full px-2.5 py-1.5">
+                <button
+                  onClick={() => setPartySize((n) => Math.max(1, n - 1))}
+                  className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-[#2D5A3D] font-bold"
+                >
+                  −
+                </button>
+                <span className="text-[14px] font-semibold w-5 text-center">{partySize}</span>
+                <button
+                  onClick={() => setPartySize((n) => Math.min(table.capacity || 20, n + 1))}
+                  className="w-7 h-7 rounded-full bg-white flex items-center justify-center text-[#2D5A3D] font-bold"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            {error && (
+              <p className="text-[11.5px] text-[#B0553C] bg-[#F7E9E2] rounded-xl p-2.5 mb-3 text-center">
+                {t("reservation_error")}
+              </p>
+            )}
+            <button
+              onClick={submit}
+              disabled={submitting}
+              className="w-full bg-[#2D5A3D] text-white font-semibold text-[13.5px] py-3.5 rounded-full active:scale-[0.98] transition-transform disabled:opacity-50"
+            >
+              {t("reservation_request_button")}
+            </button>
           </>
         )}
       </div>

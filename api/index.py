@@ -1236,11 +1236,10 @@ def get_reservations(
 
 @app.post("/api/reservations", status_code=201)
 def create_reservation(payload: ReservationCreate) -> Dict[str, Any]:
-    if payload.mode == "web":
-        raise HTTPException(
-            status_code=403,
-            detail="Reservations and waitlisting aren't available in web browsing mode.",
-        )
+    # Unlike orders, reservations ARE allowed in web mode — the general
+    # store-wide QR is meant precisely for browsing the floor plan and
+    # requesting a table before being seated. Only food ordering requires
+    # an actual assigned table (mode=store).
     repo = get_repository()
     table = repo.get_table(payload.table_id)
     if not table:
@@ -1449,12 +1448,15 @@ def chat(payload: ChatRequest) -> Dict[str, Any]:
             )
 
         mode_instruction = (
-            "This is web browsing mode: tell the customer ordering, reservations, "
-            "and waitlisting aren't available here, and always return an empty "
-            "suggested_cart_items array."
+            "This is web browsing mode (general QR, no table assigned yet): the "
+            "customer can browse the menu and seating, and request a table "
+            "reservation or join the waitlist, but cannot place a food order yet "
+            "— tell them to order once seated at their table. Always return an "
+            "empty suggested_cart_items array."
             if payload.mode == "web"
             else (
-                "This is store mode: you may help with menu and seating questions. "
+                "This is store mode (scanned at their own table): you may help "
+                "with menu and seating questions, and they can order food now. "
                 "Only add to suggested_cart_items when the customer clearly asks "
                 "for a specific dish to be added."
             )

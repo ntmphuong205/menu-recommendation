@@ -5,9 +5,10 @@ import { ReviewSection } from "./ReviewSection";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { getDishName, getDishDescription, getPairingReason } from "../data/menu";
+import { OrderModeNotice } from "./OrderModeNotice";
 
 function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
-  const { findDish, addToCart, setSelectedDishId } = useApp();
+  const { findDish, addToCart, setSelectedDishId, mode } = useApp();
   const { t, lang } = useI18n();
   const [added, setAdded] = useState(false);
   const paired = findDish(dishId);
@@ -29,23 +30,25 @@ function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
         <p className="text-[12.5px] font-semibold text-[#22201B] leading-tight">{pairedName}</p>
         <p className="text-[11px] text-[#8A8272] leading-snug line-clamp-2">{reason}</p>
       </div>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          addToCart(paired.id, 1);
-          setAdded(true);
-        }}
-        disabled={added}
-        className="shrink-0 flex items-center gap-1 bg-[#2D5A3D] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
-      >
-        {added ? t("dish_added") : t("dish_add")}
-      </button>
+      {mode === "store" && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            addToCart(paired.id, 1);
+            setAdded(true);
+          }}
+          disabled={added}
+          className="shrink-0 flex items-center gap-1 bg-[#2D5A3D] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
+        >
+          {added ? t("dish_added") : t("dish_add")}
+        </button>
+      )}
     </div>
   );
 }
 
 export function DishSheet() {
-  const { selectedDishId, setSelectedDishId, addToCart, findDish } = useApp();
+  const { selectedDishId, setSelectedDishId, addToCart, findDish, mode } = useApp();
   const { t, lang } = useI18n();
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
@@ -157,44 +160,52 @@ export function DishSheet() {
 
           <ReviewSection dishId={dish.id} />
 
-          <label className="block mt-4">
-            <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("dish_note_label")}</p>
-            <input
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder={t("dish_note_placeholder")}
-              className="w-full border border-black/10 rounded-lg px-3 py-2 text-[13px] text-[#22201B] outline-none focus:border-[#2D5A3D]"
-            />
-          </label>
+          {mode === "store" ? (
+            <>
+              <label className="block mt-4">
+                <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("dish_note_label")}</p>
+                <input
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder={t("dish_note_placeholder")}
+                  className="w-full border border-black/10 rounded-lg px-3 py-2 text-[13px] text-[#22201B] outline-none focus:border-[#2D5A3D]"
+                />
+              </label>
 
-          <div className="flex items-center gap-3 mt-6">
-            <div className="flex items-center gap-3 bg-white border border-black/10 rounded-full px-3 py-2">
-              <button
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="w-6 h-6 flex items-center justify-center text-[#2D5A3D]"
-              >
-                <Minus size={16} />
-              </button>
-              <span className="text-[14px] font-semibold w-4 text-center">{qty}</span>
-              <button
-                onClick={() => setQty((q) => q + 1)}
-                className="w-6 h-6 flex items-center justify-center text-[#2D5A3D]"
-              >
-                <Plus size={16} />
-              </button>
+              <div className="flex items-center gap-3 mt-6">
+                <div className="flex items-center gap-3 bg-white border border-black/10 rounded-full px-3 py-2">
+                  <button
+                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    className="w-6 h-6 flex items-center justify-center text-[#2D5A3D]"
+                  >
+                    <Minus size={16} />
+                  </button>
+                  <span className="text-[14px] font-semibold w-4 text-center">{qty}</span>
+                  <button
+                    onClick={() => setQty((q) => q + 1)}
+                    className="w-6 h-6 flex items-center justify-center text-[#2D5A3D]"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+                <button
+                  onClick={() => {
+                    addToCart(dish.id, qty, note.trim() || undefined);
+                    setAdded(true);
+                    setTimeout(close, 700);
+                  }}
+                  className="flex-1 bg-[#2D5A3D] text-white font-semibold text-[14px] py-3 rounded-full active:scale-[0.98] transition-transform disabled:opacity-50"
+                  disabled={added || dish.soldOut}
+                >
+                  {dish.soldOut ? t("dish_sold_out") : added ? t("dish_added") : `${t("dish_add_to_cart")} · $${(dish.price * qty).toFixed(2)}`}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="mt-4">
+              <OrderModeNotice />
             </div>
-            <button
-              onClick={() => {
-                addToCart(dish.id, qty, note.trim() || undefined);
-                setAdded(true);
-                setTimeout(close, 700);
-              }}
-              className="flex-1 bg-[#2D5A3D] text-white font-semibold text-[14px] py-3 rounded-full active:scale-[0.98] transition-transform disabled:opacity-50"
-              disabled={added || dish.soldOut}
-            >
-              {dish.soldOut ? t("dish_sold_out") : added ? t("dish_added") : `${t("dish_add_to_cart")} · $${(dish.price * qty).toFixed(2)}`}
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>

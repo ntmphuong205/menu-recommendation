@@ -259,9 +259,11 @@ export function CartScreen() {
       <div className="shrink-0 px-4 pt-2 pb-3 border-b border-black/5 bg-[#FBF7EF] flex items-center justify-between">
         <div>
           <h1 className="text-[19px] font-bold text-[#22201B]">{t("cart_title")}</h1>
-          <p className="text-[11px] text-[#8A8272]">
-            {t("chat_table")} {tableId}
-          </p>
+          {mode === "store" && (
+            <p className="text-[11px] text-[#8A8272]">
+              {t("chat_table")} {tableId}
+            </p>
+          )}
         </div>
         <LangSwitcher />
       </div>

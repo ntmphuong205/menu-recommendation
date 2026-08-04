@@ -1,22 +1,18 @@
 import { useState } from "react";
-import { Clock, MapPin, Star, ChevronDown, MessageCircle, Bell, Armchair } from "lucide-react";
+import { Clock, MapPin, Star, ChevronDown, MessageCircle, Bell } from "lucide-react";
 import { RESTAURANT, FAQ, getRestaurantText, getHoursLabel, getFaqText } from "../data/restaurant";
 import { BEST_SELLERS } from "../data/menu";
 import { DishCard } from "../components/DishCard";
 import { CallStaffModal } from "../components/CallStaffModal";
-import { ReservationSheet } from "../components/ReservationSheet";
-import { FloorPlanView } from "../components/FloorPlanView";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
-import type { ApiTable } from "../lib/apiClient";
 
 export function InfoScreen() {
-  const { setActiveTab, menu, tables, store } = useApp();
+  const { setActiveTab, menu, store, mode } = useApp();
   const { t, lang } = useI18n();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showCallStaff, setShowCallStaff] = useState(false);
-  const [reservingTable, setReservingTable] = useState<ApiTable | null>(null);
   const bestSellers = menu.filter((d) => BEST_SELLERS.includes(d.id));
   const restaurantText = getRestaurantText(lang);
   // Live store name/hours/description come from the backend once loaded;
@@ -82,17 +78,6 @@ export function InfoScreen() {
             </div>
           </div>
 
-          {tables.length > 0 && (
-            <div>
-              <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                <Armchair size={13} />
-                {t("info_tables_title")}
-              </h2>
-              <p className="text-[11.5px] text-[#8A8272] mb-2">{t("info_tables_desc")}</p>
-              <FloorPlanView tables={tables} onSelect={setReservingTable} />
-            </div>
-          )}
-
           <div>
             <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-2">{t("info_faq")}</h2>
             <div className="flex flex-col gap-2">
@@ -127,19 +112,20 @@ export function InfoScreen() {
               <MessageCircle size={15} />
               {t("info_ask_chat")}
             </button>
-            <button
-              onClick={() => setShowCallStaff(true)}
-              className="flex-1 flex items-center justify-center gap-2 bg-white border border-black/10 text-[#22201B] font-semibold text-[13px] py-3 rounded-full active:scale-[0.98] transition-transform"
-            >
-              <Bell size={15} />
-              {t("info_call_staff")}
-            </button>
+            {mode === "store" && (
+              <button
+                onClick={() => setShowCallStaff(true)}
+                className="flex-1 flex items-center justify-center gap-2 bg-white border border-black/10 text-[#22201B] font-semibold text-[13px] py-3 rounded-full active:scale-[0.98] transition-transform"
+              >
+                <Bell size={15} />
+                {t("info_call_staff")}
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {showCallStaff && <CallStaffModal onClose={() => setShowCallStaff(false)} />}
-      {reservingTable && <ReservationSheet table={reservingTable} onClose={() => setReservingTable(null)} />}
     </div>
   );
 }

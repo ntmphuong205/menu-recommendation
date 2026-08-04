@@ -8,6 +8,7 @@ import { ChatScreen } from "../screens/ChatScreen";
 import { MenuScreen } from "../screens/MenuScreen";
 import { CartScreen } from "../screens/CartScreen";
 import { InfoScreen } from "../screens/InfoScreen";
+import { ReserveScreen } from "../screens/ReserveScreen";
 
 function Screens() {
   const { activeTab } = useApp();
@@ -17,6 +18,7 @@ function Screens() {
       {activeTab === "menu" && <MenuScreen />}
       {activeTab === "cart" && <CartScreen />}
       {activeTab === "info" && <InfoScreen />}
+      {activeTab === "reserve" && <ReserveScreen />}
       <DishSheet />
     </div>
   );
