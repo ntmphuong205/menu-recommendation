@@ -831,6 +831,12 @@ gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 # never see each other's value — this is what makes per-request store
 # resolution safe under FastAPI's async concurrency.
 _current_store_id: ContextVar[Optional[str]] = ContextVar("current_store_id", default=None)
+# True only when a slug was explicitly sent but didn't match any store — as
+# opposed to no slug being sent at all, which legitimately falls back to
+# DEFAULT_STORE_ID. Without this distinction a mistyped/unknown ?store=
+# slug would silently show a *different* restaurant's data instead of
+# erroring, which would be a real cross-tenant data leak.
+_store_not_found: ContextVar[bool] = ContextVar("store_not_found", default=False)
 _slug_cache: Dict[str, str] = {}
 
 
@@ -859,18 +865,26 @@ def resolve_store_id_by_slug(slug: str) -> Optional[str]:
 @app.middleware("http")
 async def resolve_store_middleware(request: Request, call_next):
     slug = request.headers.get("x-store-slug", "").strip()
-    store_id = resolve_store_id_by_slug(slug) if slug else None
-    # Falls back to DEFAULT_STORE_ID when no slug header is sent — keeps
-    # already-printed QR codes and any client that predates multi-tenancy
-    # working unchanged, pointed at whichever store that env var names.
-    token = _current_store_id.set(store_id or DEFAULT_STORE_ID or None)
+    if slug:
+        store_id = resolve_store_id_by_slug(slug)
+        not_found_token = _store_not_found.set(store_id is None)
+    else:
+        # No slug header at all — fall back to DEFAULT_STORE_ID. Keeps
+        # already-printed QR codes and any client that predates
+        # multi-tenancy working unchanged.
+        store_id = DEFAULT_STORE_ID or None
+        not_found_token = _store_not_found.set(False)
+    id_token = _current_store_id.set(store_id)
     try:
         return await call_next(request)
     finally:
-        _current_store_id.reset(token)
+        _current_store_id.reset(id_token)
+        _store_not_found.reset(not_found_token)
 
 
 def get_repository() -> SupabaseRepository:
+    if _store_not_found.get():
+        raise HTTPException(status_code=404, detail="Store not found.")
     store_id = _current_store_id.get()
     if not supabase_client or not store_id:
         raise HTTPException(
