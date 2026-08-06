@@ -19,6 +19,12 @@ __pycache__/
 .venv/
 .vercel
 
+# Android signing key — contains the keystore password in plaintext;
+# leaking this lets anyone sign malicious updates as this app.
+*.keystore
+signing-key-info.txt
+/MenuPilot - Google Play package/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
