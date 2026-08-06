@@ -28,7 +28,7 @@ values (
     '테라스가 있는 양식 레스토랑',
     'A Western restaurant with a terrace',
     'Nhà hàng món Âu có sân hiên',
-    '["#스트레스", "#해장", "#혼밥", "#가성비", "#회식", "#매운맛", "#달콤한", "#국물"]'::jsonb
+    '["#comfort-food", "#hangover-cure", "#solo-dining", "#great-value", "#group-meal", "#spicy", "#sweet-treat", "#comfort-soup"]'::jsonb
 )
 on conflict (id) do update set
     slug = excluded.slug,
