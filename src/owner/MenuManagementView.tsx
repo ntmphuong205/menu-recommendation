@@ -4,11 +4,11 @@ import { useApp } from "../context/AppContext";
 import { TagPill } from "../components/TagPill";
 import { DishFormModal } from "./DishFormModal";
 import { useI18n } from "../i18n/I18nContext";
-import type { Dish } from "../data/menu";
+import { getDishName, getDishDescription, type Dish } from "../data/menu";
 
 export function MenuManagementView() {
   const { menu, addDish, updateDish, deleteDish } = useApp();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [editing, setEditing] = useState<Dish | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -95,14 +95,14 @@ export function MenuManagementView() {
                   </td>
                   <td className="px-2 py-3 align-top">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#EFE9D8] shrink-0">
-                      <img src={dish.image} alt={dish.name} className="w-full h-full object-cover" />
+                      <img src={dish.image} alt={getDishName(dish, lang)} className="w-full h-full object-cover" />
                     </div>
                   </td>
-                  <td className="px-4 py-3 align-top font-semibold text-[#22201B] whitespace-nowrap">{dish.name}</td>
+                  <td className="px-4 py-3 align-top font-semibold text-[#22201B] whitespace-nowrap">{getDishName(dish, lang)}</td>
                   <td className="px-4 py-3 align-top font-semibold text-[#2D5A3D] whitespace-nowrap">
                     ${dish.price.toFixed(2)}
                   </td>
-                  <td className="px-4 py-3 align-top text-[#5C5240] max-w-[220px]">{dish.description}</td>
+                  <td className="px-4 py-3 align-top text-[#5C5240] max-w-[220px]">{getDishDescription(dish, lang)}</td>
                   <td className="px-4 py-3 align-top">
                     <div className="flex flex-wrap gap-1 max-w-[160px]">
                       {dish.tags.map((tag) => (
