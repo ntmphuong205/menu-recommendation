@@ -7,6 +7,7 @@
     { "source": "/api/(.*)", "destination": "/api/index.py" },
     { "source": "/.well-known/(.*)", "destination": "/.well-known/$1" },
     { "source": "/privacy.html", "destination": "/privacy.html" },
+    { "source": "/delete-data.html", "destination": "/delete-data.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
