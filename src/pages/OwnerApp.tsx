@@ -74,7 +74,7 @@ export function OwnerApp() {
       )}
 
       <aside
-        className={`w-64 sm:w-60 shrink-0 bg-[#1F3D2B] text-white flex flex-col py-6 px-4 gap-6 fixed inset-y-0 left-0 z-50 overflow-y-auto transform transition-transform duration-200 md:static md:transform-none ${
+        className={`w-64 sm:w-60 shrink-0 bg-[#1F3D2B] text-white flex flex-col py-6 px-4 gap-6 fixed inset-y-0 left-0 z-50 overflow-y-auto transition-transform duration-200 md:static md:translate-x-0 ${
           navOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
