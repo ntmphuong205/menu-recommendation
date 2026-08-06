@@ -28,20 +28,18 @@ export function MenuManagementView() {
 
   const handleDeleteSelected = () => {
     if (selected.size === 0) return;
-    if (window.confirm(`Remove ${selected.size} dish${selected.size > 1 ? "es" : ""} from the menu?`)) {
+    if (window.confirm(t("menu_mgmt_delete_confirm", { count: selected.size }))) {
       selected.forEach((id) => deleteDish(id));
       setSelected(new Set());
     }
   };
 
   return (
-    <div className="p-8 max-w-6xl">
-      <div className="flex items-start justify-between mb-6">
+    <div className="p-4 md:p-8 max-w-6xl">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("owner_nav_menu")}</h1>
-          <p className="text-[13px] text-[#8A8272]">
-            Changes here appear instantly in the customer app — including Menu AI's recommendations.
-          </p>
+          <p className="text-[13px] text-[#8A8272]">{t("menu_mgmt_subtitle")}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {selected.size > 0 && (
@@ -58,7 +56,7 @@ export function MenuManagementView() {
             className="flex items-center gap-1.5 bg-[#2D5A3D] text-white text-[13px] font-semibold px-4 py-2.5 rounded-full active:scale-95 transition-transform"
           >
             <Plus size={15} />
-            Add Dish
+            {t("menu_mgmt_add_dish")}
           </button>
         </div>
       </div>

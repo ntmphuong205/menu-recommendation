@@ -55,16 +55,12 @@ export function TableQrView() {
   };
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 md:p-8 max-w-5xl">
       <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("owner_nav_tables")}</h1>
-      <p className="text-[13px] text-[#8A8272] mb-6">
-        Two kinds of QR code: one general "web" code for menus/flyers/social media (browse + AI only, no
-        ordering), and one per physical table (full ordering + reservations) — printed and left on that table.
-        Manage tables themselves in Seating.
-      </p>
+      <p className="text-[13px] text-[#8A8272] mb-6">{t("tableqr_desc")}</p>
 
       <div className="mb-8">
-        <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-3">General "web" QR</h2>
+        <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-3">{t("tableqr_web_heading")}</h2>
         <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex items-center gap-4 max-w-md">
           {webQr ? (
             <img src={webQr} alt="General web QR code" className="w-28 h-28 shrink-0" />
@@ -79,23 +75,23 @@ export function TableQrView() {
               className="mt-2 flex items-center gap-1 text-[11.5px] font-medium text-white bg-[#2D5A3D] px-3 py-1.5 rounded-full disabled:opacity-40"
             >
               <Download size={12} />
-              Download
+              {t("tableqr_download")}
             </button>
           </div>
         </div>
       </div>
 
       <div>
-        <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-3">Per-table "store" QR</h2>
+        <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-3">{t("tableqr_table_heading")}</h2>
         {tables.length === 0 && (
           <p className="text-[13px] text-[#B0A794] bg-white rounded-2xl border border-black/5 p-6 text-center">
-            No tables yet — add tables in Seating first.
+            {t("tableqr_empty")}
           </p>
         )}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           {tables.map((table) => (
             <div key={table.id} className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex flex-col items-center gap-2">
-              <p className="text-[13px] font-bold text-[#22201B]">Table {table.id}</p>
+              <p className="text-[13px] font-bold text-[#22201B]">{t("chat_table")} {table.id}</p>
               {tableQrs[table.id] ? (
                 <img src={tableQrs[table.id]} alt={`QR code for table ${table.id}`} className="w-32 h-32" />
               ) : (

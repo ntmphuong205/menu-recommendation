@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChefHat, ClipboardList, UtensilsCrossed, ExternalLink, BarChart3, QrCode, LogOut, Armchair, Star, Settings, Store as StoreIcon, KeyRound } from "lucide-react";
+import { ChefHat, ClipboardList, UtensilsCrossed, ExternalLink, BarChart3, QrCode, LogOut, Armchair, Star, Settings, Store as StoreIcon, KeyRound, Menu, X } from "lucide-react";
 import { RESTAURANT } from "../data/restaurant";
 import { OrdersView } from "../owner/OrdersView";
 import { MenuManagementView } from "../owner/MenuManagementView";
@@ -31,6 +31,7 @@ const NAV: { key: Section; labelKey: TranslationKey; icon: typeof ClipboardList 
 
 export function OwnerApp() {
   const [section, setSection] = useState<Section>("orders");
+  const [navOpen, setNavOpen] = useState(false);
   const { t } = useI18n();
   const { authRequired, user, loading, signIn, signOut } = useOwnerAuth();
   // Resolved once we know which store this login belongs to (see
@@ -58,7 +59,25 @@ export function OwnerApp() {
 
   return (
     <div className="min-h-screen w-full flex bg-[#F5F1E6]">
-      <aside className="w-60 shrink-0 bg-[#1F3D2B] text-white flex flex-col py-6 px-4 gap-6">
+      {/* Mobile-only top bar: the sidebar below becomes a slide-in drawer
+          under md, so small screens need some way to open it and see which
+          section they're on. */}
+      <div className="md:hidden fixed top-0 inset-x-0 z-30 h-14 bg-[#1F3D2B] text-white flex items-center gap-3 px-4">
+        <button onClick={() => setNavOpen(true)} className="shrink-0">
+          <Menu size={20} />
+        </button>
+        <p className="text-[14px] font-bold truncate">{t(NAV.find((n) => n.key === section)?.labelKey ?? "owner_nav_orders")}</p>
+      </div>
+
+      {navOpen && (
+        <div className="md:hidden fixed inset-0 bg-black/40 z-40" onClick={() => setNavOpen(false)} />
+      )}
+
+      <aside
+        className={`w-64 sm:w-60 shrink-0 bg-[#1F3D2B] text-white flex flex-col py-6 px-4 gap-6 fixed inset-y-0 left-0 z-50 overflow-y-auto transform transition-transform duration-200 md:static md:transform-none ${
+          navOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
@@ -69,6 +88,9 @@ export function OwnerApp() {
               <p className="text-[11px] text-white/60">{t("owner_dashboard")}</p>
             </div>
           </div>
+          <button onClick={() => setNavOpen(false)} className="md:hidden text-white/60">
+            <X size={18} />
+          </button>
         </div>
         <LangSwitcher dark />
 
@@ -76,7 +98,10 @@ export function OwnerApp() {
           {NAV.map(({ key, labelKey, icon: Icon }) => (
             <button
               key={key}
-              onClick={() => setSection(key)}
+              onClick={() => {
+                setSection(key);
+                setNavOpen(false);
+              }}
               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${
                 section === key ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/5"
               }`}
@@ -103,7 +128,7 @@ export function OwnerApp() {
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
             >
               <StoreIcon size={14} />
-              Switch store
+              {t("owner_switch_store")}
             </button>
           )}
           {authRequired && (
@@ -112,7 +137,7 @@ export function OwnerApp() {
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
             >
               <KeyRound size={14} />
-              Change password
+              {t("owner_change_password")}
             </button>
           )}
           {authRequired && (
@@ -127,7 +152,7 @@ export function OwnerApp() {
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0 overflow-y-auto">
+      <main className="flex-1 min-w-0 overflow-y-auto pt-14 md:pt-0">
         {section === "orders" && <OrdersView />}
         {section === "menu" && <MenuManagementView />}
         {section === "analytics" && <AnalyticsView />}

@@ -2,8 +2,17 @@ import { useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { Plus, Trash2, Save } from "lucide-react";
 import { useTablesData } from "../store/useTablesData";
 import type { ApiTable } from "../lib/apiClient";
+import { useI18n } from "../i18n/I18nContext";
+import type { TranslationKey } from "../i18n/translations";
 
 const STATUS_OPTIONS: ApiTable["status"][] = ["available", "soon", "reserved", "occupied"];
+
+const STATUS_LABEL_KEY: Record<ApiTable["status"], TranslationKey> = {
+  available: "table_status_available",
+  soon: "table_status_soon",
+  reserved: "table_status_reserved",
+  occupied: "table_status_occupied",
+};
 
 const STATUS_RING: Record<ApiTable["status"], string> = {
   available: "ring-2 ring-[#2D5A3D]/40",
@@ -23,6 +32,7 @@ function nextTableCode(tables: ApiTable[]): string {
  *  status/view/tag/capacity, then Save writes the whole layout in one call
  *  (PUT /api/tables) — ported from Wexit's admin.html pointer-drag editor. */
 export function SeatLayoutView() {
+  const { t } = useI18n();
   const { tables, saveLayout } = useTablesData();
   const [draft, setDraft] = useState<ApiTable[] | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -84,7 +94,7 @@ export function SeatLayoutView() {
       const saved = await saveLayout(layout);
       setDraft(saved);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to save the seating layout.");
+      alert(err instanceof Error ? err.message : t("seating_save_error"));
     } finally {
       setSaving(false);
     }
@@ -93,11 +103,11 @@ export function SeatLayoutView() {
   const selected = layout[selectedIndex];
 
   return (
-    <div className="p-8 max-w-5xl">
-      <div className="flex items-start justify-between mb-6">
+    <div className="p-4 md:p-8 max-w-5xl">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-[24px] font-bold text-[#22201B] mb-1">Seating Layout</h1>
-          <p className="text-[13px] text-[#8A8272]">Drag tables to match your floor plan, then save.</p>
+          <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("seating_title")}</h1>
+          <p className="text-[13px] text-[#8A8272]">{t("seating_subtitle")}</p>
         </div>
         <div className="flex gap-2 shrink-0">
           <button
@@ -105,7 +115,7 @@ export function SeatLayoutView() {
             className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-3.5 py-2 rounded-full active:scale-95 transition-transform"
           >
             <Plus size={14} />
-            Add table
+            {t("seating_add_table")}
           </button>
           <button
             onClick={handleSave}
@@ -113,12 +123,12 @@ export function SeatLayoutView() {
             className="flex items-center gap-1.5 text-[12.5px] font-semibold text-white bg-[#2D5A3D] px-3.5 py-2 rounded-full disabled:opacity-50 active:scale-95 transition-transform"
           >
             <Save size={14} />
-            {saving ? "Saving…" : "Save layout"}
+            {saving ? t("seating_saving") : t("seating_save")}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_260px] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-4">
         <div
           ref={canvasRef}
           onPointerMove={handlePointerMove}
@@ -127,7 +137,7 @@ export function SeatLayoutView() {
         >
           {layout.length === 0 && (
             <p className="absolute inset-0 flex items-center justify-center text-[13px] text-[#B0A794]">
-              No tables yet — click "Add table" to start.
+              {t("seating_empty")}
             </p>
           )}
           {layout.map((table, i) => (
@@ -147,14 +157,14 @@ export function SeatLayoutView() {
         <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-4">
           {selected ? (
             <div className="flex flex-col gap-3">
-              <Field label="Table code">
+              <Field label={t("seating_field_code")}>
                 <input
                   value={selected.id}
                   onChange={(e) => updateSelected({ id: e.target.value.trim().toUpperCase() })}
                   className={inputCls}
                 />
               </Field>
-              <Field label="Status">
+              <Field label={t("seating_field_status")}>
                 <select
                   value={selected.status}
                   onChange={(e) => updateSelected({ status: e.target.value as ApiTable["status"] })}
@@ -162,28 +172,28 @@ export function SeatLayoutView() {
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {t(STATUS_LABEL_KEY[s])}
                     </option>
                   ))}
                 </select>
               </Field>
-              <Field label="View / area">
+              <Field label={t("seating_field_view")}>
                 <input
                   value={selected.view}
                   onChange={(e) => updateSelected({ view: e.target.value })}
                   className={inputCls}
-                  placeholder="e.g. Terrace, Window"
+                  placeholder={t("seating_field_view_placeholder")}
                 />
               </Field>
-              <Field label="Tag">
+              <Field label={t("seating_field_tag")}>
                 <input
                   value={selected.tag}
                   onChange={(e) => updateSelected({ tag: e.target.value })}
                   className={inputCls}
-                  placeholder="e.g. Popular"
+                  placeholder={t("seating_field_tag_placeholder")}
                 />
               </Field>
-              <Field label="Capacity">
+              <Field label={t("seating_field_capacity")}>
                 <input
                   type="number"
                   min={1}
@@ -198,11 +208,11 @@ export function SeatLayoutView() {
                 className="flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[#B0553C] bg-[#F7E9E2] py-2 rounded-full mt-1 active:scale-95 transition-transform"
               >
                 <Trash2 size={13} />
-                Delete table
+                {t("seating_delete_table")}
               </button>
             </div>
           ) : (
-            <p className="text-[12.5px] text-[#B0A794] text-center py-6">Select a table to edit it.</p>
+            <p className="text-[12.5px] text-[#B0A794] text-center py-6">{t("seating_select_prompt")}</p>
           )}
         </div>
       </div>

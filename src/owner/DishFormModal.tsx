@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { X, Upload, Plus, Trash2 } from "lucide-react";
 import { TAGS, type Dish, type TagKey } from "../data/menu";
 import { INGREDIENT_NAMES, findIngredientByName, computeNutrition, type IngredientLine } from "../data/ingredients";
+import { useI18n } from "../i18n/I18nContext";
 
 const CATEGORIES: Dish["category"][] = ["Main", "Starter", "Beverage", "Side"];
 const ALL_TAGS = Object.keys(TAGS) as TagKey[];
@@ -67,6 +68,7 @@ export function DishFormModal({
   onClose: () => void;
   onSave: (dish: Dish) => void;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState(initial?.name ?? "");
   const [price, setPrice] = useState(initial?.price?.toString() ?? "");
   const [category, setCategory] = useState<Dish["category"]>(initial?.category ?? "Main");
@@ -136,22 +138,22 @@ export function DishFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white flex items-center justify-between px-5 py-4 border-b border-black/5">
-          <h2 className="text-[16px] font-bold text-[#22201B]">{initial ? "Edit Dish" : "Add Dish"}</h2>
+          <h2 className="text-[16px] font-bold text-[#22201B]">{initial ? t("dishform_edit_title") : t("dishform_add_title")}</h2>
           <button onClick={onClose} className="w-7 h-7 rounded-full bg-black/5 flex items-center justify-center">
             <X size={14} />
           </button>
         </div>
 
         <div className="p-5 flex flex-col gap-3.5">
-          <Field label="Name">
-            <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="e.g. Handmade Hamburger" />
+          <Field label={t("dishform_name")}>
+            <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder={t("dishform_name_placeholder")} />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Price ($)">
+            <Field label={t("dishform_price")}>
               <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" step="0.01" className={inputCls} placeholder="8.00" />
             </Field>
-            <Field label="Category">
+            <Field label={t("dishform_category")}>
               <select value={category} onChange={(e) => setCategory(e.target.value as Dish["category"])} className={inputCls}>
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -160,11 +162,11 @@ export function DishFormModal({
             </Field>
           </div>
 
-          <Field label="Description">
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={`${inputCls} h-16 resize-none`} placeholder="Short, appetizing description" />
+          <Field label={t("dishform_description")}>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={`${inputCls} h-16 resize-none`} placeholder={t("dishform_description_placeholder")} />
           </Field>
 
-          <Field label="Menu photo">
+          <Field label={t("dishform_photo")}>
             <div className="flex items-center gap-3">
               {image && (
                 <div className="w-12 h-12 rounded-lg overflow-hidden bg-[#EFE9D8] shrink-0 border border-black/10">
@@ -173,7 +175,7 @@ export function DishFormModal({
               )}
               <label className={`${inputCls} flex items-center gap-2 cursor-pointer text-[#5C5240]`}>
                 <Upload size={14} />
-                Choose file
+                {t("dishform_choose_file")}
                 <input
                   type="file"
                   accept="image/*"
@@ -184,20 +186,17 @@ export function DishFormModal({
             </div>
           </Field>
 
-          <Field label="Or image URL">
+          <Field label={t("dishform_image_url")}>
             <input value={image} onChange={(e) => setImage(e.target.value)} className={inputCls} placeholder="https://..." />
           </Field>
 
-          <Field label="Prep time (minutes, optional)">
+          <Field label={t("dishform_prep_time")}>
             <input value={prepTime} onChange={(e) => setPrepTime(e.target.value)} type="number" className={inputCls} placeholder="12" />
           </Field>
 
           <div>
-            <p className="text-[12px] font-semibold text-[#5C5240] mb-1">Ingredients</p>
-            <p className="text-[11px] text-[#8A8272] mb-2">
-              Type any ingredient and how many grams go into one serving. Known ingredients auto-fill their nutrition;
-              for anything else, add its calories/protein/carbs/fat per 100g yourself.
-            </p>
+            <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("dishform_ingredients_title")}</p>
+            <p className="text-[11px] text-[#8A8272] mb-2">{t("dishform_ingredients_desc")}</p>
             <datalist id={INGREDIENT_DATALIST_ID}>
               {INGREDIENT_NAMES.map((n) => (
                 <option key={n} value={n} />
@@ -215,7 +214,7 @@ export function DishFormModal({
                         value={line.name}
                         onChange={(e) => updateLine(line.id, { name: e.target.value })}
                         className={`${fieldCls} bg-white flex-1 min-w-0`}
-                        placeholder="e.g. Beef, or type your own"
+                        placeholder={t("dishform_ingredient_name_placeholder")}
                       />
                       <input
                         value={line.grams}
@@ -235,14 +234,12 @@ export function DishFormModal({
                     </div>
                     {showCustomFields && (
                       <div className="pl-0.5">
-                        <p className="text-[10.5px] text-[#B0553C] mb-1">
-                          Not in our database — enter nutrition per 100g, or leave blank to skip it in the total.
-                        </p>
+                        <p className="text-[10.5px] text-[#B0553C] mb-1">{t("dishform_not_in_db")}</p>
                         <div className="grid grid-cols-4 gap-1.5">
-                          <LabeledMiniInput label="kcal" value={line.customCalories} onChange={(v) => updateLine(line.id, { customCalories: v })} />
-                          <LabeledMiniInput label="Protein g" value={line.customProtein} onChange={(v) => updateLine(line.id, { customProtein: v })} />
-                          <LabeledMiniInput label="Carbs g" value={line.customCarbs} onChange={(v) => updateLine(line.id, { customCarbs: v })} />
-                          <LabeledMiniInput label="Fat g" value={line.customFat} onChange={(v) => updateLine(line.id, { customFat: v })} />
+                          <LabeledMiniInput label={t("dishform_kcal")} value={line.customCalories} onChange={(v) => updateLine(line.id, { customCalories: v })} />
+                          <LabeledMiniInput label={t("dishform_protein_g")} value={line.customProtein} onChange={(v) => updateLine(line.id, { customProtein: v })} />
+                          <LabeledMiniInput label={t("dishform_carbs_g")} value={line.customCarbs} onChange={(v) => updateLine(line.id, { customCarbs: v })} />
+                          <LabeledMiniInput label={t("dishform_fat_g")} value={line.customFat} onChange={(v) => updateLine(line.id, { customFat: v })} />
                         </div>
                       </div>
                     )}
@@ -255,7 +252,7 @@ export function DishFormModal({
                 className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-3 py-1.5 rounded-full self-start"
               >
                 <Plus size={13} />
-                Add ingredient
+                {t("dishform_add_ingredient")}
               </button>
             </div>
 
@@ -263,30 +260,30 @@ export function DishFormModal({
               <div className="mt-3 bg-[#F3E9D2] rounded-xl px-3 py-2.5 grid grid-cols-4 gap-2 text-center">
                 <div>
                   <p className="text-[13px] font-bold text-[#22201B]">{Math.round(nutrition.calories)}</p>
-                  <p className="text-[10px] text-[#8A6B3F]">kcal</p>
+                  <p className="text-[10px] text-[#8A6B3F]">{t("dishform_kcal")}</p>
                 </div>
                 <div>
                   <p className="text-[13px] font-bold text-[#22201B]">{Math.round(nutrition.protein)}g</p>
-                  <p className="text-[10px] text-[#8A6B3F]">Protein</p>
+                  <p className="text-[10px] text-[#8A6B3F]">{t("dishform_protein_g")}</p>
                 </div>
                 <div>
                   <p className="text-[13px] font-bold text-[#22201B]">{Math.round(nutrition.carbs)}g</p>
-                  <p className="text-[10px] text-[#8A6B3F]">Carbs</p>
+                  <p className="text-[10px] text-[#8A6B3F]">{t("dishform_carbs_g")}</p>
                 </div>
                 <div>
                   <p className="text-[13px] font-bold text-[#22201B]">{Math.round(nutrition.fat)}g</p>
-                  <p className="text-[10px] text-[#8A6B3F]">Fat</p>
+                  <p className="text-[10px] text-[#8A6B3F]">{t("dishform_fat_g")}</p>
                 </div>
               </div>
             )}
           </div>
 
-          <Field label="Allergy note">
-            <input value={allergyNote} onChange={(e) => setAllergyNote(e.target.value)} className={inputCls} placeholder="Contains gluten, dairy." />
+          <Field label={t("dishform_allergy_note")}>
+            <input value={allergyNote} onChange={(e) => setAllergyNote(e.target.value)} className={inputCls} placeholder={t("dishform_allergy_placeholder")} />
           </Field>
 
           <div>
-            <p className="text-[12px] font-semibold text-[#5C5240] mb-1.5">Tags</p>
+            <p className="text-[12px] font-semibold text-[#5C5240] mb-1.5">{t("dishform_tags")}</p>
             <div className="flex flex-wrap gap-1.5">
               {ALL_TAGS.map((tag) => (
                 <button
@@ -306,14 +303,14 @@ export function DishFormModal({
 
         <div className="sticky bottom-0 bg-white px-5 py-4 border-t border-black/5 flex gap-3">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-full border border-black/10 text-[13px] font-semibold text-[#5C5240]">
-            Cancel
+            {t("dishform_cancel")}
           </button>
           <button
             onClick={handleSave}
             disabled={!canSave}
             className="flex-1 py-2.5 rounded-full bg-[#2D5A3D] text-white text-[13px] font-semibold disabled:opacity-40"
           >
-            Save Dish
+            {t("dishform_save")}
           </button>
         </div>
       </div>

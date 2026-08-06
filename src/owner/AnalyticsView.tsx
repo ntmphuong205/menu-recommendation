@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { TrendingUp, Receipt, Wallet, Table2, BarChart3 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { orderTotal } from "../data/orders";
+import { useI18n } from "../i18n/I18nContext";
 
 const BRAND_GREEN = "#2D5A3D";
 
@@ -15,6 +16,7 @@ function formatDay(ts: number) {
 
 export function AnalyticsView() {
   const { orders } = useApp();
+  const { t } = useI18n();
   const [view, setView] = useState<"chart" | "table">("chart");
 
   const totalRevenue = useMemo(() => orders.reduce((sum, o) => sum + orderTotal(o), 0), [orders]);
@@ -55,11 +57,11 @@ export function AnalyticsView() {
   const hasData = totalOrders > 0;
 
   return (
-    <div className="p-8 max-w-5xl">
-      <div className="flex items-start justify-between mb-6">
+    <div className="p-4 md:p-8 max-w-5xl">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-[24px] font-bold text-[#22201B] mb-1">Analytics</h1>
-          <p className="text-[13px] text-[#8A8272]">Revenue and menu performance from orders placed so far.</p>
+          <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("analytics_title")}</h1>
+          <p className="text-[13px] text-[#8A8272]">{t("analytics_subtitle")}</p>
         </div>
         <div className="flex items-center gap-1 bg-[#F5F1E6] rounded-full p-1">
           <button
@@ -69,7 +71,7 @@ export function AnalyticsView() {
             }`}
           >
             <BarChart3 size={13} />
-            Chart
+            {t("analytics_view_chart")}
           </button>
           <button
             onClick={() => setView("table")}
@@ -78,30 +80,30 @@ export function AnalyticsView() {
             }`}
           >
             <Table2 size={13} />
-            Table
+            {t("analytics_view_table")}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
           <div className="flex items-center gap-1.5 text-[12px] text-[#8A8272] mb-1">
             <Wallet size={13} />
-            Total revenue
+            {t("analytics_total_revenue")}
           </div>
           <p className="text-[26px] font-bold text-[#2D5A3D]">{formatMoney(totalRevenue)}</p>
         </div>
         <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
           <div className="flex items-center gap-1.5 text-[12px] text-[#8A8272] mb-1">
             <Receipt size={13} />
-            Total orders
+            {t("analytics_total_orders")}
           </div>
           <p className="text-[26px] font-bold text-[#22201B]">{totalOrders}</p>
         </div>
         <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
           <div className="flex items-center gap-1.5 text-[12px] text-[#8A8272] mb-1">
             <TrendingUp size={13} />
-            Average order value
+            {t("analytics_avg_order")}
           </div>
           <p className="text-[26px] font-bold text-[#22201B]">{formatMoney(avgOrderValue)}</p>
         </div>
@@ -109,14 +111,14 @@ export function AnalyticsView() {
 
       {!hasData && (
         <div className="bg-white rounded-2xl p-10 border border-black/5 text-center text-[13px] text-[#B0A794]">
-          No orders yet — analytics will appear here once customers start ordering.
+          {t("analytics_empty")}
         </div>
       )}
 
       {hasData && view === "chart" && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
-            <h2 className="text-[13px] font-bold text-[#22201B] mb-4">Revenue by day</h2>
+            <h2 className="text-[13px] font-bold text-[#22201B] mb-4">{t("analytics_revenue_by_day")}</h2>
             <div className="flex items-end gap-2 h-40">
               {revenueByDay.map((d) => {
                 const heightPct = (d.revenue / maxDayRevenue) * 100;
@@ -138,7 +140,7 @@ export function AnalyticsView() {
           </div>
 
           <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
-            <h2 className="text-[13px] font-bold text-[#22201B] mb-4">Top dishes by revenue</h2>
+            <h2 className="text-[13px] font-bold text-[#22201B] mb-4">{t("analytics_top_dishes")}</h2>
             <div className="flex flex-col gap-3">
               {topDishes.map((d) => (
                 <div key={d.name} className="group">
@@ -160,13 +162,13 @@ export function AnalyticsView() {
       )}
 
       {hasData && view === "table" && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
             <table className="w-full text-[12.5px]">
               <thead className="bg-[#F5F1E6] text-[#8A8272] text-left">
                 <tr>
-                  <th className="px-4 py-2 font-medium">Day</th>
-                  <th className="px-4 py-2 font-medium text-right">Revenue</th>
+                  <th className="px-4 py-2 font-medium">{t("analytics_col_day")}</th>
+                  <th className="px-4 py-2 font-medium text-right">{t("analytics_col_revenue")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,9 +185,9 @@ export function AnalyticsView() {
             <table className="w-full text-[12.5px]">
               <thead className="bg-[#F5F1E6] text-[#8A8272] text-left">
                 <tr>
-                  <th className="px-4 py-2 font-medium">Dish</th>
-                  <th className="px-4 py-2 font-medium text-right">Qty</th>
-                  <th className="px-4 py-2 font-medium text-right">Revenue</th>
+                  <th className="px-4 py-2 font-medium">{t("analytics_col_dish")}</th>
+                  <th className="px-4 py-2 font-medium text-right">{t("analytics_col_qty")}</th>
+                  <th className="px-4 py-2 font-medium text-right">{t("analytics_col_revenue")}</th>
                 </tr>
               </thead>
               <tbody>

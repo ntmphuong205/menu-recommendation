@@ -2,8 +2,10 @@ import { useState, type FormEvent } from "react";
 import { ChefHat } from "lucide-react";
 import { RESTAURANT } from "../data/restaurant";
 import type { OwnerAuth } from "../store/useOwnerAuth";
+import { useI18n } from "../i18n/I18nContext";
 
 export function OwnerLogin({ signIn }: { signIn: OwnerAuth["signIn"] }) {
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -26,11 +28,11 @@ export function OwnerLogin({ signIn }: { signIn: OwnerAuth["signIn"] }) {
             <ChefHat size={22} className="text-white" />
           </div>
           <p className="text-[16px] font-bold text-[#22201B]">{RESTAURANT.name}</p>
-          <p className="text-[12px] text-[#8A8272]">Owner Dashboard login</p>
+          <p className="text-[12px] text-[#8A8272]">{t("ownerlogin_title")}</p>
         </div>
 
         <label className="block mb-3">
-          <p className="text-[12px] font-semibold text-[#5C5240] mb-1">Email</p>
+          <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("ownerlogin_email")}</p>
           <input
             type="email"
             required
@@ -40,7 +42,7 @@ export function OwnerLogin({ signIn }: { signIn: OwnerAuth["signIn"] }) {
           />
         </label>
         <label className="block mb-5">
-          <p className="text-[12px] font-semibold text-[#5C5240] mb-1">Password</p>
+          <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("ownerlogin_password")}</p>
           <input
             type="password"
             required
@@ -57,7 +59,7 @@ export function OwnerLogin({ signIn }: { signIn: OwnerAuth["signIn"] }) {
           disabled={submitting}
           className="w-full py-2.5 rounded-full bg-[#2D5A3D] text-white text-[13px] font-semibold disabled:opacity-50"
         >
-          {submitting ? "Signing in..." : "Sign in"}
+          {submitting ? t("ownerlogin_submitting") : t("ownerlogin_submit")}
         </button>
       </form>
     </div>

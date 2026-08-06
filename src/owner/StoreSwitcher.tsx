@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Store, LogOut, AlertCircle } from "lucide-react";
 import { apiClient, type ApiStoreSummary } from "../lib/apiClient";
 import { setAdminStoreSlug } from "../lib/storeSlug";
+import { useI18n } from "../i18n/I18nContext";
 
 /**
  * Resolves which store this admin login belongs to before rendering the
@@ -16,6 +17,7 @@ export function StoreSwitcher({
   onSelect: (slug: string) => void;
   onSignOut: () => void;
 }) {
+  const { t } = useI18n();
   const [stores, setStores] = useState<ApiStoreSummary[] | null>(null);
   const [error, setError] = useState(false);
 
@@ -55,23 +57,23 @@ export function StoreSwitcher({
 
         {error ? (
           <>
-            <h1 className="text-[16px] font-bold text-[#22201B] mb-1">Couldn't load your stores</h1>
-            <p className="text-[12.5px] text-[#8A8272] mb-4">Check your connection and try signing in again.</p>
+            <h1 className="text-[16px] font-bold text-[#22201B] mb-1">{t("storeswitcher_load_error_title")}</h1>
+            <p className="text-[12.5px] text-[#8A8272] mb-4">{t("storeswitcher_load_error_desc")}</p>
           </>
         ) : stores === null ? (
-          <p className="text-[13px] text-[#B0A794]">Loading your stores…</p>
+          <p className="text-[13px] text-[#B0A794]">{t("storeswitcher_loading")}</p>
         ) : stores.length === 0 ? (
           <>
-            <h1 className="text-[16px] font-bold text-[#22201B] mb-1">No store access yet</h1>
+            <h1 className="text-[16px] font-bold text-[#22201B] mb-1">{t("storeswitcher_no_store_title")}</h1>
             <p className="text-[12.5px] text-[#8A8272] mb-4 leading-relaxed flex items-start gap-1.5">
               <AlertCircle size={14} className="shrink-0 mt-0.5" />
-              This account isn't linked to any store's staff list yet. Ask whoever manages the platform to add you.
+              {t("storeswitcher_no_store_desc")}
             </p>
           </>
         ) : (
           <>
-            <h1 className="text-[16px] font-bold text-[#22201B] mb-1">Select a store</h1>
-            <p className="text-[12.5px] text-[#8A8272] mb-4">You manage more than one — pick which to open.</p>
+            <h1 className="text-[16px] font-bold text-[#22201B] mb-1">{t("storeswitcher_select_title")}</h1>
+            <p className="text-[12.5px] text-[#8A8272] mb-4">{t("storeswitcher_select_desc")}</p>
             <div className="flex flex-col gap-2 mb-2">
               {stores.map((s) => (
                 <button
@@ -91,7 +93,7 @@ export function StoreSwitcher({
           className="flex items-center gap-2 mt-3 text-[12px] font-medium text-[#8A8272]"
         >
           <LogOut size={13} />
-          Sign out
+          {t("storeswitcher_sign_out")}
         </button>
       </div>
     </div>

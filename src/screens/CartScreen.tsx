@@ -4,7 +4,7 @@ import { useApp } from "../context/AppContext";
 import type { QueueInfo } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
-import { ACTIVE_STATUSES, ORDER_STATUS_LABEL, orderTotal, type Order, type OrderStatus } from "../data/orders";
+import { ACTIVE_STATUSES, ORDER_STATUS_LABEL_KEY, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { getDishName, getPairingReason, type Dish } from "../data/menu";
 
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
@@ -80,7 +80,7 @@ function MyOrdersSection() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_BADGE_STYLE[item.status]}`}>
-                        {ORDER_STATUS_LABEL[item.status]}
+                        {t(ORDER_STATUS_LABEL_KEY[item.status])}
                       </span>
                       <span className="text-[12px] font-bold text-[#2D5A3D]">${(item.price * item.qty).toFixed(2)}</span>
                     </div>

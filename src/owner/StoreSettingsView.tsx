@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Plus, X, Save } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useStoreData } from "../store/useStoreData";
+import { useI18n } from "../i18n/I18nContext";
 
 function TagInput({ values, onChange, placeholder }: { values: string[]; onChange: (v: string[]) => void; placeholder: string }) {
   const [draft, setDraft] = useState("");
@@ -47,6 +48,7 @@ function TagInput({ values, onChange, placeholder }: { values: string[]; onChang
  *  auto-translated on save (same convention as the menu editor). */
 export function StoreSettingsView() {
   const { store } = useApp();
+  const { t } = useI18n();
   const { keywords, updateStore, updateKeywords } = useStoreData();
 
   const [name, setName] = useState("");
@@ -79,21 +81,18 @@ export function StoreSettingsView() {
       ]);
       setSaved(true);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to save store settings.");
+      alert(err instanceof Error ? err.message : t("store_settings_error"));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="p-8 max-w-2xl">
-      <div className="flex items-start justify-between mb-6">
+    <div className="p-4 md:p-8 max-w-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-[24px] font-bold text-[#22201B] mb-1">Store Settings</h1>
-          <p className="text-[13px] text-[#8A8272]">
-            Shown to customers in the Info tab and used to ground AI chat replies. Korean/Vietnamese are
-            auto-translated from English on save.
-          </p>
+          <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("store_settings_title")}</h1>
+          <p className="text-[13px] text-[#8A8272]">{t("store_settings_subtitle")}</p>
         </div>
         <button
           onClick={handleSave}
@@ -101,36 +100,34 @@ export function StoreSettingsView() {
           className="flex items-center gap-1.5 text-[12.5px] font-semibold text-white bg-[#2D5A3D] px-3.5 py-2 rounded-full disabled:opacity-50 active:scale-95 transition-transform shrink-0"
         >
           <Save size={14} />
-          {saving ? "Saving…" : "Save"}
+          {saving ? t("store_settings_saving") : t("store_settings_save")}
         </button>
       </div>
 
       {!store ? (
-        <p className="text-[13px] text-[#B0A794]">Loading…</p>
+        <p className="text-[13px] text-[#B0A794]">{t("store_settings_loading")}</p>
       ) : (
         <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 flex flex-col gap-3.5">
-          {saved && <p className="text-[12px] font-medium text-[#2D5A3D]">Saved.</p>}
-          <Field label="Name">
+          {saved && <p className="text-[12px] font-medium text-[#2D5A3D]">{t("store_settings_saved")}</p>}
+          <Field label={t("store_settings_field_name")}>
             <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
           </Field>
-          <Field label="Hours">
-            <input value={hours} onChange={(e) => setHours(e.target.value)} className={inputCls} placeholder="e.g. Weekdays 11:30 - 22:00" />
+          <Field label={t("store_settings_field_hours")}>
+            <input value={hours} onChange={(e) => setHours(e.target.value)} className={inputCls} placeholder={t("store_settings_field_hours_placeholder")} />
           </Field>
-          <Field label="Description">
+          <Field label={t("store_settings_field_description")}>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className={`${inputCls} h-16 resize-none`}
             />
           </Field>
-          <Field label="Menu categories">
-            <TagInput values={categories} onChange={setCategories} placeholder="e.g. Main, Starter" />
+          <Field label={t("store_settings_field_categories")}>
+            <TagInput values={categories} onChange={setCategories} placeholder={t("store_settings_field_categories_placeholder")} />
           </Field>
-          <Field label="AI recommendation keywords">
-            <p className="text-[11px] text-[#8A8272] mb-1.5 -mt-1">
-              Fed to the AI chat as hashtag-style hints (e.g. mood/occasion) for menu recommendations.
-            </p>
-            <TagInput values={localKeywords} onChange={setLocalKeywords} placeholder="e.g. #comfort-food" />
+          <Field label={t("store_settings_field_keywords")}>
+            <p className="text-[11px] text-[#8A8272] mb-1.5 -mt-1">{t("store_settings_field_keywords_desc")}</p>
+            <TagInput values={localKeywords} onChange={setLocalKeywords} placeholder={t("store_settings_field_keywords_placeholder")} />
           </Field>
         </div>
       )}

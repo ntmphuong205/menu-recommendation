@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { X, KeyRound, CheckCircle2 } from "lucide-react";
 import { useOwnerAuth } from "../store/useOwnerAuth";
+import { useI18n } from "../i18n/I18nContext";
 
 export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
   const { changePassword } = useOwnerAuth();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -12,11 +14,11 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
 
   const submit = async () => {
     if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(t("changepw_min_length_error"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("Passwords don't match.");
+      setError(t("changepw_mismatch_error"));
       return;
     }
     setSubmitting(true);
@@ -45,12 +47,12 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
             <div className="w-14 h-14 rounded-full bg-[#E5F3EA] flex items-center justify-center">
               <CheckCircle2 size={28} className="text-[#2D5A3D]" />
             </div>
-            <h2 className="text-[16px] font-bold text-[#22201B]">Password changed</h2>
+            <h2 className="text-[16px] font-bold text-[#22201B]">{t("changepw_done_title")}</h2>
             <button
               onClick={onClose}
               className="mt-2 px-5 py-2.5 rounded-full bg-[#2D5A3D] text-white text-[13px] font-semibold active:scale-95 transition-transform"
             >
-              Close
+              {t("changepw_close")}
             </button>
           </div>
         ) : (
@@ -59,23 +61,23 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
               <div className="w-9 h-9 rounded-full bg-[#2D5A3D] flex items-center justify-center">
                 <KeyRound size={16} className="text-white" />
               </div>
-              <h2 className="text-[16px] font-bold text-[#22201B]">Change password</h2>
+              <h2 className="text-[16px] font-bold text-[#22201B]">{t("changepw_title")}</h2>
             </div>
 
             <div className="flex flex-col gap-3">
               <label className="block">
-                <p className="text-[12px] font-semibold text-[#5C5240] mb-1">New password</p>
+                <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("changepw_new")}</p>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full border border-black/10 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-[#2D5A3D]"
-                  placeholder="At least 6 characters"
+                  placeholder={t("changepw_new_placeholder")}
                   autoFocus
                 />
               </label>
               <label className="block">
-                <p className="text-[12px] font-semibold text-[#5C5240] mb-1">Confirm new password</p>
+                <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("changepw_confirm")}</p>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -92,7 +94,7 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
                 disabled={submitting || !newPassword || !confirmPassword}
                 className="mt-1 w-full bg-[#2D5A3D] text-white font-semibold text-[13.5px] py-3 rounded-full active:scale-[0.98] transition-transform disabled:opacity-50"
               >
-                {submitting ? "Saving…" : "Save new password"}
+                {submitting ? t("changepw_saving") : t("changepw_save")}
               </button>
             </div>
           </>

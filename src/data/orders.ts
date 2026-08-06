@@ -1,3 +1,5 @@
+import type { TranslationKey } from "../i18n/translations";
+
 export type OrderStatus = "new" | "preparing" | "served" | "cancelled";
 
 export interface OrderItem {
@@ -27,11 +29,14 @@ export interface Order {
   createdAt: number;
 }
 
-export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
-  new: "New",
-  preparing: "Preparing",
-  served: "Served",
-  cancelled: "Cancelled",
+/** Maps a status to its translation key rather than baking in English text,
+ *  so both the customer cart and the admin dashboard show it in whichever
+ *  language is currently selected — call t(ORDER_STATUS_LABEL_KEY[status]). */
+export const ORDER_STATUS_LABEL_KEY: Record<OrderStatus, TranslationKey> = {
+  new: "order_status_new",
+  preparing: "order_status_preparing",
+  served: "order_status_served",
+  cancelled: "order_status_cancelled",
 };
 
 export const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
