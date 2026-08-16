@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import logging
 import os
 import re
 from contextvars import ContextVar
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Literal, Optional
+from urllib.parse import urlencode
 from uuid import UUID
 
 from dotenv import load_dotenv
@@ -33,10 +36,28 @@ ALLOWED_ORIGINS = [
     if origin.strip()
 ]
 
+# VNPay (remote pre-order + prepay pickup). The sandbox defaults let the
+# whole flow be exercised end-to-end before a real merchant account exists —
+# swap in production values via env vars only, no code change needed.
+VNPAY_TMN_CODE = os.getenv("VNPAY_TMN_CODE", "").strip()
+VNPAY_HASH_SECRET = os.getenv("VNPAY_HASH_SECRET", "").strip()
+VNPAY_PAYMENT_URL = os.getenv(
+    "VNPAY_PAYMENT_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+).strip()
+VNPAY_RETURN_URL = os.getenv("VNPAY_RETURN_URL", "").strip()
+VNPAY_TIMEZONE = timezone(timedelta(hours=7))  # VNPay expects Vietnam local time.
+# VNPay only settles in VND. Menu prices in this deployment are stored as
+# USD — this is a placeholder conversion for demo/pilot use, not a real FX
+# feed. Set a store's currency to VND directly for accurate production
+# pricing instead of relying on this rate.
+USD_TO_VND_RATE = float(os.getenv("USD_TO_VND_RATE", "25000"))
+
 TABLE_STATUSES = {"available", "soon", "reserved", "occupied"}
 # Per-item kitchen status (replaces the old pending/completed/cancelled model
-# with ICAPS's finer-grained new -> preparing -> served flow).
-ORDER_STATUSES = {"new", "preparing", "served", "cancelled"}
+# with ICAPS's finer-grained new -> preparing -> served flow). awaiting_payment
+# is a pre-kitchen holding state for remote pickup orders, only ever set by
+# order creation and cleared by the VNPay IPN webhook — staff never set it.
+ORDER_STATUSES = {"awaiting_payment", "new", "preparing", "served", "cancelled"}
 RESERVATION_STATUSES = {"reserved", "waiting", "accepted", "cancelled"}
 ACTIVE_RESERVATION_STATUSES = {"reserved", "waiting", "accepted"}
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
@@ -73,6 +94,47 @@ def utc_now() -> str:
 def public_number(value: Any) -> float | int:
     number = float(value)
     return int(number) if number.is_integer() else number
+
+
+def order_group_amount_vnd(rows: List[Dict[str, Any]]) -> int:
+    """Sums an order group's line items and converts to VND if needed —
+    VNPay only settles in VND, but menu prices in this deployment are USD.
+    See USD_TO_VND_RATE's definition for the caveat this papers over."""
+    total = sum(float(row["total_price"]) for row in rows)
+    if rows and rows[0].get("currency") == "USD":
+        total *= USD_TO_VND_RATE
+    return round(total)
+
+
+def vnpay_txn_ref(order_group_id: UUID) -> str:
+    """VNPay's vnp_TxnRef must be plain alphanumeric — a hyphen-free UUID
+    hex string round-trips cleanly via UUID(hex=...) on the way back."""
+    return order_group_id.hex
+
+
+def vnpay_txn_ref_to_group_id(txn_ref: str) -> Optional[str]:
+    try:
+        return str(UUID(hex=txn_ref))
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
+def vnpay_sign(params: Dict[str, str]) -> str:
+    hash_data = urlencode(sorted(params.items()))
+    return hmac.new(
+        VNPAY_HASH_SECRET.encode("utf-8"),
+        hash_data.encode("utf-8"),
+        hashlib.sha512,
+    ).hexdigest()
+
+
+def vnpay_verify(params: Dict[str, str]) -> bool:
+    received_hash = params.get("vnp_SecureHash", "")
+    signable = {
+        k: v for k, v in params.items() if k not in ("vnp_SecureHash", "vnp_SecureHashType")
+    }
+    computed_hash = vnpay_sign(signable)
+    return bool(received_hash) and hmac.compare_digest(computed_hash.lower(), received_hash.lower())
 
 
 def validate_image_value(value: Optional[str]) -> Optional[str]:
@@ -224,29 +286,47 @@ class KeywordUpdate(BaseModel):
 
 
 class OrderCreate(BaseModel):
-    table_id: str = Field(min_length=1, max_length=32)
+    # Required for fulfillment_type="dine_in" (validated below), unused and
+    # left null for "pickup" — those orders aren't tied to a physical table.
+    table_id: Optional[str] = Field(default=None, max_length=32)
     menu_id: UUID
     quantity: int = Field(ge=1, le=100)
     note: str = Field(default="", max_length=300)
     customer_session_id: UUID
     mode: Literal["web", "store"]
+    fulfillment_type: Literal["dine_in", "pickup"] = "dine_in"
     # Shared across every line the client posts from one cart checkout, so
     # the frontend can regroup rows back into a single "order" for display.
+    # Required for pickup orders — it's also what derives the pickup_code.
     order_group_id: Optional[UUID] = None
 
     @field_validator("table_id")
     @classmethod
-    def normalize_order_table_code(cls, value: str) -> str:
-        return value.strip().upper()
+    def normalize_order_table_code(cls, value: Optional[str]) -> Optional[str]:
+        return value.strip().upper() if value else value
 
     @field_validator("note")
     @classmethod
     def strip_note(cls, value: str) -> str:
         return value.strip()
 
+    @model_validator(mode="after")
+    def check_fulfillment_requirements(self) -> "OrderCreate":
+        if self.fulfillment_type == "dine_in" and not self.table_id:
+            raise ValueError("table_id is required for dine-in orders.")
+        if self.fulfillment_type == "pickup" and self.order_group_id is None:
+            raise ValueError("order_group_id is required for pickup orders.")
+        return self
+
 
 class OrderStatusUpdate(BaseModel):
+    # awaiting_payment is deliberately excluded — only order creation and
+    # the VNPay IPN webhook ever set/clear it, never staff.
     status: Literal["new", "preparing", "served", "cancelled"]
+
+
+class VnpayInitRequest(BaseModel):
+    order_group_id: UUID
 
 
 class ReservationCreate(BaseModel):
@@ -395,7 +475,7 @@ def table_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
 def order_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "id": str(row["id"]),
-        "table_id": row["table_id"],
+        "table_id": row.get("table_id"),
         "menu_id": str(row["menu_id"]),
         "menu_name": row["menu_name"],
         "quantity": int(row["quantity"]),
@@ -404,6 +484,8 @@ def order_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "note": row.get("note") or "",
         "status": row["status"],
         "order_group_id": str(row["order_group_id"]),
+        "fulfillment_type": row.get("fulfillment_type") or "dine_in",
+        "pickup_code": row.get("pickup_code"),
         "customer_session_id": row["customer_session_id"],
         "created_at": row["created_at"],
         "updated_at": row.get("updated_at"),
@@ -623,6 +705,17 @@ class SupabaseRepository:
             return query.order("created_at", desc=True).execute()
 
         response = self._run(operation, "Failed to load orders.")
+        return response.data or []
+
+    def get_orders_by_group(self, order_group_id: str) -> List[Dict[str, Any]]:
+        response = self._run(
+            lambda: self.client.table("orders")
+            .select("*")
+            .eq("store_id", self.store_id)
+            .eq("order_group_id", order_group_id)
+            .execute(),
+            "Failed to load the order.",
+        )
         return response.data or []
 
     def create_order(self, payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -1266,7 +1359,10 @@ def get_orders(
 
 @app.post("/api/orders", status_code=201)
 def create_order(payload: OrderCreate) -> Dict[str, Any]:
-    if payload.mode == "web":
+    # Dine-in ordering still requires being physically at a table (mode
+    # "store"). Remote pickup orders are the whole reason "web" mode exists
+    # for ordering purposes — no table involved, paid upfront via VNPay.
+    if payload.mode == "web" and payload.fulfillment_type != "pickup":
         raise HTTPException(
             status_code=403,
             detail="Ordering isn't available in web browsing mode.",
@@ -1277,22 +1373,30 @@ def create_order(payload: OrderCreate) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="Menu item not found.")
     if menu.get("is_sold_out"):
         raise HTTPException(status_code=409, detail="This item is sold out and can't be ordered.")
-    if not repo.get_table(payload.table_id):
-        raise HTTPException(status_code=404, detail="Table not found.")
 
     order_row: Dict[str, Any] = {
-        "table_id": payload.table_id,
         "menu_id": str(payload.menu_id),
         "menu_name": (menu.get("name") or {}).get("en", ""),
         "quantity": payload.quantity,
         "total_price": float(menu["price"]) * payload.quantity,
         "currency": menu.get("currency", "KRW"),
         "note": payload.note,
-        "status": "new",
         "customer_session_id": str(payload.customer_session_id),
+        "fulfillment_type": payload.fulfillment_type,
+        "order_group_id": str(payload.order_group_id) if payload.order_group_id is not None else None,
     }
-    if payload.order_group_id is not None:
-        order_row["order_group_id"] = str(payload.order_group_id)
+    if payload.fulfillment_type == "pickup":
+        # Held until the VNPay IPN webhook confirms payment — never enters
+        # the kitchen queue before that. Same code for every line item in
+        # the group since it's derived from the shared order_group_id.
+        order_row["status"] = "awaiting_payment"
+        order_row["pickup_code"] = payload.order_group_id.hex[-6:].upper()
+    else:
+        if not repo.get_table(payload.table_id):
+            raise HTTPException(status_code=404, detail="Table not found.")
+        order_row["table_id"] = payload.table_id
+        order_row["status"] = "new"
+    order_row = {k: v for k, v in order_row.items() if v is not None}
     row = repo.create_order(order_row)
     order = order_to_public(row)
     return {
@@ -1314,6 +1418,132 @@ def update_order_status(
         "success": True,
         "message": "Order status updated.",
         "order": order_to_public(row),
+    }
+
+
+@app.post("/api/payments/vnpay/init")
+def init_vnpay_payment(payload: VnpayInitRequest, request: Request) -> Dict[str, Any]:
+    """Called by the customer's browser (carries the usual X-Store-Slug
+    header) right after the pickup order rows are created. Builds and signs
+    the redirect URL to VNPay's payment page."""
+    if not VNPAY_TMN_CODE or not VNPAY_HASH_SECRET:
+        raise HTTPException(status_code=503, detail="Online payment isn't configured yet.")
+    if not VNPAY_RETURN_URL:
+        raise HTTPException(status_code=503, detail="Payment return URL isn't configured yet.")
+
+    repo = get_repository()
+    rows = repo.get_orders_by_group(str(payload.order_group_id))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    if any(row["status"] != "awaiting_payment" for row in rows):
+        raise HTTPException(
+            status_code=409,
+            detail="This order isn't awaiting payment (already paid or cancelled).",
+        )
+
+    amount_vnd = order_group_amount_vnd(rows)
+    if amount_vnd < 5000:
+        raise HTTPException(
+            status_code=400,
+            detail="Order total is below VNPay's minimum payable amount (5,000 VND).",
+        )
+
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    client_ip = forwarded_for.split(",")[0].strip() or (
+        request.client.host if request.client else "127.0.0.1"
+    )
+    txn_ref = vnpay_txn_ref(payload.order_group_id)
+    params = {
+        "vnp_Version": "2.1.0",
+        "vnp_Command": "pay",
+        "vnp_TmnCode": VNPAY_TMN_CODE,
+        "vnp_Amount": str(amount_vnd * 100),
+        "vnp_CurrCode": "VND",
+        "vnp_TxnRef": txn_ref,
+        "vnp_OrderInfo": f"Thanh toan don hang {txn_ref}",
+        "vnp_OrderType": "other",
+        "vnp_Locale": "vn",
+        "vnp_ReturnUrl": VNPAY_RETURN_URL,
+        "vnp_IpAddr": client_ip,
+        "vnp_CreateDate": datetime.now(VNPAY_TIMEZONE).strftime("%Y%m%d%H%M%S"),
+    }
+    secure_hash = vnpay_sign(params)
+    query = urlencode(sorted(params.items())) + f"&vnp_SecureHash={secure_hash}"
+    return {"success": True, "payment_url": f"{VNPAY_PAYMENT_URL}?{query}"}
+
+
+@app.get("/api/payments/vnpay/ipn")
+def vnpay_ipn(request: Request) -> Dict[str, str]:
+    """VNPay's server calls this directly (no X-Store-Slug header, no
+    browser involved) — the authoritative payment confirmation. Looks the
+    order up globally by order_group_id since store context isn't
+    available here. Must reply in VNPay's exact expected JSON shape."""
+    if not supabase_client:
+        return {"RspCode": "99", "Message": "Unknown error"}
+    params = dict(request.query_params)
+    if not vnpay_verify(params):
+        return {"RspCode": "97", "Message": "Invalid signature"}
+
+    group_id = vnpay_txn_ref_to_group_id(params.get("vnp_TxnRef", ""))
+    if not group_id:
+        return {"RspCode": "01", "Message": "Order not found"}
+
+    rows = (
+        supabase_client.table("orders")
+        .select("*")
+        .eq("order_group_id", group_id)
+        .execute()
+        .data
+        or []
+    )
+    if not rows:
+        return {"RspCode": "01", "Message": "Order not found"}
+
+    expected_amount = order_group_amount_vnd(rows) * 100
+    if str(params.get("vnp_Amount", "")) != str(expected_amount):
+        return {"RspCode": "04", "Message": "Invalid amount"}
+
+    if rows[0]["status"] != "awaiting_payment":
+        # Already processed — VNPay retries IPN delivery, ack idempotently.
+        return {"RspCode": "00", "Message": "Confirm Success"}
+
+    if params.get("vnp_ResponseCode") == "00":
+        supabase_client.table("orders").update(
+            {
+                "status": "new",
+                "payment_ref": params.get("vnp_TransactionNo", ""),
+                "paid_at": utc_now(),
+                "updated_at": utc_now(),
+            }
+        ).eq("order_group_id", group_id).execute()
+    else:
+        supabase_client.table("orders").update(
+            {"status": "cancelled", "updated_at": utc_now()}
+        ).eq("order_group_id", group_id).execute()
+    return {"RspCode": "00", "Message": "Confirm Success"}
+
+
+@app.get("/api/payments/vnpay/status")
+def vnpay_status(order_group_id: str = Query(...)) -> Dict[str, Any]:
+    """Polled by the customer's browser after returning from VNPay — the
+    return-URL redirect itself isn't authoritative, this reflects whatever
+    the IPN webhook has actually confirmed so far."""
+    if not supabase_client:
+        raise HTTPException(status_code=503, detail="The database is not configured.")
+    rows = (
+        supabase_client.table("orders")
+        .select("*")
+        .eq("order_group_id", order_group_id)
+        .execute()
+        .data
+        or []
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    return {
+        "order_group_id": order_group_id,
+        "status": rows[0]["status"],
+        "pickup_code": rows[0].get("pickup_code"),
     }
 
 

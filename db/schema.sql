@@ -90,7 +90,9 @@ create index if not exists tables_store_id_idx on public.tables(store_id);
 create table if not exists public.orders (
     id uuid primary key default gen_random_uuid(),
     store_id uuid not null references public.stores(id) on delete cascade,
-    table_id text not null,
+    -- Null for remote pre-orders (fulfillment_type = 'pickup') — those
+    -- aren't tied to a physical table, only a pickup_code.
+    table_id text,
     menu_id uuid not null references public.menus(id),
     menu_name text not null default '',
     quantity integer not null check (quantity > 0),
@@ -104,9 +106,21 @@ create table if not exists public.orders (
     -- Wexit's one-row-per-dish schema. Defaults to its own row's id when
     -- the client doesn't send one (a lone, ungrouped order).
     order_group_id uuid not null default gen_random_uuid(),
-    -- Per-item kitchen status (ICAPS's 4-state model replaces Wexit's
-    -- coarser pending/completed/cancelled).
-    status text not null default 'new' check (status in ('new', 'preparing', 'served', 'cancelled')),
+    -- dine_in = served at table (default, existing flow). pickup = remote
+    -- pre-order, paid upfront via VNPay, collected at the counter.
+    fulfillment_type text not null default 'dine_in' check (fulfillment_type in ('dine_in', 'pickup')),
+    -- Short code shown to the customer to hand to staff at pickup —
+    -- shared across every row in the same order_group_id. Null for dine_in.
+    pickup_code text,
+    -- VNPay transaction reference + timestamp, set once the IPN webhook
+    -- confirms payment. Null until then.
+    payment_ref text,
+    paid_at timestamptz,
+    -- Per-item kitchen status. awaiting_payment is a pre-kitchen holding
+    -- state for pickup orders — the IPN webhook flips the whole group to
+    -- 'new' on payment success, after which it behaves exactly like a
+    -- dine_in order (served = picked up, for pickup orders).
+    status text not null default 'new' check (status in ('awaiting_payment', 'new', 'preparing', 'served', 'cancelled')),
     customer_session_id uuid not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
@@ -274,3 +288,21 @@ alter table public.orders enable row level security;
 alter table public.reservations enable row level security;
 alter table public.reviews enable row level security;
 alter table public.table_requests enable row level security;
+
+-- ---------------------------------------------------------------------
+-- Migration for an already-provisioned database (this `create table`
+-- above only takes effect on a fresh install). Run this block once in
+-- the Supabase SQL editor to add remote pickup + VNPay pre-payment
+-- support to an existing orders table.
+-- ---------------------------------------------------------------------
+alter table public.orders
+    alter column table_id drop not null,
+    add column if not exists fulfillment_type text not null default 'dine_in'
+        check (fulfillment_type in ('dine_in', 'pickup')),
+    add column if not exists pickup_code text,
+    add column if not exists payment_ref text,
+    add column if not exists paid_at timestamptz;
+
+alter table public.orders drop constraint if exists orders_status_check;
+alter table public.orders add constraint orders_status_check
+    check (status in ('awaiting_payment', 'new', 'preparing', 'served', 'cancelled'));

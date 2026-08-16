@@ -32,6 +32,8 @@ function groupOrders(rows: ApiOrder[]): Order[] {
       items,
       status: deriveOrderStatus(items),
       createdAt: Math.min(...groupRows.map((r) => new Date(r.created_at).getTime())),
+      fulfillmentType: groupRows[0].fulfillment_type,
+      pickupCode: groupRows[0].pickup_code,
     };
   });
 }
@@ -47,6 +49,10 @@ export interface NewOrderItem {
 export interface OrdersData {
   orders: Order[];
   placeOrder: (tableId: string, items: NewOrderItem[], mode: "web" | "store") => void;
+  /** Remote pre-order, paid upfront via VNPay — not tied to a table. Awaits
+   *  every line item's creation (unlike placeOrder's fire-and-forget) since
+   *  the caller needs the shared order_group_id back to start payment. */
+  placePickupOrder: (items: NewOrderItem[]) => Promise<string>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateItemStatus: (itemId: string, status: OrderStatus) => void;
 }
@@ -74,6 +80,25 @@ export function useOrdersData(): OrdersData {
     }
   };
 
+  const placePickupOrder = async (items: NewOrderItem[]): Promise<string> => {
+    const sessionId = getCustomerSessionId();
+    const groupId = crypto.randomUUID();
+    await Promise.all(
+      items.map((item) =>
+        apiClient.createOrder({
+          menu_id: item.dishId,
+          quantity: item.qty,
+          note: item.note ?? "",
+          customer_session_id: sessionId,
+          mode: "web",
+          fulfillment_type: "pickup",
+          order_group_id: groupId,
+        })
+      )
+    );
+    return groupId;
+  };
+
   // Whole-order actions (e.g. the customer cancelling before the kitchen
   // starts) cascade the new status to every item in the group.
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
@@ -92,5 +117,5 @@ export function useOrdersData(): OrdersData {
       .catch((err) => console.error("[MenuPilot] Failed to update item status", err));
   };
 
-  return { orders, placeOrder, updateOrderStatus, updateItemStatus };
+  return { orders, placeOrder, placePickupOrder, updateOrderStatus, updateItemStatus };
 }

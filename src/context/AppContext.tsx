@@ -49,6 +49,9 @@ interface AppContextValue {
   // orders (shared, created by customer app, managed by owner dashboard)
   orders: Order[];
   placeOrder: (tableId: string) => void;
+  /** Remote pre-order paid upfront via VNPay — packages the current cart,
+   *  returns the order_group_id once every line item is created. */
+  placePickupOrder: () => Promise<string>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateItemStatus: (itemId: string, status: OrderStatus) => void;
   cancelOrder: (orderId: string) => void;
@@ -108,7 +111,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const isOwnerRoute = location.pathname.startsWith("/admin");
   const { menu, addDish, updateDish, deleteDish } = useMenuData();
-  const { orders, placeOrder: placeOrderRaw, updateOrderStatus, updateItemStatus } = useOrdersData();
+  const {
+    orders,
+    placeOrder: placeOrderRaw,
+    placePickupOrder: placePickupOrderRaw,
+    updateOrderStatus,
+    updateItemStatus,
+  } = useOrdersData();
   const { reviews, addReview: addReviewRaw, replyToReview } = useReviewsData();
   const { tableRequests, callStaff: callStaffRaw, resolveRequest } = useTableRequestsData(isOwnerRoute);
   // Owner views that need to write the layout (SeatLayoutView) call
@@ -155,6 +164,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     placeOrderRaw(tableIdToUse, items, mode);
   };
 
+  const placePickupOrder = () => {
+    const items = cart.map((i) => {
+      const dish = findDish(i.dishId);
+      return { dishId: i.dishId, dishName: dish?.name ?? "Unknown dish", qty: i.qty, price: dish?.price ?? 0, note: i.note };
+    });
+    return placePickupOrderRaw(items);
+  };
+
   const requestReservation = async (tableIdToReserve: string, partySize: number) => {
     const table = tables.find((t) => t.id === tableIdToReserve);
     await createReservation(tableIdToReserve, table?.status ?? "available", partySize, mode);
@@ -196,6 +213,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         totalPrice,
         orders,
         placeOrder,
+        placePickupOrder,
         updateOrderStatus,
         updateItemStatus,
         cancelOrder,

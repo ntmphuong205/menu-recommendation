@@ -2,12 +2,14 @@ import { useMemo, useState } from "react";
 import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt, Sparkles } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import type { QueueInfo } from "../context/AppContext";
+import { apiClient } from "../lib/apiClient";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL_KEY, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { getDishName, getPairingReason, type Dish } from "../data/menu";
 
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
+  awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
   new: "bg-[#FDECC8] text-[#8A6B1F]",
   preparing: "bg-[#DCEBFB] text-[#2A5C8A]",
   served: "bg-[#E5F3EA] text-[#2D5A3D]",
@@ -212,10 +214,35 @@ function OrderPlacedScreen({ order, onDone }: { order: Order | undefined; onDone
 }
 
 export function CartScreen() {
-  const { cart, updateQty, removeItem, clearCart, findDish, totalPrice, setActiveTab, placeOrder, tableId, orders, mode } =
-    useApp();
+  const {
+    cart,
+    updateQty,
+    removeItem,
+    clearCart,
+    findDish,
+    totalPrice,
+    setActiveTab,
+    placeOrder,
+    placePickupOrder,
+    tableId,
+    orders,
+    mode,
+  } = useApp();
   const { t, lang } = useI18n();
   const [justSubmitted, setJustSubmitted] = useState(false);
+  const [pickupState, setPickupState] = useState<"idle" | "submitting" | "error">("idle");
+
+  const handlePickupCheckout = async () => {
+    setPickupState("submitting");
+    try {
+      const groupId = await placePickupOrder();
+      const { payment_url } = await apiClient.initVnpayPayment(groupId);
+      clearCart();
+      window.location.href = payment_url;
+    } catch {
+      setPickupState("error");
+    }
+  };
 
   if (justSubmitted) {
     // Recomputed fresh from the live `orders` list on every render, so this
@@ -321,9 +348,21 @@ export function CartScreen() {
           <span className="text-[18px] font-bold text-[#22201B]">${totalPrice.toFixed(2)}</span>
         </div>
         {mode === "web" ? (
-          <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-3 px-4">
-            {t("reservation_web_mode_blocked")}
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-center text-[11.5px] text-[#8A8272] px-2">{t("pickup_checkout_note")}</p>
+            {pickupState === "error" && (
+              <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-2 px-4">
+                {t("pickup_pay_error")}
+              </p>
+            )}
+            <button
+              onClick={handlePickupCheckout}
+              disabled={pickupState === "submitting"}
+              className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform disabled:opacity-60"
+            >
+              {pickupState === "submitting" ? t("pickup_pay_loading") : t("pickup_pay_button")}
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => {

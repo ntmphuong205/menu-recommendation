@@ -86,11 +86,12 @@ export interface ApiTable {
   view_image: string;
 }
 
-export type ApiOrderStatus = "new" | "preparing" | "served" | "cancelled";
+export type ApiOrderStatus = "awaiting_payment" | "new" | "preparing" | "served" | "cancelled";
+export type ApiFulfillmentType = "dine_in" | "pickup";
 
 export interface ApiOrder {
   id: string;
-  table_id: string;
+  table_id: string | null;
   menu_id: string;
   menu_name: string;
   quantity: number;
@@ -99,6 +100,8 @@ export interface ApiOrder {
   note: string;
   status: ApiOrderStatus;
   order_group_id: string;
+  fulfillment_type: ApiFulfillmentType;
+  pickup_code: string | null;
   customer_session_id: string;
   created_at: string;
   updated_at: string | null;
@@ -206,6 +209,16 @@ export const apiClient = {
     request<{ success: boolean; order: ApiOrder }>("POST", "/orders", payload),
   updateOrderStatus: (id: string, status: ApiOrderStatus) =>
     request<{ success: boolean; order: ApiOrder }>("PUT", `/orders/${id}/status`, { status }),
+
+  initVnpayPayment: (orderGroupId: string) =>
+    request<{ success: boolean; payment_url: string }>("POST", "/payments/vnpay/init", {
+      order_group_id: orderGroupId,
+    }),
+  getVnpayStatus: (orderGroupId: string) =>
+    request<{ order_group_id: string; status: ApiOrderStatus; pickup_code: string | null }>(
+      "GET",
+      `/payments/vnpay/status?order_group_id=${orderGroupId}`
+    ),
 
   getReservations: (customerSessionId?: string) =>
     request<ApiReservation[]>(

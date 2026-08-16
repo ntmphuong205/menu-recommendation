@@ -6,11 +6,21 @@ import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
+  awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
   new: "bg-[#FDECC8] text-[#8A6B1F]",
   preparing: "bg-[#DCEBFB] text-[#2A5C8A]",
   served: "bg-[#E5F3EA] text-[#2D5A3D]",
   cancelled: "bg-[#F7E9E2] text-[#B0553C]",
 };
+
+/** "Table T3" for dine-in, "Pickup #A1B2C3" for remote pre-orders — pickup
+ *  orders aren't tied to a physical table at all. */
+function orderLabel(order: Order, t: (key: TranslationKey, vars?: Record<string, string | number>) => string): string {
+  if (order.fulfillmentType === "pickup") {
+    return t("orders_pickup_badge", { code: order.pickupCode ?? "" });
+  }
+  return `${t("chat_table")} ${order.tableId}`;
+}
 
 function timeAgo(ts: number, t: (key: TranslationKey, vars?: Record<string, string | number>) => string): string {
   const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
@@ -34,15 +44,22 @@ export function OrdersView() {
   const active = useMemo(() => orders.filter((o) => ACTIVE_STATUSES.includes(o.status)), [orders]);
   const served = useMemo(() => orders.filter((o) => o.status === "served"), [orders]);
   const cancelled = useMemo(() => orders.filter((o) => o.status === "cancelled"), [orders]);
-  const tablesOccupied = useMemo(() => new Set(active.map((o) => o.tableId)).size, [active]);
+  const tablesOccupied = useMemo(
+    () => new Set(active.filter((o) => o.fulfillmentType === "dine_in").map((o) => o.tableId)).size,
+    [active]
+  );
   const revenueToday = useMemo(() => orders.reduce((sum, o) => sum + orderTotal(o), 0), [orders]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Order[]>();
     for (const o of active) {
-      const list = map.get(o.tableId) ?? [];
+      // Dine-in orders group by table (a table can build up several orders
+      // over a visit); each pickup order gets its own card since it's a
+      // one-off transaction, not an ongoing tab.
+      const key = o.fulfillmentType === "dine_in" ? o.tableId ?? "" : `pickup-${o.id}`;
+      const list = map.get(key) ?? [];
       list.push(o);
-      map.set(o.tableId, list);
+      map.set(key, list);
     }
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [active]);
@@ -150,12 +167,10 @@ export function OrdersView() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {grouped.map(([tableId, tableOrders]) => (
-          <div key={tableId} className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+        {grouped.map(([groupKey, tableOrders]) => (
+          <div key={groupKey} className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
             <div className="px-4 py-3 bg-[#1F3D2B] text-white flex items-center justify-between">
-              <span className="text-[13px] font-bold">
-                {t("chat_table")} {tableId}
-              </span>
+              <span className="text-[13px] font-bold">{orderLabel(tableOrders[0], t)}</span>
               <span className="text-[11px] text-white/70">{t("orders_count_label", { count: tableOrders.length })}</span>
             </div>
             <div className="p-4 flex flex-col gap-4">
@@ -168,7 +183,8 @@ export function OrdersView() {
                     </span>
                     <button
                       onClick={() => {
-                        if (window.confirm(t("orders_cancel_confirm", { table: order.tableId }))) cancelOrder(order.id);
+                        if (window.confirm(t("orders_cancel_confirm", { table: order.tableId ?? order.pickupCode ?? "" })))
+                          cancelOrder(order.id);
                       }}
                       className="flex items-center gap-1 text-[11px] font-semibold text-[#B0553C]"
                     >
@@ -241,7 +257,7 @@ export function OrdersView() {
                 className="bg-white rounded-xl border border-black/5 px-4 py-2.5 flex items-center justify-between text-[12.5px]"
               >
                 <span className="font-medium text-[#22201B]">
-                  {t("chat_table")} {order.tableId}
+                  {orderLabel(order, t)}
                 </span>
                 <span className="text-[#8A8272]">
                   {order.items.map((i) => `${i.qty}× ${i.dishName}`).join(", ")}
@@ -266,7 +282,7 @@ export function OrdersView() {
                 className="bg-white rounded-xl border border-black/5 px-4 py-2.5 flex items-center justify-between text-[12.5px] opacity-60"
               >
                 <span className="font-medium text-[#22201B]">
-                  {t("chat_table")} {order.tableId}
+                  {orderLabel(order, t)}
                 </span>
                 <span className="text-[#8A8272]">
                   {order.items.map((i) => `${i.qty}× ${i.dishName}`).join(", ")}
