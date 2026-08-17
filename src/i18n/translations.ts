@@ -530,6 +530,7 @@ const dict = {
   ownerlogin_submit: { vi: "Đăng nhập", en: "Sign in", ko: "로그인" },
   ownerlogin_submitting: { vi: "Đang đăng nhập...", en: "Signing in...", ko: "로그인 중..." },
   ownerlogin_forgot_password: { vi: "Quên mật khẩu?", en: "Forgot password?", ko: "비밀번호를 잊으셨나요?" },
+  ownerlogin_back_home: { vi: "Quay lại trang chủ", en: "Back to home", ko: "홈으로 돌아가기" },
   ownerlogin_reset_title: { vi: "Đặt lại mật khẩu", en: "Reset password", ko: "비밀번호 재설정" },
   ownerlogin_reset_desc: {
     vi: "Nhập email tài khoản, chúng tôi sẽ gửi liên kết để đặt lại mật khẩu.",

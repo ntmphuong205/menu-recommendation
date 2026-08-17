@@ -145,6 +145,12 @@ export function OwnerLogin({
               >
                 {submitting ? t("ownerlogin_submitting") : t("ownerlogin_submit")}
               </button>
+              <a
+                href="/"
+                className="mt-2.5 w-full block text-center py-2.5 rounded-full border border-black/10 text-[#5C5240] text-[13px] font-semibold active:scale-[0.98] transition-transform"
+              >
+                {t("ownerlogin_back_home")}
+              </a>
             </form>
           )}
         </div>
