@@ -9,7 +9,7 @@ import { useI18n } from "../i18n/I18nContext";
  *  original restriction — actually ordering still requires scanning a
  *  table's own QR code. */
 export function OrderModeNotice() {
-  const { mode, webOrderIntent, setActiveTab } = useApp();
+  const { mode, webOrderIntent, setActiveTab, resetWebOrderIntent } = useApp();
   const { t } = useI18n();
 
   if (mode !== "web") return null;
@@ -26,10 +26,20 @@ export function OrderModeNotice() {
     );
   }
 
+  // dine_in chose to browse only, on purpose — but this is also the only
+  // place they'd discover pickup exists as an alternative if they picked
+  // dine_in by mistake, so make it a way back to DiningChoiceScreen instead
+  // of a dead end.
   return (
-    <div className="mx-4 mt-2 flex items-start gap-2 bg-[#FDECC8] border border-[#8A6B1F]/20 rounded-xl px-3 py-2.5">
+    <button
+      onClick={resetWebOrderIntent}
+      className="mx-4 mt-2 flex items-start gap-2 bg-[#FDECC8] border border-[#8A6B1F]/20 rounded-xl px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
+    >
       <QrCode size={15} className="text-[#8A6B1F] shrink-0 mt-0.5" />
-      <p className="text-[11.5px] text-[#8A6B1F] leading-snug">{t("reservation_web_mode_blocked")}</p>
-    </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[11.5px] text-[#8A6B1F] leading-snug">{t("reservation_web_mode_blocked")}</p>
+        <p className="text-[11px] text-[#8A6B1F] underline mt-0.5">{t("order_mode_switch_to_pickup")}</p>
+      </div>
+    </button>
   );
 }

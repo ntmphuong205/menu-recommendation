@@ -219,6 +219,11 @@ const dict = {
     en: "Scan the QR code at a table to reserve or order.",
     ko: "예약이나 주문은 매장 테이블의 QR 코드를 스캔해 주세요.",
   },
+  order_mode_switch_to_pickup: {
+    vi: "Muốn đặt trước và lấy sau? Bấm để đổi lựa chọn.",
+    en: "Want to order ahead and pick up later? Tap to switch.",
+    ko: "미리 주문하고 나중에 픽업하시겠어요? 눌러서 변경하세요.",
+  },
   pickup_checkout_note: {
     vi: "Đặt trước và thanh toán ngay, tới quầy đưa mã để lấy đồ.",
     en: "Pre-order and pay now, then show your code at the counter to collect.",

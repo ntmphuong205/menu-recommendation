@@ -95,6 +95,9 @@ interface AppContextValue {
    *  until they've chosen (or always, in mode=store, where it's moot). */
   webOrderIntent: "dine_in" | "pickup" | null;
   setWebOrderIntent: (intent: "dine_in" | "pickup") => void;
+  /** Sends the customer back to DiningChoiceScreen — e.g. they picked
+   *  "dine_in" by mistake and actually want the pickup/pre-pay flow. */
+  resetWebOrderIntent: () => void;
 }
 
 export type TabKey = "chat" | "staff_chat" | "menu" | "cart" | "info" | "reserve";
@@ -163,6 +166,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setWebOrderIntent = (intent: "dine_in" | "pickup") => {
     sessionStorage.setItem(webOrderIntentStorageKey(), intent);
     setWebOrderIntentState(intent);
+  };
+  const resetWebOrderIntent = () => {
+    sessionStorage.removeItem(webOrderIntentStorageKey());
+    setWebOrderIntentState(null);
   };
 
   const findDish = (id: string) => menu.find((d) => d.id === id);
@@ -268,6 +275,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         mode,
         webOrderIntent,
         setWebOrderIntent,
+        resetWebOrderIntent,
       }}
     >
       {children}
