@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Plus, X, Save, Upload } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useStoreData } from "../store/useStoreData";
@@ -66,8 +66,14 @@ export function StoreSettingsView() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // useStoreData() polls every 20s, handing back a fresh `store` object
+  // each time even when nothing changed — seeding the form on every one of
+  // those would silently overwrite whatever the owner is mid-typing. Only
+  // seed once, the first time store data arrives.
+  const seededRef = useRef(false);
   useEffect(() => {
-    if (!store) return;
+    if (!store || seededRef.current) return;
+    seededRef.current = true;
     setName(store.name_en || store.name);
     setHours(store.hours_en || store.hours);
     setDescription(store.description_en || store.description);
@@ -87,7 +93,13 @@ export function StoreSettingsView() {
     reader.readAsDataURL(file);
   };
 
+  // Same polling-clobbers-edits issue as the store fields above — seed once,
+  // and only once real data has actually arrived (keywords is null, not [],
+  // until the first poll resolves).
+  const keywordsSeededRef = useRef(false);
   useEffect(() => {
+    if (!keywords || keywordsSeededRef.current) return;
+    keywordsSeededRef.current = true;
     setLocalKeywords(keywords);
   }, [keywords]);
 

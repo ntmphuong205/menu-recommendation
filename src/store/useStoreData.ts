@@ -17,7 +17,10 @@ export interface StoreUpdatePayload {
 
 export interface StoreData {
   store: ApiStore | null;
-  keywords: string[];
+  /** Null until the first poll resolves — distinct from an empty list, so
+   *  StoreSettingsView can tell "not loaded yet" apart from "genuinely no
+   *  keywords" when deciding whether to seed its local edit state. */
+  keywords: string[] | null;
   updateStore: (payload: StoreUpdatePayload) => Promise<ApiStore>;
   updateKeywords: (keywords: string[]) => Promise<string[]>;
 }
@@ -31,7 +34,7 @@ export function useStoreData(): StoreData {
   const store = usePollingData(storeFetcher, STORE_POLL_MS);
 
   const keywordsFetcher = useCallback(() => apiClient.getKeywords().then((r) => r.keywords), []);
-  const keywords = usePollingData(keywordsFetcher, STORE_POLL_MS) ?? [];
+  const keywords = usePollingData(keywordsFetcher, STORE_POLL_MS);
 
   const updateStore = async (payload: StoreUpdatePayload) => {
     const res = await apiClient.updateStore(payload);
