@@ -4,6 +4,7 @@ import { apiClient, type ApiPaymentMethod } from "../lib/apiClient";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { vietQrImageUrl } from "../lib/vietqr";
+import { getStoreSlug } from "../lib/storeSlug";
 
 /** Reverses vnpay_txn_ref() on the backend (order_group_id.hex) — VNPay's
  *  return redirect only carries its own vnp_* params, so this is how the
@@ -121,6 +122,16 @@ export function PickupResultScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.kind === "waiting" ? state.groupId : null]);
 
+  // Back to this store's Cart tab specifically — not the bare "/", which
+  // (having no ?store= of its own) would land on the multi-restaurant
+  // directory instead of back into the order the customer just paid for.
+  const backHref = (() => {
+    const params = new URLSearchParams({ mode: "web", tab: "cart" });
+    const slug = getStoreSlug();
+    if (slug) params.set("store", slug);
+    return `/?${params.toString()}`;
+  })();
+
   const bankSnapshot =
     state.kind === "waiting" && state.snapshot?.paymentMethod === "bank_transfer" ? state.snapshot : null;
 
@@ -222,7 +233,7 @@ export function PickupResultScreen() {
           </>
         )}
         <a
-          href="/"
+          href={backHref}
           className="mt-3 px-5 py-2.5 rounded-full bg-[#2D5A3D] text-white text-[13px] font-semibold active:scale-95 transition-transform"
         >
           {t("pickup_result_back_button")}

@@ -118,6 +118,17 @@ function getModeFromUrl(): "web" | "store" {
   return new URLSearchParams(window.location.search).get("mode") === "web" ? "web" : "store";
 }
 
+const VALID_TABS: TabKey[] = ["chat", "staff_chat", "menu", "cart", "info", "reserve"];
+
+/** Lets a link from outside CustomerApp (e.g. the pickup payment result
+ *  page's "back" button) land on a specific tab instead of always the
+ *  chat default — activeTab is otherwise pure in-memory React state with
+ *  no URL representation. */
+function getInitialTabFromUrl(): TabKey {
+  const param = new URLSearchParams(window.location.search).get("tab");
+  return VALID_TABS.includes(param as TabKey) ? (param as TabKey) : "chat";
+}
+
 // Keyed per store slug so switching restaurants in the same tab (e.g. from
 // the homepage directory) doesn't carry over a stale choice from whichever
 // store was visited previously.
@@ -155,10 +166,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { reservations, createReservation, updateReservationStatus } = useReservationsData(isOwnerRoute);
   const { store } = useStoreData();
   const [cart, setCart] = useState<CartItem[]>([]);
-  // DiningChoiceScreen (web mode only) sets this explicitly once the
-  // customer picks dine-in vs. pickup — chat is a fine default landing
-  // spot either way until then.
-  const [activeTab, setActiveTab] = useState<TabKey>("chat");
+  // Defaults to "chat" — DiningChoiceScreen (web mode only) sets this
+  // explicitly once the customer picks dine-in vs. pickup — but a link back
+  // in from outside CustomerApp (e.g. "?tab=cart") can start somewhere else.
+  const [activeTab, setActiveTab] = useState<TabKey>(getInitialTabFromUrl);
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const [tableId] = useState<string>(getTableFromUrl);
   const [mode] = useState<"web" | "store">(getModeFromUrl);

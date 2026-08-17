@@ -7,6 +7,7 @@ import { LangSwitcher } from "../components/LangSwitcher";
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL_KEY, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { getDishName, getPairingReason, type Dish } from "../data/menu";
 import { getCustomerSessionId } from "../lib/apiClient";
+import { getStoreSlug } from "../lib/storeSlug";
 
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
@@ -432,7 +433,11 @@ export function CartScreen() {
     try {
       const groupId = await placePickupOrder("bank_transfer", pickupTime);
       clearCart();
-      window.location.href = `/pickup-result?order_group_id=${groupId}`;
+      // Carries the store slug forward — /pickup-result has no other way to
+      // know which store's bank details/branding to show, and its own
+      // "back to cart" link depends on it too.
+      const storeParam = getStoreSlug() ? `&store=${encodeURIComponent(getStoreSlug())}` : "";
+      window.location.href = `/pickup-result?order_group_id=${groupId}${storeParam}`;
     } catch {
       setPickupState("error");
     }

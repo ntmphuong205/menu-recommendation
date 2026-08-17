@@ -299,7 +299,7 @@ const dict = {
     en: "This order hasn't been paid for. You can go back and try ordering again.",
     ko: "아직 결제되지 않았습니다. 다시 돌아가서 주문을 시도해 주세요.",
   },
-  pickup_result_back_button: { vi: "Về trang chủ", en: "Back to home", ko: "홈으로 돌아가기" },
+  pickup_result_back_button: { vi: "Về giỏ hàng", en: "Back to cart", ko: "장바구니로 돌아가기" },
   orders_pickup_badge: { vi: "Lấy tại quầy #{code}", en: "Pickup #{code}", ko: "픽업 #{code}" },
   orders_awaiting_payment_heading: {
     vi: "Chờ xác nhận thanh toán",
