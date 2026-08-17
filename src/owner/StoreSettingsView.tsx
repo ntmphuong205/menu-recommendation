@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Plus, X, Save } from "lucide-react";
+import { Plus, X, Save, Upload } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useStoreData } from "../store/useStoreData";
 import { useI18n } from "../i18n/I18nContext";
@@ -60,6 +60,7 @@ export function StoreSettingsView() {
   const [bankBin, setBankBin] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [bankAccountHolder, setBankAccountHolder] = useState("");
+  const [bankQrImage, setBankQrImage] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -72,7 +73,15 @@ export function StoreSettingsView() {
     setBankBin(store.bank_bin ?? "");
     setBankAccountNumber(store.bank_account_number ?? "");
     setBankAccountHolder(store.bank_account_holder ?? "");
+    setBankQrImage(store.bank_qr_image ?? "");
   }, [store]);
+
+  const handleQrUpload = (file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setBankQrImage(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     setLocalKeywords(keywords);
@@ -91,6 +100,7 @@ export function StoreSettingsView() {
           bank_bin: bankBin,
           bank_account_number: bankAccountNumber,
           bank_account_holder: bankAccountHolder,
+          bank_qr_image: bankQrImage || null,
         }),
         updateKeywords(localKeywords),
       ]);
@@ -175,6 +185,35 @@ export function StoreSettingsView() {
                 className={inputCls}
                 placeholder="NGUYEN VAN A"
               />
+            </Field>
+            <Field label={t("store_settings_bank_qr_upload")}>
+              <p className="text-[11px] text-[#8A8272] mb-1.5 -mt-0.5">{t("store_settings_bank_qr_upload_desc")}</p>
+              <div className="flex items-center gap-3">
+                {bankQrImage && (
+                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#EFE9D8] shrink-0 border border-black/10">
+                    <img src={bankQrImage} alt="QR preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <label className={`${inputCls} flex items-center gap-2 cursor-pointer text-[#5C5240] w-auto`}>
+                  <Upload size={14} />
+                  {t("store_settings_bank_qr_choose_file")}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleQrUpload(e.target.files?.[0])}
+                  />
+                </label>
+                {bankQrImage && (
+                  <button
+                    type="button"
+                    onClick={() => setBankQrImage("")}
+                    className="text-[11.5px] font-medium text-[#B0553C]"
+                  >
+                    {t("store_settings_bank_qr_remove")}
+                  </button>
+                )}
+              </div>
             </Field>
           </div>
         </div>

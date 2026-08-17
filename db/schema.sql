@@ -33,6 +33,10 @@ create table if not exists public.stores (
     bank_bin text,
     bank_account_number text,
     bank_account_holder text,
+    -- Owner-uploaded QR code image (data URL, same convention as
+    -- menus.image_url) — takes priority over the auto-generated VietQR
+    -- image when set, since it's the bank's own QR and can't be wrong.
+    bank_qr_image text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -325,4 +329,5 @@ alter table public.orders add constraint orders_payment_method_check
 alter table public.stores
     add column if not exists bank_bin text,
     add column if not exists bank_account_number text,
-    add column if not exists bank_account_holder text;
+    add column if not exists bank_account_holder text,
+    add column if not exists bank_qr_image text;

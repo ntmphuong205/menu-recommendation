@@ -96,6 +96,21 @@ export function PickupResultScreen() {
   const bankSnapshot =
     state.kind === "waiting" && state.snapshot?.paymentMethod === "bank_transfer" ? state.snapshot : null;
 
+  // The owner's own uploaded QR image always wins (it's straight from their
+  // bank, can't be wrong) — otherwise build one from bank_bin/account_number,
+  // which self-embeds the exact amount and transfer note.
+  const qrImageSrc =
+    store?.bank_qr_image ||
+    (bankSnapshot && store?.bank_bin && store?.bank_account_number
+      ? vietQrImageUrl({
+          bankBin: store.bank_bin,
+          accountNumber: store.bank_account_number,
+          accountHolder: store.bank_account_holder,
+          amountVnd: bankSnapshot.totalPrice,
+          note: `DH ${bankSnapshot.pickupCode ?? ""}`,
+        })
+      : null);
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#F5F1E6] p-6">
       <div className="w-full max-w-sm bg-white rounded-2xl border border-black/5 shadow-sm p-8 text-center flex flex-col items-center gap-3">
@@ -109,20 +124,10 @@ export function PickupResultScreen() {
           </>
         )}
 
-        {bankSnapshot && store?.bank_bin && store?.bank_account_number && (
+        {bankSnapshot && qrImageSrc && (
           <>
             <h1 className="text-[17px] font-bold text-[#22201B]">{t("pickup_bank_transfer_title")}</h1>
-            <img
-              src={vietQrImageUrl({
-                bankBin: store.bank_bin,
-                accountNumber: store.bank_account_number,
-                accountHolder: store.bank_account_holder,
-                amountVnd: bankSnapshot.totalPrice,
-                note: `DH ${bankSnapshot.pickupCode ?? ""}`,
-              })}
-              alt="VietQR"
-              className="w-56 h-auto rounded-xl border border-black/5"
-            />
+            <img src={qrImageSrc} alt="Bank transfer QR" className="w-56 h-auto rounded-xl border border-black/5" />
             <div className="w-full flex flex-col gap-1.5 text-left bg-[#F5F1E6] rounded-xl p-3">
               <div className="flex items-center justify-between text-[12.5px]">
                 <span className="text-[#8A8272]">{t("pickup_bank_transfer_amount")}</span>

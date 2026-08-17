@@ -243,7 +243,9 @@ export function CartScreen() {
     }
   };
 
-  const bankTransferAvailable = Boolean(store?.bank_account_number && store?.bank_bin);
+  const bankTransferAvailable = Boolean(
+    store?.bank_qr_image || (store?.bank_account_number && store?.bank_bin)
+  );
 
   if (justSubmitted) {
     // Recomputed fresh from the live `orders` list on every render, so this

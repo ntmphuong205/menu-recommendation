@@ -10,6 +10,7 @@ export interface StoreUpdatePayload {
   bank_bin?: string;
   bank_account_number?: string;
   bank_account_holder?: string;
+  bank_qr_image?: string | null;
 }
 
 export interface StoreData {

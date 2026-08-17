@@ -170,6 +170,9 @@ class StoreUpdate(BaseModel):
     bank_bin: str = Field(default="", max_length=20)
     bank_account_number: str = Field(default="", max_length=50)
     bank_account_holder: str = Field(default="", max_length=120)
+    # Owner-uploaded QR image — takes priority over the auto-generated
+    # VietQR image (built from bank_bin/bank_account_number) when set.
+    bank_qr_image: Optional[str] = None
 
     @field_validator("name", "hours", "description", "bank_bin", "bank_account_number", "bank_account_holder")
     @classmethod
@@ -180,6 +183,11 @@ class StoreUpdate(BaseModel):
     @classmethod
     def strip_categories(cls, values: List[str]) -> List[str]:
         return [str(item).strip() for item in values if str(item).strip()]
+
+    @field_validator("bank_qr_image")
+    @classmethod
+    def validate_bank_qr_image(cls, value: Optional[str]) -> Optional[str]:
+        return validate_image_value(value)
 
 
 class IngredientLine(BaseModel):
@@ -1190,6 +1198,7 @@ def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "bank_bin": row.get("bank_bin") or "",
         "bank_account_number": row.get("bank_account_number") or "",
         "bank_account_holder": row.get("bank_account_holder") or "",
+        "bank_qr_image": row.get("bank_qr_image") or "",
     }
 
 
@@ -1278,6 +1287,7 @@ def update_store(
             "bank_bin": payload.bank_bin or None,
             "bank_account_number": payload.bank_account_number or None,
             "bank_account_holder": payload.bank_account_holder or None,
+            "bank_qr_image": payload.bank_qr_image or None,
         }
     )
     return {

@@ -462,6 +462,14 @@ const dict = {
   store_settings_bank_select: { vi: "Chọn ngân hàng…", en: "Select a bank…", ko: "은행 선택…" },
   store_settings_bank_account_number: { vi: "Số tài khoản", en: "Account number", ko: "계좌번호" },
   store_settings_bank_account_holder: { vi: "Tên chủ tài khoản", en: "Account holder name", ko: "예금주" },
+  store_settings_bank_qr_upload: { vi: "Ảnh mã QR (tuỳ chọn)", en: "QR code image (optional)", ko: "QR 코드 이미지 (선택)" },
+  store_settings_bank_qr_upload_desc: {
+    vi: "Nếu tải ảnh QR có sẵn từ ngân hàng, ảnh này sẽ hiện thay vì mã QR tự tạo — chính xác hơn vì đúng ảnh từ ngân hàng.",
+    en: "If you upload your bank's own QR image, it's shown instead of the auto-generated one — more reliable since it's straight from your bank.",
+    ko: "은행에서 제공한 QR 이미지를 업로드하면 자동 생성된 QR 대신 사용됩니다 — 은행에서 직접 받은 것이라 더 정확합니다.",
+  },
+  store_settings_bank_qr_choose_file: { vi: "Chọn ảnh", en: "Choose file", ko: "파일 선택" },
+  store_settings_bank_qr_remove: { vi: "Xoá ảnh", en: "Remove", ko: "삭제" },
 
   // Table QR (admin)
   tableqr_desc: {

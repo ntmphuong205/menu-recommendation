@@ -160,6 +160,9 @@ export interface ApiStore {
   bank_bin: string;
   bank_account_number: string;
   bank_account_holder: string;
+  // Owner-uploaded QR image (data URL) — takes priority over the
+  // auto-generated VietQR image built from bank_bin/bank_account_number.
+  bank_qr_image: string;
 }
 
 export interface ChatResponse {
@@ -197,6 +200,7 @@ export const apiClient = {
     bank_bin?: string;
     bank_account_number?: string;
     bank_account_holder?: string;
+    bank_qr_image?: string | null;
   }) => request<{ success: boolean; store: ApiStore }>("PUT", "/store", payload),
 
   getKeywords: () => request<{ keywords: string[] }>("GET", "/keywords"),
