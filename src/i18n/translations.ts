@@ -201,6 +201,7 @@ const dict = {
     en: "Pre-order and pay now, then show your code at the counter to collect.",
     ko: "미리 주문하고 결제한 뒤, 카운터에서 코드를 보여주고 수령하세요.",
   },
+  pickup_time_label: { vi: "Giờ dự kiến ra lấy", en: "Pickup time", ko: "픽업 시간" },
   pickup_bank_transfer_button: {
     vi: "Chuyển khoản ngân hàng",
     en: "Pay by bank transfer",
@@ -674,6 +675,24 @@ const dict = {
     ko: "메뉴를 보거나 주문, 예약하고 싶은 매장을 선택하세요.",
   },
   directory_view_menu: { vi: "Xem thực đơn", en: "View menu", ko: "메뉴 보기" },
+  dining_choice_title: { vi: "Bạn muốn dùng bữa thế nào?", en: "How would you like to dine?", ko: "어떻게 이용하시겠어요?" },
+  dining_choice_subtitle: {
+    vi: "Chọn 1 trong 2 cách bên dưới",
+    en: "Pick one of the options below",
+    ko: "아래 옵션 중 하나를 선택하세요",
+  },
+  dining_choice_dine_in_title: { vi: "Ăn tại quán", en: "Dine in", ko: "매장 식사" },
+  dining_choice_dine_in_desc: {
+    vi: "Xem menu trước — quét mã QR trên bàn khi tới quán để gọi món.",
+    en: "Browse the menu now — scan the QR code on your table once you're at the restaurant to order.",
+    ko: "지금 메뉴를 둘러보세요 — 매장에 도착하면 테이블의 QR 코드를 스캔해 주문하세요.",
+  },
+  dining_choice_pickup_title: { vi: "Đặt trước — lấy sau", en: "Order ahead — pick up later", ko: "미리 주문 — 나중에 픽업" },
+  dining_choice_pickup_desc: {
+    vi: "Chọn món, thanh toán trước, hẹn giờ ra quán lấy.",
+    en: "Choose your food, pay now, and pick a time to collect it.",
+    ko: "메뉴를 고르고 결제한 뒤, 수령할 시간을 정하세요.",
+  },
   directory_footer: {
     vi: "Powered by MenuPilot",
     en: "Powered by MenuPilot",

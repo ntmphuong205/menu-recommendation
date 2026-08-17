@@ -51,7 +51,7 @@ interface AppContextValue {
   placeOrder: (tableId: string) => void;
   /** Remote pre-order paid upfront — packages the current cart, returns
    *  the order_group_id once every line item is created. */
-  placePickupOrder: (paymentMethod: "vnpay" | "bank_transfer") => Promise<string>;
+  placePickupOrder: (paymentMethod: "vnpay" | "bank_transfer", pickupTime: string) => Promise<string>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateItemStatus: (itemId: string, status: OrderStatus) => void;
   cancelOrder: (orderId: string) => void;
@@ -127,10 +127,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { reservations, createReservation, updateReservationStatus } = useReservationsData(isOwnerRoute);
   const { store } = useStoreData();
   const [cart, setCart] = useState<CartItem[]>([]);
-  // Web-mode QR codes (no table assigned yet) land straight on the
-  // reservation screen, since that's the primary thing to do there;
-  // table QR codes still land on Chat as before.
-  const [activeTab, setActiveTab] = useState<TabKey>(() => (getModeFromUrl() === "web" ? "reserve" : "chat"));
+  // DiningChoiceScreen (web mode only) sets this explicitly once the
+  // customer picks dine-in vs. pickup — chat is a fine default landing
+  // spot either way until then.
+  const [activeTab, setActiveTab] = useState<TabKey>("chat");
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const [tableId] = useState<string>(getTableFromUrl);
   const [mode] = useState<"web" | "store">(getModeFromUrl);
@@ -164,12 +164,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     placeOrderRaw(tableIdToUse, items, mode);
   };
 
-  const placePickupOrder = (paymentMethod: "vnpay" | "bank_transfer") => {
+  const placePickupOrder = (paymentMethod: "vnpay" | "bank_transfer", pickupTime: string) => {
     const items = cart.map((i) => {
       const dish = findDish(i.dishId);
       return { dishId: i.dishId, dishName: dish?.name ?? "Unknown dish", qty: i.qty, price: dish?.price ?? 0, note: i.note };
     });
-    return placePickupOrderRaw(items, paymentMethod);
+    return placePickupOrderRaw(items, paymentMethod, pickupTime);
   };
 
   const requestReservation = async (tableIdToReserve: string, partySize: number) => {

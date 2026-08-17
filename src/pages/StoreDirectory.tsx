@@ -131,7 +131,7 @@ export function StoreDirectory() {
                 return (
                   <a
                     key={store.id}
-                    href={`/?store=${store.slug}`}
+                    href={`/?store=${store.slug}&mode=web`}
                     className="group flex flex-col bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.99] active:translate-y-0 transition-all duration-200"
                   >
                     <div className={`relative h-24 bg-gradient-to-br ${themeForStore(store.id)} flex items-center px-5 overflow-hidden shrink-0`}>

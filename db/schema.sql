@@ -122,6 +122,10 @@ create table if not exists public.orders (
     -- Short code shown to the customer to hand to staff at pickup —
     -- shared across every row in the same order_group_id. Null for dine_in.
     pickup_code text,
+    -- Customer-chosen "HH:MM" collection time, free text like `hours` —
+    -- no timezone handling needed since it's always the store's own local
+    -- time. Null for dine_in.
+    pickup_time text,
     -- vnpay = confirmed automatically by the IPN webhook. bank_transfer =
     -- VietQR, confirmed manually by staff (see PUT /orders/{id}/status).
     -- Null for dine_in orders.
@@ -314,6 +318,7 @@ alter table public.orders
     add column if not exists fulfillment_type text not null default 'dine_in'
         check (fulfillment_type in ('dine_in', 'pickup')),
     add column if not exists pickup_code text,
+    add column if not exists pickup_time text,
     add column if not exists payment_method text,
     add column if not exists payment_ref text,
     add column if not exists paid_at timestamptz;

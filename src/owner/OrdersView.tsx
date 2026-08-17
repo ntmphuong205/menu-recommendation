@@ -13,11 +13,12 @@ const STATUS_STYLE: Record<OrderStatus, string> = {
   cancelled: "bg-[#F7E9E2] text-[#B0553C]",
 };
 
-/** "Table T3" for dine-in, "Pickup #A1B2C3" for remote pre-orders — pickup
- *  orders aren't tied to a physical table at all. */
+/** "Table T3" for dine-in, "Pickup #A1B2C3 · 19:30" for remote pre-orders —
+ *  pickup orders aren't tied to a physical table at all. */
 function orderLabel(order: Order, t: (key: TranslationKey, vars?: Record<string, string | number>) => string): string {
   if (order.fulfillmentType === "pickup") {
-    return t("orders_pickup_badge", { code: order.pickupCode ?? "" });
+    const badge = t("orders_pickup_badge", { code: order.pickupCode ?? "" });
+    return order.pickupTime ? `${badge} · ${order.pickupTime}` : badge;
   }
   return `${t("chat_table")} ${order.tableId}`;
 }

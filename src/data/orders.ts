@@ -35,6 +35,8 @@ export interface Order {
    *  confirmed. Null for dine_in orders and for pickup orders still
    *  awaiting payment. */
   pickupCode: string | null;
+  /** Customer-chosen "HH:MM" collection time. Null for dine_in. */
+  pickupTime: string | null;
   /** Null for dine_in. For pickup: vnpay confirms itself via IPN, staff
    *  must manually confirm bank_transfer (see OrdersView). */
   paymentMethod: PaymentMethod | null;

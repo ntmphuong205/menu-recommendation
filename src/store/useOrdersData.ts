@@ -34,6 +34,7 @@ function groupOrders(rows: ApiOrder[]): Order[] {
       createdAt: Math.min(...groupRows.map((r) => new Date(r.created_at).getTime())),
       fulfillmentType: groupRows[0].fulfillment_type,
       pickupCode: groupRows[0].pickup_code,
+      pickupTime: groupRows[0].pickup_time,
       paymentMethod: groupRows[0].payment_method,
     };
   });
@@ -53,7 +54,11 @@ export interface OrdersData {
   /** Remote pre-order, paid upfront — not tied to a table. Awaits every
    *  line item's creation (unlike placeOrder's fire-and-forget) since the
    *  caller needs the shared order_group_id back to start payment. */
-  placePickupOrder: (items: NewOrderItem[], paymentMethod: "vnpay" | "bank_transfer") => Promise<string>;
+  placePickupOrder: (
+    items: NewOrderItem[],
+    paymentMethod: "vnpay" | "bank_transfer",
+    pickupTime: string
+  ) => Promise<string>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateItemStatus: (itemId: string, status: OrderStatus) => void;
 }
@@ -83,7 +88,8 @@ export function useOrdersData(): OrdersData {
 
   const placePickupOrder = async (
     items: NewOrderItem[],
-    paymentMethod: "vnpay" | "bank_transfer"
+    paymentMethod: "vnpay" | "bank_transfer",
+    pickupTime: string
   ): Promise<string> => {
     const sessionId = getCustomerSessionId();
     const groupId = crypto.randomUUID();
@@ -97,6 +103,7 @@ export function useOrdersData(): OrdersData {
           mode: "web",
           fulfillment_type: "pickup",
           payment_method: paymentMethod,
+          pickup_time: pickupTime,
           order_group_id: groupId,
         })
       )

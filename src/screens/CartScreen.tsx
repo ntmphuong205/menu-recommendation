@@ -231,11 +231,17 @@ export function CartScreen() {
   const { t, lang } = useI18n();
   const [justSubmitted, setJustSubmitted] = useState(false);
   const [pickupState, setPickupState] = useState<"idle" | "bank" | "error">("idle");
+  // Defaults to 30 minutes from now — a reasonable "ready by" guess the
+  // customer can freely change to any time.
+  const [pickupTime, setPickupTime] = useState(() => {
+    const d = new Date(Date.now() + 30 * 60 * 1000);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  });
 
   const handleBankTransferCheckout = async () => {
     setPickupState("bank");
     try {
-      const groupId = await placePickupOrder("bank_transfer");
+      const groupId = await placePickupOrder("bank_transfer", pickupTime);
       clearCart();
       window.location.href = `/pickup-result?order_group_id=${groupId}`;
     } catch {
@@ -353,6 +359,17 @@ export function CartScreen() {
         {mode === "web" ? (
           <div className="flex flex-col gap-2">
             <p className="text-center text-[11.5px] text-[#8A8272] px-2">{t("pickup_checkout_note")}</p>
+            {bankTransferAvailable && (
+              <label className="flex items-center justify-between gap-3 bg-white rounded-xl border border-black/10 px-3.5 py-2.5 mb-1">
+                <span className="text-[12.5px] font-medium text-[#5C5240]">{t("pickup_time_label")}</span>
+                <input
+                  type="time"
+                  value={pickupTime}
+                  onChange={(e) => setPickupTime(e.target.value)}
+                  className="text-[13px] font-semibold text-[#22201B] outline-none bg-transparent"
+                />
+              </label>
+            )}
             {pickupState === "error" && (
               <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-2 px-4">
                 {t("pickup_pay_error")}
@@ -361,7 +378,7 @@ export function CartScreen() {
             {bankTransferAvailable ? (
               <button
                 onClick={handleBankTransferCheckout}
-                disabled={pickupState === "bank"}
+                disabled={pickupState === "bank" || !pickupTime}
                 className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform disabled:opacity-60"
               >
                 {pickupState === "bank" ? t("pickup_pay_loading") : t("pickup_bank_transfer_button")}

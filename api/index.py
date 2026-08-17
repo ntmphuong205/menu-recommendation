@@ -317,6 +317,8 @@ class OrderCreate(BaseModel):
     # VietQR, confirmed manually by staff. Required for pickup, unused for
     # dine_in.
     payment_method: Optional[Literal["vnpay", "bank_transfer"]] = None
+    # Customer-chosen "HH:MM" collection time — required for pickup.
+    pickup_time: Optional[str] = None
     # Shared across every line the client posts from one cart checkout, so
     # the frontend can regroup rows back into a single "order" for display.
     # Required for pickup orders — it's also what derives the pickup_code.
@@ -332,6 +334,15 @@ class OrderCreate(BaseModel):
     def strip_note(cls, value: str) -> str:
         return value.strip()
 
+    @field_validator("pickup_time")
+    @classmethod
+    def validate_pickup_time(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", value):
+            raise ValueError("pickup_time must be in HH:MM 24-hour format.")
+        return value
+
     @model_validator(mode="after")
     def check_fulfillment_requirements(self) -> "OrderCreate":
         if self.fulfillment_type == "dine_in" and not self.table_id:
@@ -341,6 +352,8 @@ class OrderCreate(BaseModel):
                 raise ValueError("order_group_id is required for pickup orders.")
             if self.payment_method is None:
                 raise ValueError("payment_method is required for pickup orders.")
+            if self.pickup_time is None:
+                raise ValueError("pickup_time is required for pickup orders.")
         return self
 
 
@@ -511,6 +524,7 @@ def order_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "order_group_id": str(row["order_group_id"]),
         "fulfillment_type": row.get("fulfillment_type") or "dine_in",
         "pickup_code": row.get("pickup_code"),
+        "pickup_time": row.get("pickup_time"),
         "payment_method": row.get("payment_method"),
         "customer_session_id": row["customer_session_id"],
         "created_at": row["created_at"],
@@ -1469,6 +1483,7 @@ def create_order(payload: OrderCreate) -> Dict[str, Any]:
         order_row["status"] = "awaiting_payment"
         order_row["pickup_code"] = payload.order_group_id.hex[-6:].upper()
         order_row["payment_method"] = payload.payment_method
+        order_row["pickup_time"] = payload.pickup_time
     else:
         if not repo.get_table(payload.table_id):
             raise HTTPException(status_code=404, detail="Table not found.")
@@ -1623,6 +1638,7 @@ def payment_status(order_group_id: str = Query(...)) -> Dict[str, Any]:
         "order_group_id": order_group_id,
         "status": rows[0]["status"],
         "pickup_code": rows[0].get("pickup_code"),
+        "pickup_time": rows[0].get("pickup_time"),
         "payment_method": rows[0].get("payment_method"),
         "total_price": order_group_amount(rows),
         "currency": rows[0].get("currency", "USD"),

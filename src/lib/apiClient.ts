@@ -103,6 +103,7 @@ export interface ApiOrder {
   order_group_id: string;
   fulfillment_type: ApiFulfillmentType;
   pickup_code: string | null;
+  pickup_time: string | null;
   payment_method: ApiPaymentMethod | null;
   customer_session_id: string;
   created_at: string;
@@ -251,6 +252,7 @@ export const apiClient = {
       order_group_id: string;
       status: ApiOrderStatus;
       pickup_code: string | null;
+      pickup_time: string | null;
       payment_method: ApiPaymentMethod | null;
       total_price: number;
       currency: string;

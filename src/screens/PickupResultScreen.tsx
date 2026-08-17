@@ -18,6 +18,7 @@ function hexToOrderGroupId(hex: string): string | null {
 interface PaymentSnapshot {
   status: string;
   pickupCode: string | null;
+  pickupTime: string | null;
   paymentMethod: ApiPaymentMethod | null;
   totalPrice: number;
   currency: string;
@@ -26,7 +27,7 @@ interface PaymentSnapshot {
 type ResultState =
   | { kind: "loading" }
   | { kind: "waiting"; groupId: string; snapshot: PaymentSnapshot | null }
-  | { kind: "success"; pickupCode: string }
+  | { kind: "success"; pickupCode: string; pickupTime: string | null }
   | { kind: "failed" }
   | { kind: "invalid" };
 
@@ -58,7 +59,7 @@ export function PickupResultScreen() {
           return;
         }
         if (res.status !== "awaiting_payment") {
-          setState({ kind: "success", pickupCode: res.pickup_code ?? "" });
+          setState({ kind: "success", pickupCode: res.pickup_code ?? "", pickupTime: res.pickup_time });
           return;
         }
         setState({
@@ -67,6 +68,7 @@ export function PickupResultScreen() {
           snapshot: {
             status: res.status,
             pickupCode: res.pickup_code,
+            pickupTime: res.pickup_time,
             paymentMethod: res.payment_method,
             totalPrice: res.total_price,
             currency: res.currency,
@@ -139,6 +141,12 @@ export function PickupResultScreen() {
                 <span className="text-[#8A8272]">{t("pickup_bank_transfer_note")}</span>
                 <span className="font-bold text-[#22201B]">DH {bankSnapshot.pickupCode}</span>
               </div>
+              {bankSnapshot.pickupTime && (
+                <div className="flex items-center justify-between text-[12.5px]">
+                  <span className="text-[#8A8272]">{t("pickup_time_label")}</span>
+                  <span className="font-bold text-[#22201B]">{bankSnapshot.pickupTime}</span>
+                </div>
+              )}
             </div>
             <p className="text-[12.5px] text-[#8A8272] leading-relaxed">{t("pickup_bank_transfer_instructions")}</p>
             <p className="flex items-center gap-1.5 text-[12px] text-[#2D5A3D] font-medium mt-1">
@@ -157,6 +165,11 @@ export function PickupResultScreen() {
             <div className="mt-2 w-full bg-[#F3E9D2] rounded-2xl py-4">
               <p className="text-[11px] text-[#8A6B3F] uppercase tracking-wide">{t("pickup_result_code_label")}</p>
               <p className="text-[32px] font-bold text-[#22201B] tracking-widest">{state.pickupCode}</p>
+              {state.pickupTime && (
+                <p className="text-[12.5px] text-[#8A6B3F] mt-1">
+                  {t("pickup_time_label")}: <span className="font-bold">{state.pickupTime}</span>
+                </p>
+              )}
             </div>
             <p className="text-[13px] text-[#8A8272] leading-relaxed">{t("pickup_result_instructions")}</p>
           </>
