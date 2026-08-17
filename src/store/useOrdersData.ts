@@ -51,10 +51,13 @@ export interface NewOrderItem {
 
 export interface OrdersData {
   orders: Order[];
-  placeOrder: (tableId: string, items: NewOrderItem[], mode: "web" | "store") => void;
-  /** Remote pre-order, paid upfront — not tied to a table. Awaits every
-   *  line item's creation (unlike placeOrder's fire-and-forget) since the
-   *  caller needs the shared order_group_id back to start payment. */
+  /** Awaits every line item's creation and returns the shared
+   *  order_group_id — the caller needs it to show back exactly the order
+   *  just placed (not just "whichever is newest for this table", which
+   *  breaks if another diner at the same table submits one moments later),
+   *  and to know if any item failed instead of silently declaring success. */
+  placeOrder: (tableId: string, items: NewOrderItem[], mode: "web" | "store") => Promise<string>;
+  /** Remote pre-order, paid upfront — not tied to a table. */
   placePickupOrder: (
     items: NewOrderItem[],
     paymentMethod: "vnpay" | "bank_transfer",
@@ -69,12 +72,12 @@ export function useOrdersData(): OrdersData {
   const rows = usePollingData(fetcher);
   const orders = groupOrders(rows ?? []).sort((a, b) => b.createdAt - a.createdAt);
 
-  const placeOrder = (tableId: string, items: NewOrderItem[], mode: "web" | "store") => {
+  const placeOrder = async (tableId: string, items: NewOrderItem[], mode: "web" | "store"): Promise<string> => {
     const sessionId = getCustomerSessionId();
     const groupId = crypto.randomUUID();
-    for (const item of items) {
-      apiClient
-        .createOrder({
+    await Promise.all(
+      items.map((item) =>
+        apiClient.createOrder({
           table_id: tableId,
           menu_id: item.dishId,
           quantity: item.qty,
@@ -83,8 +86,9 @@ export function useOrdersData(): OrdersData {
           mode,
           order_group_id: groupId,
         })
-        .catch((err) => console.error("[MenuPilot] Failed to place order", err));
-    }
+      )
+    );
+    return groupId;
   };
 
   const placePickupOrder = async (

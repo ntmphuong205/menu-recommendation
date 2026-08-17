@@ -49,7 +49,8 @@ interface AppContextValue {
 
   // orders (shared, created by customer app, managed by owner dashboard)
   orders: Order[];
-  placeOrder: (tableId: string) => void;
+  /** Awaits every line item's creation, returns the order_group_id. */
+  placeOrder: (tableId: string) => Promise<string>;
   /** Remote pre-order paid upfront — packages the current cart, returns
    *  the order_group_id once every line item is created. */
   placePickupOrder: (paymentMethod: "vnpay" | "bank_transfer", pickupTime: string) => Promise<string>;
@@ -209,7 +210,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const dish = findDish(i.dishId);
       return { dishId: i.dishId, dishName: dish?.name ?? "Unknown dish", qty: i.qty, price: dish?.price ?? 0, note: i.note };
     });
-    placeOrderRaw(tableIdToUse, items, mode);
+    return placeOrderRaw(tableIdToUse, items, mode);
   };
 
   const placePickupOrder = (paymentMethod: "vnpay" | "bank_transfer", pickupTime: string) => {

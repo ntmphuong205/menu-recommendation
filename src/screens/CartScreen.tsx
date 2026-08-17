@@ -400,7 +400,13 @@ export function CartScreen() {
     store,
   } = useApp();
   const { t, lang } = useI18n();
-  const [justSubmitted, setJustSubmitted] = useState(false);
+  // Holds the exact order_group_id just placed — not just a boolean —
+  // so the confirmation screen can look up that specific order instead of
+  // "whichever is newest for this table" (which another diner at the same
+  // table submitting moments later would otherwise hijack).
+  const [justSubmittedGroupId, setJustSubmittedGroupId] = useState<string | null>(null);
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [placeOrderError, setPlaceOrderError] = useState(false);
   const [pickupState, setPickupState] = useState<"idle" | "bank" | "error">("idle");
   // "cart" -> tap confirm -> "time" (ask pickup time) -> "invoice" (review,
   // then actually pay). Reset whenever the cart empties out from under it
@@ -451,14 +457,31 @@ export function CartScreen() {
     store?.bank_qr_image || (store?.bank_account_number && store?.bank_bin)
   );
 
-  if (justSubmitted) {
-    // Recomputed fresh from the live `orders` list on every render, so this
-    // picks up the just-created order as soon as it lands (the next poll
-    // tick, at most a few seconds later).
-    const order = [...orders]
-      .filter((o) => o.tableId === tableId)
-      .sort((a, b) => b.createdAt - a.createdAt)[0];
-    return <OrderPlacedScreen order={order} onDone={() => setJustSubmitted(false)} />;
+  const handleConfirmDineIn = async () => {
+    setPlacingOrder(true);
+    setPlaceOrderError(false);
+    try {
+      const groupId = await placeOrder(tableId);
+      clearCart();
+      setJustSubmittedGroupId(groupId);
+    } catch {
+      // Cart is left intact so the customer can just retry — nothing was
+      // silently lost the way a fire-and-forget failure would.
+      setPlaceOrderError(true);
+    } finally {
+      setPlacingOrder(false);
+    }
+  };
+
+  if (justSubmittedGroupId) {
+    // Looked up by the exact order_group_id just placed — not "whichever
+    // order is newest for this table", which another diner at the same
+    // table submitting moments later would otherwise hijack this screen
+    // into showing instead. Recomputed fresh from the live `orders` list on
+    // every render, so this picks up the just-created order as soon as it
+    // lands (the next poll tick, at most a few seconds later).
+    const order = orders.find((o) => o.id === justSubmittedGroupId);
+    return <OrderPlacedScreen order={order} onDone={() => setJustSubmittedGroupId(null)} />;
   }
 
   if (checkoutStep === "invoice" && cart.length > 0) {
@@ -603,16 +626,20 @@ export function CartScreen() {
             )}
           </div>
         ) : (
-          <button
-            onClick={() => {
-              placeOrder(tableId);
-              clearCart();
-              setJustSubmitted(true);
-            }}
-            className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform"
-          >
-            {t("cart_confirm_order")}
-          </button>
+          <div className="flex flex-col gap-2">
+            {placeOrderError && (
+              <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-2 px-4">
+                {t("cart_confirm_error")}
+              </p>
+            )}
+            <button
+              onClick={handleConfirmDineIn}
+              disabled={placingOrder}
+              className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform disabled:opacity-60"
+            >
+              {placingOrder ? t("pickup_pay_loading") : t("cart_confirm_order")}
+            </button>
+          </div>
         )}
       </div>
     </div>

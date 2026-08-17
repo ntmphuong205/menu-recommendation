@@ -102,6 +102,11 @@ const dict = {
   cart_ask_ai: { vi: "Hỏi Menu AI", en: "Ask Menu AI", ko: "메뉴 AI에게 물어보기" },
   cart_total: { vi: "Tổng cộng", en: "Total", ko: "합계" },
   cart_confirm_order: { vi: "Xác nhận đặt món", en: "Confirm order", ko: "주문 확정" },
+  cart_confirm_error: {
+    vi: "Không đặt được món, vui lòng thử lại.",
+    en: "Couldn't place the order — please try again.",
+    ko: "주문을 넣지 못했습니다 — 다시 시도해 주세요.",
+  },
   cart_placed_title: { vi: "Đã đặt món!", en: "Order placed!", ko: "주문 완료!" },
   cart_placed_desc: {
     vi: "Đơn của Bàn {table} đã được gửi tới bếp. Món ăn sẽ được mang tới bàn ngay!",
