@@ -2,10 +2,20 @@ import { useCallback } from "react";
 import { apiClient, type ApiStore } from "../lib/apiClient";
 import { usePollingData } from "./usePollingData";
 
+export interface StoreUpdatePayload {
+  name: string;
+  hours: string;
+  description: string;
+  menu_categories: string[];
+  bank_bin?: string;
+  bank_account_number?: string;
+  bank_account_holder?: string;
+}
+
 export interface StoreData {
   store: ApiStore | null;
   keywords: string[];
-  updateStore: (payload: { name: string; hours: string; description: string; menu_categories: string[] }) => Promise<ApiStore>;
+  updateStore: (payload: StoreUpdatePayload) => Promise<ApiStore>;
   updateKeywords: (keywords: string[]) => Promise<string[]>;
 }
 
@@ -20,7 +30,7 @@ export function useStoreData(): StoreData {
   const keywordsFetcher = useCallback(() => apiClient.getKeywords().then((r) => r.keywords), []);
   const keywords = usePollingData(keywordsFetcher, STORE_POLL_MS) ?? [];
 
-  const updateStore = async (payload: { name: string; hours: string; description: string; menu_categories: string[] }) => {
+  const updateStore = async (payload: StoreUpdatePayload) => {
     const res = await apiClient.updateStore(payload);
     return res.store;
   };

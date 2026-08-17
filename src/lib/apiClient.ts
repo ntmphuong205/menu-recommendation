@@ -88,6 +88,7 @@ export interface ApiTable {
 
 export type ApiOrderStatus = "awaiting_payment" | "new" | "preparing" | "served" | "cancelled";
 export type ApiFulfillmentType = "dine_in" | "pickup";
+export type ApiPaymentMethod = "vnpay" | "bank_transfer";
 
 export interface ApiOrder {
   id: string;
@@ -102,6 +103,7 @@ export interface ApiOrder {
   order_group_id: string;
   fulfillment_type: ApiFulfillmentType;
   pickup_code: string | null;
+  payment_method: ApiPaymentMethod | null;
   customer_session_id: string;
   created_at: string;
   updated_at: string | null;
@@ -153,6 +155,11 @@ export interface ApiStore {
   name_i18n: Record<string, string>;
   hours_i18n: Record<string, string>;
   description_i18n: Record<string, string>;
+  // VietQR bank transfer details — empty strings until the owner fills
+  // them in via Store Settings.
+  bank_bin: string;
+  bank_account_number: string;
+  bank_account_holder: string;
 }
 
 export interface ChatResponse {
@@ -182,8 +189,15 @@ export const apiClient = {
   getMyStores: () => request<{ stores: ApiStoreSummary[] }>("GET", "/my-stores"),
 
   getStore: () => request<ApiStore>("GET", "/store"),
-  updateStore: (payload: { name: string; hours: string; description: string; menu_categories: string[] }) =>
-    request<{ success: boolean; store: ApiStore }>("PUT", "/store", payload),
+  updateStore: (payload: {
+    name: string;
+    hours: string;
+    description: string;
+    menu_categories: string[];
+    bank_bin?: string;
+    bank_account_number?: string;
+    bank_account_holder?: string;
+  }) => request<{ success: boolean; store: ApiStore }>("PUT", "/store", payload),
 
   getKeywords: () => request<{ keywords: string[] }>("GET", "/keywords"),
   updateKeywords: (keywords: string[]) =>
@@ -214,11 +228,15 @@ export const apiClient = {
     request<{ success: boolean; payment_url: string }>("POST", "/payments/vnpay/init", {
       order_group_id: orderGroupId,
     }),
-  getVnpayStatus: (orderGroupId: string) =>
-    request<{ order_group_id: string; status: ApiOrderStatus; pickup_code: string | null }>(
-      "GET",
-      `/payments/vnpay/status?order_group_id=${orderGroupId}`
-    ),
+  getPaymentStatus: (orderGroupId: string) =>
+    request<{
+      order_group_id: string;
+      status: ApiOrderStatus;
+      pickup_code: string | null;
+      payment_method: ApiPaymentMethod | null;
+      total_price: number;
+      currency: string;
+    }>("GET", `/payments/status?order_group_id=${orderGroupId}`),
 
   getReservations: (customerSessionId?: string) =>
     request<ApiReservation[]>(

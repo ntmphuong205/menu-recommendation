@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Clock3, ArrowRight, PackageCheck, XCircle, Ban, BellRing, Check, X, CalendarClock, Users } from "lucide-react";
+import { Clock3, ArrowRight, PackageCheck, XCircle, Ban, BellRing, Check, X, CalendarClock, Users, Wallet, Loader2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { NEXT_STATUS, ORDER_STATUS_LABEL_KEY, ACTIVE_STATUSES, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { useI18n } from "../i18n/I18nContext";
@@ -32,8 +32,16 @@ function timeAgo(ts: number, t: (key: TranslationKey, vars?: Record<string, stri
 }
 
 export function OrdersView() {
-  const { orders, updateItemStatus, cancelOrder, tableRequests, resolveRequest, reservations, updateReservationStatus } =
-    useApp();
+  const {
+    orders,
+    updateItemStatus,
+    updateOrderStatus,
+    cancelOrder,
+    tableRequests,
+    resolveRequest,
+    reservations,
+    updateReservationStatus,
+  } = useApp();
   const { t } = useI18n();
 
   const pendingRequests = useMemo(() => tableRequests.filter((r) => !r.resolved), [tableRequests]);
@@ -41,6 +49,7 @@ export function OrdersView() {
     () => reservations.filter((r) => r.status === "reserved" || r.status === "waiting"),
     [reservations]
   );
+  const awaitingPayment = useMemo(() => orders.filter((o) => o.status === "awaiting_payment"), [orders]);
   const active = useMemo(() => orders.filter((o) => ACTIVE_STATUSES.includes(o.status)), [orders]);
   const served = useMemo(() => orders.filter((o) => o.status === "served"), [orders]);
   const cancelled = useMemo(() => orders.filter((o) => o.status === "cancelled"), [orders]);
@@ -139,6 +148,39 @@ export function OrdersView() {
                     <X size={12} />
                   </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {awaitingPayment.length > 0 && (
+        <div className="mb-6 bg-[#F3E9D2] border border-[#8A6B3F]/25 rounded-2xl p-4">
+          <h2 className="flex items-center gap-1.5 text-[13px] font-bold text-[#8A6B3F] mb-2.5">
+            <Wallet size={14} />
+            {t("orders_awaiting_payment_heading")} ({awaitingPayment.length})
+          </h2>
+          <div className="flex flex-col gap-2">
+            {awaitingPayment.map((order) => (
+              <div key={order.id} className="flex items-center justify-between bg-white rounded-xl px-3.5 py-2.5">
+                <div>
+                  <span className="text-[13px] font-semibold text-[#22201B]">{orderLabel(order, t)}</span>
+                  <span className="text-[12px] text-[#5C5240] ml-2 font-medium">${orderTotal(order).toFixed(2)}</span>
+                </div>
+                {order.paymentMethod === "bank_transfer" ? (
+                  <button
+                    onClick={() => updateOrderStatus(order.id, "new")}
+                    className="flex items-center gap-1 text-[11.5px] font-semibold text-white bg-[#2D5A3D] px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+                  >
+                    <Check size={11} />
+                    {t("orders_confirm_payment_received")}
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-[11.5px] text-[#8A6B3F]">
+                    <Loader2 size={12} className="animate-spin" />
+                    {t("orders_awaiting_vnpay_auto")}
+                  </span>
+                )}
               </div>
             ))}
           </div>

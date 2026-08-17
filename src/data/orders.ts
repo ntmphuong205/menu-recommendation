@@ -2,6 +2,7 @@ import type { TranslationKey } from "../i18n/translations";
 
 export type OrderStatus = "awaiting_payment" | "new" | "preparing" | "served" | "cancelled";
 export type FulfillmentType = "dine_in" | "pickup";
+export type PaymentMethod = "vnpay" | "bank_transfer";
 
 export interface OrderItem {
   /** The backend's own order-row id — per-item status updates address this
@@ -34,6 +35,9 @@ export interface Order {
    *  confirmed. Null for dine_in orders and for pickup orders still
    *  awaiting payment. */
   pickupCode: string | null;
+  /** Null for dine_in. For pickup: vnpay confirms itself via IPN, staff
+   *  must manually confirm bank_transfer (see OrdersView). */
+  paymentMethod: PaymentMethod | null;
 }
 
 /** Maps a status to its translation key rather than baking in English text,

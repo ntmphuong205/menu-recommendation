@@ -49,9 +49,9 @@ interface AppContextValue {
   // orders (shared, created by customer app, managed by owner dashboard)
   orders: Order[];
   placeOrder: (tableId: string) => void;
-  /** Remote pre-order paid upfront via VNPay — packages the current cart,
-   *  returns the order_group_id once every line item is created. */
-  placePickupOrder: () => Promise<string>;
+  /** Remote pre-order paid upfront — packages the current cart, returns
+   *  the order_group_id once every line item is created. */
+  placePickupOrder: (paymentMethod: "vnpay" | "bank_transfer") => Promise<string>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateItemStatus: (itemId: string, status: OrderStatus) => void;
   cancelOrder: (orderId: string) => void;
@@ -164,12 +164,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     placeOrderRaw(tableIdToUse, items, mode);
   };
 
-  const placePickupOrder = () => {
+  const placePickupOrder = (paymentMethod: "vnpay" | "bank_transfer") => {
     const items = cart.map((i) => {
       const dish = findDish(i.dishId);
       return { dishId: i.dishId, dishName: dish?.name ?? "Unknown dish", qty: i.qty, price: dish?.price ?? 0, note: i.note };
     });
-    return placePickupOrderRaw(items);
+    return placePickupOrderRaw(items, paymentMethod);
   };
 
   const requestReservation = async (tableIdToReserve: string, partySize: number) => {

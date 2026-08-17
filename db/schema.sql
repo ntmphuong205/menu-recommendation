@@ -27,6 +27,12 @@ create table if not exists public.stores (
     description_vi text default '',
     recommendation_keywords jsonb not null default '[]'::jsonb,
     menu_categories jsonb not null default '[]'::jsonb,
+    -- Bank transfer details for remote pre-orders (VietQR) — an
+    -- alternative to VNPay that needs no merchant/business registration.
+    -- Null until the owner fills them in via Store Settings.
+    bank_bin text,
+    bank_account_number text,
+    bank_account_holder text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -107,13 +113,17 @@ create table if not exists public.orders (
     -- the client doesn't send one (a lone, ungrouped order).
     order_group_id uuid not null default gen_random_uuid(),
     -- dine_in = served at table (default, existing flow). pickup = remote
-    -- pre-order, paid upfront via VNPay, collected at the counter.
+    -- pre-order, paid upfront, collected at the counter.
     fulfillment_type text not null default 'dine_in' check (fulfillment_type in ('dine_in', 'pickup')),
     -- Short code shown to the customer to hand to staff at pickup —
     -- shared across every row in the same order_group_id. Null for dine_in.
     pickup_code text,
-    -- VNPay transaction reference + timestamp, set once the IPN webhook
-    -- confirms payment. Null until then.
+    -- vnpay = confirmed automatically by the IPN webhook. bank_transfer =
+    -- VietQR, confirmed manually by staff (see PUT /orders/{id}/status).
+    -- Null for dine_in orders.
+    payment_method text check (payment_method in ('vnpay', 'bank_transfer')),
+    -- VNPay transaction reference (blank for bank_transfer, staff-confirmed
+    -- instead) + timestamp, set once payment is confirmed.
     payment_ref text,
     paid_at timestamptz,
     -- Per-item kitchen status. awaiting_payment is a pre-kitchen holding
@@ -300,9 +310,19 @@ alter table public.orders
     add column if not exists fulfillment_type text not null default 'dine_in'
         check (fulfillment_type in ('dine_in', 'pickup')),
     add column if not exists pickup_code text,
+    add column if not exists payment_method text,
     add column if not exists payment_ref text,
     add column if not exists paid_at timestamptz;
 
 alter table public.orders drop constraint if exists orders_status_check;
 alter table public.orders add constraint orders_status_check
     check (status in ('awaiting_payment', 'new', 'preparing', 'served', 'cancelled'));
+
+alter table public.orders drop constraint if exists orders_payment_method_check;
+alter table public.orders add constraint orders_payment_method_check
+    check (payment_method in ('vnpay', 'bank_transfer'));
+
+alter table public.stores
+    add column if not exists bank_bin text,
+    add column if not exists bank_account_number text,
+    add column if not exists bank_account_holder text;

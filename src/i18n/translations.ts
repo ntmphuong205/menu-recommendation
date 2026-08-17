@@ -201,12 +201,30 @@ const dict = {
     en: "Pre-order and pay now, then show your code at the counter to collect.",
     ko: "미리 주문하고 결제한 뒤, 카운터에서 코드를 보여주고 수령하세요.",
   },
-  pickup_pay_button: { vi: "Thanh toán qua VNPay", en: "Pay with VNPay", ko: "VNPay로 결제" },
+  pickup_bank_transfer_button: {
+    vi: "Chuyển khoản ngân hàng",
+    en: "Pay by bank transfer",
+    ko: "계좌 이체로 결제",
+  },
+  pickup_bank_transfer_title: { vi: "Chuyển khoản để hoàn tất đơn", en: "Transfer to complete your order", ko: "계좌 이체로 주문을 완료하세요" },
+  pickup_bank_transfer_instructions: {
+    vi: "Quét mã bằng app ngân hàng bất kỳ, giữ nguyên số tiền và nội dung chuyển khoản đã điền sẵn. Nhân viên sẽ xác nhận khi nhận được tiền.",
+    en: "Scan with any banking app — the amount and transfer note are already filled in. Staff will confirm once the payment is received.",
+    ko: "아무 은행 앱으로 스캔하세요 — 금액과 이체 메모가 이미 입력되어 있습니다. 입금이 확인되면 직원이 확인해 드립니다.",
+  },
+  pickup_bank_transfer_amount: { vi: "Số tiền", en: "Amount", ko: "금액" },
+  pickup_bank_transfer_note: { vi: "Nội dung chuyển khoản", en: "Transfer note", ko: "이체 메모" },
+  pickup_bank_transfer_waiting: { vi: "Đang chờ nhân viên xác nhận…", en: "Waiting for staff to confirm…", ko: "직원 확인 대기 중…" },
   pickup_pay_loading: { vi: "Đang chuyển đến VNPay…", en: "Redirecting to VNPay…", ko: "VNPay로 이동 중…" },
   pickup_pay_error: {
     vi: "Không thể bắt đầu thanh toán. Vui lòng thử lại.",
     en: "Couldn't start the payment. Please try again.",
     ko: "결제를 시작할 수 없습니다. 다시 시도해 주세요.",
+  },
+  pickup_not_configured: {
+    vi: "Quán chưa thiết lập tài khoản nhận thanh toán. Vui lòng liên hệ trực tiếp.",
+    en: "This store hasn't set up payments yet. Please contact them directly.",
+    ko: "이 매장은 아직 결제 설정이 되어 있지 않습니다. 직접 문의해 주세요.",
   },
   pickup_result_waiting_title: { vi: "Đang xác nhận thanh toán…", en: "Confirming your payment…", ko: "결제 확인 중…" },
   pickup_result_waiting_desc: {
@@ -229,6 +247,17 @@ const dict = {
   },
   pickup_result_back_button: { vi: "Về trang chủ", en: "Back to home", ko: "홈으로 돌아가기" },
   orders_pickup_badge: { vi: "Lấy tại quầy #{code}", en: "Pickup #{code}", ko: "픽업 #{code}" },
+  orders_awaiting_payment_heading: {
+    vi: "Chờ xác nhận thanh toán",
+    en: "Awaiting payment confirmation",
+    ko: "결제 확인 대기 중",
+  },
+  orders_confirm_payment_received: { vi: "Xác nhận đã nhận tiền", en: "Confirm payment received", ko: "입금 확인" },
+  orders_awaiting_vnpay_auto: {
+    vi: "Đang chờ VNPay tự động xác nhận",
+    en: "Waiting for VNPay to confirm automatically",
+    ko: "VNPay 자동 확인 대기 중",
+  },
   call_reason_help: { vi: "Cần hỗ trợ", en: "Need help", ko: "도움이 필요해요" },
   call_reason_change_order: { vi: "Muốn đổi món", en: "Change my order", ko: "메뉴 변경 요청" },
   call_reason_bill: { vi: "Xin thanh toán", en: "Ask for the bill", ko: "계산서 요청" },
@@ -423,6 +452,16 @@ const dict = {
   },
   store_settings_field_keywords_placeholder: { vi: "vd. #món-ấm-lòng", en: "e.g. #comfort-food", ko: "예: #든든한메뉴" },
   store_settings_error: { vi: "Không lưu được cài đặt quán.", en: "Failed to save store settings.", ko: "매장 설정을 저장하지 못했습니다." },
+  store_settings_bank_title: { vi: "Tài khoản ngân hàng (VietQR)", en: "Bank account (VietQR)", ko: "은행 계좌 (VietQR)" },
+  store_settings_bank_desc: {
+    vi: "Dùng để hiện mã QR chuyển khoản cho khách đặt trước — bỏ trống nếu chỉ dùng VNPay.",
+    en: "Used to show a bank-transfer QR code to remote pre-order customers — leave blank if only using VNPay.",
+    ko: "원격 사전 주문 고객에게 계좌이체 QR 코드를 표시할 때 사용합니다 — VNPay만 사용한다면 비워두세요.",
+  },
+  store_settings_bank_name: { vi: "Ngân hàng", en: "Bank", ko: "은행" },
+  store_settings_bank_select: { vi: "Chọn ngân hàng…", en: "Select a bank…", ko: "은행 선택…" },
+  store_settings_bank_account_number: { vi: "Số tài khoản", en: "Account number", ko: "계좌번호" },
+  store_settings_bank_account_holder: { vi: "Tên chủ tài khoản", en: "Account holder name", ko: "예금주" },
 
   // Table QR (admin)
   tableqr_desc: {

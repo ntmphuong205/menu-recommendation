@@ -3,6 +3,7 @@ import { Plus, X, Save } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useStoreData } from "../store/useStoreData";
 import { useI18n } from "../i18n/I18nContext";
+import { VIETNAM_BANKS } from "../data/banks";
 
 function TagInput({ values, onChange, placeholder }: { values: string[]; onChange: (v: string[]) => void; placeholder: string }) {
   const [draft, setDraft] = useState("");
@@ -56,6 +57,9 @@ export function StoreSettingsView() {
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
   const [localKeywords, setLocalKeywords] = useState<string[]>([]);
+  const [bankBin, setBankBin] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [bankAccountHolder, setBankAccountHolder] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -65,6 +69,9 @@ export function StoreSettingsView() {
     setHours(store.hours_en || store.hours);
     setDescription(store.description_en || store.description);
     setCategories(store.menu_categories ?? []);
+    setBankBin(store.bank_bin ?? "");
+    setBankAccountNumber(store.bank_account_number ?? "");
+    setBankAccountHolder(store.bank_account_holder ?? "");
   }, [store]);
 
   useEffect(() => {
@@ -76,7 +83,15 @@ export function StoreSettingsView() {
     setSaved(false);
     try {
       await Promise.all([
-        updateStore({ name, hours, description, menu_categories: categories }),
+        updateStore({
+          name,
+          hours,
+          description,
+          menu_categories: categories,
+          bank_bin: bankBin,
+          bank_account_number: bankAccountNumber,
+          bank_account_holder: bankAccountHolder,
+        }),
         updateKeywords(localKeywords),
       ]);
       setSaved(true);
@@ -129,6 +144,39 @@ export function StoreSettingsView() {
             <p className="text-[11px] text-[#8A8272] mb-1.5 -mt-1">{t("store_settings_field_keywords_desc")}</p>
             <TagInput values={localKeywords} onChange={setLocalKeywords} placeholder={t("store_settings_field_keywords_placeholder")} />
           </Field>
+
+          <div className="border-t border-black/5 pt-3.5 mt-1 flex flex-col gap-3.5">
+            <div>
+              <p className="text-[13px] font-bold text-[#22201B]">{t("store_settings_bank_title")}</p>
+              <p className="text-[11px] text-[#8A8272] mt-0.5">{t("store_settings_bank_desc")}</p>
+            </div>
+            <Field label={t("store_settings_bank_name")}>
+              <select value={bankBin} onChange={(e) => setBankBin(e.target.value)} className={inputCls}>
+                <option value="">{t("store_settings_bank_select")}</option>
+                {VIETNAM_BANKS.map((bank) => (
+                  <option key={bank.bin} value={bank.bin}>
+                    {bank.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label={t("store_settings_bank_account_number")}>
+              <input
+                value={bankAccountNumber}
+                onChange={(e) => setBankAccountNumber(e.target.value.trim())}
+                className={inputCls}
+                placeholder="0123456789"
+              />
+            </Field>
+            <Field label={t("store_settings_bank_account_holder")}>
+              <input
+                value={bankAccountHolder}
+                onChange={(e) => setBankAccountHolder(e.target.value)}
+                className={inputCls}
+                placeholder="NGUYEN VAN A"
+              />
+            </Field>
+          </div>
         </div>
       )}
     </div>

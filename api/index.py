@@ -96,11 +96,16 @@ def public_number(value: Any) -> float | int:
     return int(number) if number.is_integer() else number
 
 
+def order_group_amount(rows: List[Dict[str, Any]]) -> float:
+    """Sums an order group's line items in the store's own currency."""
+    return sum(float(row["total_price"]) for row in rows)
+
+
 def order_group_amount_vnd(rows: List[Dict[str, Any]]) -> int:
-    """Sums an order group's line items and converts to VND if needed —
-    VNPay only settles in VND, but menu prices in this deployment are USD.
-    See USD_TO_VND_RATE's definition for the caveat this papers over."""
-    total = sum(float(row["total_price"]) for row in rows)
+    """Same total, converted to VND if needed — VNPay only settles in VND,
+    but menu prices in this deployment are USD. See USD_TO_VND_RATE's
+    definition for the caveat this papers over."""
+    total = order_group_amount(rows)
     if rows and rows[0].get("currency") == "USD":
         total *= USD_TO_VND_RATE
     return round(total)
@@ -160,8 +165,13 @@ class StoreUpdate(BaseModel):
     hours: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1, max_length=500)
     menu_categories: List[str] = Field(default_factory=list, max_length=50)
+    # VietQR bank transfer details for remote pre-orders — optional, not
+    # translated (bank details are the same in every language).
+    bank_bin: str = Field(default="", max_length=20)
+    bank_account_number: str = Field(default="", max_length=50)
+    bank_account_holder: str = Field(default="", max_length=120)
 
-    @field_validator("name", "hours", "description")
+    @field_validator("name", "hours", "description", "bank_bin", "bank_account_number", "bank_account_holder")
     @classmethod
     def strip_text(cls, value: str) -> str:
         return value.strip()
@@ -295,6 +305,10 @@ class OrderCreate(BaseModel):
     customer_session_id: UUID
     mode: Literal["web", "store"]
     fulfillment_type: Literal["dine_in", "pickup"] = "dine_in"
+    # vnpay = confirmed automatically by the IPN webhook. bank_transfer =
+    # VietQR, confirmed manually by staff. Required for pickup, unused for
+    # dine_in.
+    payment_method: Optional[Literal["vnpay", "bank_transfer"]] = None
     # Shared across every line the client posts from one cart checkout, so
     # the frontend can regroup rows back into a single "order" for display.
     # Required for pickup orders — it's also what derives the pickup_code.
@@ -314,8 +328,11 @@ class OrderCreate(BaseModel):
     def check_fulfillment_requirements(self) -> "OrderCreate":
         if self.fulfillment_type == "dine_in" and not self.table_id:
             raise ValueError("table_id is required for dine-in orders.")
-        if self.fulfillment_type == "pickup" and self.order_group_id is None:
-            raise ValueError("order_group_id is required for pickup orders.")
+        if self.fulfillment_type == "pickup":
+            if self.order_group_id is None:
+                raise ValueError("order_group_id is required for pickup orders.")
+            if self.payment_method is None:
+                raise ValueError("payment_method is required for pickup orders.")
         return self
 
 
@@ -486,6 +503,7 @@ def order_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "order_group_id": str(row["order_group_id"]),
         "fulfillment_type": row.get("fulfillment_type") or "dine_in",
         "pickup_code": row.get("pickup_code"),
+        "payment_method": row.get("payment_method"),
         "customer_session_id": row["customer_session_id"],
         "created_at": row["created_at"],
         "updated_at": row.get("updated_at"),
@@ -1169,6 +1187,9 @@ def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
             "en": row.get("description_en") or row.get("description") or "",
             "vi": row.get("description_vi") or row.get("description") or "",
         },
+        "bank_bin": row.get("bank_bin") or "",
+        "bank_account_number": row.get("bank_account_number") or "",
+        "bank_account_holder": row.get("bank_account_holder") or "",
     }
 
 
@@ -1254,6 +1275,9 @@ def update_store(
             "hours_vi": generated.get("vi", {}).get("hours", payload.hours),
             "description_vi": generated.get("vi", {}).get("description", payload.description),
             "menu_categories": payload.menu_categories,
+            "bank_bin": payload.bank_bin or None,
+            "bank_account_number": payload.bank_account_number or None,
+            "bank_account_holder": payload.bank_account_holder or None,
         }
     )
     return {
@@ -1386,11 +1410,13 @@ def create_order(payload: OrderCreate) -> Dict[str, Any]:
         "order_group_id": str(payload.order_group_id) if payload.order_group_id is not None else None,
     }
     if payload.fulfillment_type == "pickup":
-        # Held until the VNPay IPN webhook confirms payment — never enters
+        # Held until payment is confirmed — automatically by VNPay's IPN
+        # webhook, or manually by staff for bank_transfer — never enters
         # the kitchen queue before that. Same code for every line item in
         # the group since it's derived from the shared order_group_id.
         order_row["status"] = "awaiting_payment"
         order_row["pickup_code"] = payload.order_group_id.hex[-6:].upper()
+        order_row["payment_method"] = payload.payment_method
     else:
         if not repo.get_table(payload.table_id):
             raise HTTPException(status_code=404, detail="Table not found.")
@@ -1523,11 +1549,12 @@ def vnpay_ipn(request: Request) -> Dict[str, str]:
     return {"RspCode": "00", "Message": "Confirm Success"}
 
 
-@app.get("/api/payments/vnpay/status")
-def vnpay_status(order_group_id: str = Query(...)) -> Dict[str, Any]:
-    """Polled by the customer's browser after returning from VNPay — the
-    return-URL redirect itself isn't authoritative, this reflects whatever
-    the IPN webhook has actually confirmed so far."""
+@app.get("/api/payments/status")
+def payment_status(order_group_id: str = Query(...)) -> Dict[str, Any]:
+    """Polled by the customer's browser while a pickup order is awaiting
+    payment — for VNPay this reflects whatever the IPN webhook has
+    confirmed so far (the return-URL redirect itself isn't authoritative);
+    for bank_transfer it reflects staff's manual confirmation."""
     if not supabase_client:
         raise HTTPException(status_code=503, detail="The database is not configured.")
     rows = (
@@ -1544,6 +1571,9 @@ def vnpay_status(order_group_id: str = Query(...)) -> Dict[str, Any]:
         "order_group_id": order_group_id,
         "status": rows[0]["status"],
         "pickup_code": rows[0].get("pickup_code"),
+        "payment_method": rows[0].get("payment_method"),
+        "total_price": order_group_amount(rows),
+        "currency": rows[0].get("currency", "USD"),
     }
 
 
