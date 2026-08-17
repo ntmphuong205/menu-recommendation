@@ -52,6 +52,17 @@ VNPAY_TIMEZONE = timezone(timedelta(hours=7))  # VNPay expects Vietnam local tim
 # pricing instead of relying on this rate.
 USD_TO_VND_RATE = float(os.getenv("USD_TO_VND_RATE", "25000"))
 
+# Lets the customer-facing pickup-result page mark an awaiting_payment order
+# as paid without touching real money or VNPay/bank transfer at all — for
+# trying out the post-payment screens during setup/demos. Off unless
+# explicitly enabled; never turn this on once a store accepts real payments,
+# since anyone with an order_group_id could use it to "pay" for free.
+ALLOW_TEST_PAYMENT_CONFIRM = os.getenv("ALLOW_TEST_PAYMENT_CONFIRM", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
 TABLE_STATUSES = {"available", "soon", "reserved", "occupied"}
 # Per-item kitchen status (replaces the old pending/completed/cancelled model
 # with ICAPS's finer-grained new -> preparing -> served flow). awaiting_payment
@@ -383,6 +394,10 @@ class OrderStatusUpdate(BaseModel):
 
 
 class VnpayInitRequest(BaseModel):
+    order_group_id: UUID
+
+
+class TestPaymentConfirm(BaseModel):
     order_group_id: UUID
 
 
@@ -842,6 +857,16 @@ class SupabaseRepository:
         if not response.data:
             raise HTTPException(status_code=404, detail="Order not found.")
         return response.data[0]
+
+    def mark_order_group_paid(self, order_group_id: str, payment_ref: str) -> None:
+        self._run(
+            lambda: self.client.table("orders")
+            .update({"status": "new", "payment_ref": payment_ref, "paid_at": utc_now(), "updated_at": utc_now()})
+            .eq("store_id", self.store_id)
+            .eq("order_group_id", order_group_id)
+            .execute(),
+            "Failed to confirm payment.",
+        )
 
     def get_reservations(
         self, customer_session_id: Optional[str] = None
@@ -1365,6 +1390,7 @@ def health() -> Dict[str, Any]:
         "ai_provider": "gemini",
         "gemini_configured": bool(gemini_client),
         "gemini_model": GEMINI_MODEL,
+        "test_payment_enabled": ALLOW_TEST_PAYMENT_CONFIRM,
     }
 
 
@@ -1766,6 +1792,24 @@ def payment_status(order_group_id: str = Query(...)) -> Dict[str, Any]:
         "total_price": order_group_amount(rows),
         "currency": rows[0].get("currency", "USD"),
     }
+
+
+@app.post("/api/payments/test/mark-paid")
+def mark_test_payment_paid(payload: TestPaymentConfirm) -> Dict[str, Any]:
+    """Deliberately unauthenticated (the customer app calls it directly from
+    the pickup-result waiting screen) but a no-op unless
+    ALLOW_TEST_PAYMENT_CONFIRM is set — see that flag's definition. Mirrors
+    exactly what the VNPay IPN webhook does on a successful payment."""
+    if not ALLOW_TEST_PAYMENT_CONFIRM:
+        raise HTTPException(status_code=403, detail="Test payment confirmation is disabled.")
+    repo = get_repository()
+    rows = repo.get_orders_by_group(str(payload.order_group_id))
+    if not rows:
+        raise HTTPException(status_code=404, detail="Order not found.")
+    if rows[0]["status"] != "awaiting_payment":
+        raise HTTPException(status_code=409, detail="This order isn't awaiting payment.")
+    repo.mark_order_group_paid(str(payload.order_group_id), payment_ref="TEST")
+    return {"success": True}
 
 
 @app.get("/api/reservations")

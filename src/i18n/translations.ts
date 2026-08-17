@@ -258,6 +258,11 @@ const dict = {
   pickup_bank_transfer_amount: { vi: "Số tiền", en: "Amount", ko: "금액" },
   pickup_bank_transfer_note: { vi: "Nội dung chuyển khoản", en: "Transfer note", ko: "이체 메모" },
   pickup_bank_transfer_waiting: { vi: "Đang chờ nhân viên xác nhận…", en: "Waiting for staff to confirm…", ko: "직원 확인 대기 중…" },
+  test_mark_paid_button: {
+    vi: "🧪 [Thử nghiệm] Giả lập đã thanh toán",
+    en: "🧪 [Test] Simulate payment success",
+    ko: "🧪 [테스트] 결제 완료로 표시",
+  },
   pickup_pay_loading: { vi: "Đang chuyển đến VNPay…", en: "Redirecting to VNPay…", ko: "VNPay로 이동 중…" },
   pickup_pay_error: {
     vi: "Không thể bắt đầu thanh toán. Vui lòng thử lại.",

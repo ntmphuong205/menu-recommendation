@@ -221,7 +221,10 @@ export interface ApiStoreDirectoryEntry {
 
 export const apiClient = {
   health: () =>
-    request<{ success: boolean; database: string; gemini_configured: boolean }>("GET", "/health"),
+    request<{ success: boolean; database: string; gemini_configured: boolean; test_payment_enabled: boolean }>(
+      "GET",
+      "/health"
+    ),
 
   // Public — every store on this deployment, for the homepage's "choose a
   // restaurant" list. Not scoped to any particular store.
@@ -284,6 +287,11 @@ export const apiClient = {
       total_price: number;
       currency: string;
     }>("GET", `/payments/status?order_group_id=${orderGroupId}`),
+  // Only succeeds when the backend's ALLOW_TEST_PAYMENT_CONFIRM is set —
+  // lets the pickup-result screen preview the post-payment state without a
+  // real bank transfer or VNPay round-trip. See PickupResultScreen.tsx.
+  markTestPaymentPaid: (orderGroupId: string) =>
+    request<{ success: boolean }>("POST", "/payments/test/mark-paid", { order_group_id: orderGroupId }),
 
   getReservations: (customerSessionId?: string) =>
     request<ApiReservation[]>(
