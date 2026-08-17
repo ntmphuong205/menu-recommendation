@@ -87,6 +87,13 @@ interface AppContextValue {
   /** "web" QR codes (general/AI browsing only) vs "store" QR codes printed on
    *  a physical table (full ordering + reservation) — see TableQrView. */
   mode: "web" | "store";
+  /** Only meaningful in mode=web — which option the customer picked on
+   *  DiningChoiceScreen. "dine_in" browses only (same restriction as
+   *  before pickup ordering existed — must scan a table's own QR to
+   *  actually order); "pickup" unlocks Cart's remote pre-pay flow. Null
+   *  until they've chosen (or always, in mode=store, where it's moot). */
+  webOrderIntent: "dine_in" | "pickup" | null;
+  setWebOrderIntent: (intent: "dine_in" | "pickup") => void;
 }
 
 export type TabKey = "chat" | "staff_chat" | "menu" | "cart" | "info" | "reserve";
@@ -134,6 +141,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const [tableId] = useState<string>(getTableFromUrl);
   const [mode] = useState<"web" | "store">(getModeFromUrl);
+  const [webOrderIntent, setWebOrderIntent] = useState<"dine_in" | "pickup" | null>(null);
 
   const findDish = (id: string) => menu.find((d) => d.id === id);
 
@@ -236,6 +244,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setSelectedDishId,
         tableId,
         mode,
+        webOrderIntent,
+        setWebOrderIntent,
       }}
     >
       {children}

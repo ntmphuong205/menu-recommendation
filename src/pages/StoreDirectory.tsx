@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChefHat, ArrowRight, KeyRound, Clock3, UtensilsCrossed, MapPin } from "lucide-react";
+import { ChefHat, ArrowRight, KeyRound, Clock3, UtensilsCrossed, MapPin, Leaf, Sparkles, Smartphone, Store } from "lucide-react";
 import { apiClient, type ApiStoreDirectoryEntry } from "../lib/apiClient";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
@@ -49,54 +49,84 @@ export function StoreDirectory() {
 
   return (
     <div className="min-h-screen w-full bg-[#F5F1E6] flex flex-col">
-      <header className="sticky top-0 z-10 bg-[#F5F1E6]/90 backdrop-blur-sm border-b border-black/[0.04]">
-        <div className="max-w-5xl mx-auto flex items-center justify-between px-5 sm:px-8 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-[#1F3D2B] flex items-center justify-center shrink-0">
-              <ChefHat size={18} className="text-white" />
-            </div>
-            <p className="text-[15px] font-bold text-[#22201B] tracking-tight">MenuPilot</p>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <LangSwitcher />
-            <a
-              href="/admin"
-              className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2D5A3D] bg-white border border-[#2D5A3D]/15 px-3.5 py-2 rounded-full shadow-sm hover:shadow transition-shadow active:scale-95"
-            >
-              <KeyRound size={13} />
-              <span className="hidden sm:inline">{t("directory_admin_login")}</span>
-            </a>
-          </div>
-        </div>
-      </header>
+      {/* ---------------- Dark hero ---------------- */}
+      <div className="relative overflow-hidden bg-[#12211A]">
+        {/* Decorative glow blobs — CSS only, no image assets needed */}
+        <div className="absolute -top-24 -left-16 w-80 h-80 bg-[#4CAF7D]/25 rounded-full blur-[90px] pointer-events-none" />
+        <div className="absolute top-10 -right-20 w-96 h-96 bg-[#E0A83C]/15 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 w-72 h-72 bg-[#2D5A3D]/30 rounded-full blur-[90px] pointer-events-none" />
 
-      {/* Hero */}
-      <div className="relative overflow-hidden">
-        <div
-          className="absolute inset-x-0 -top-24 h-72 opacity-[0.08] pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(60% 100% at 20% 0%, #2D5A3D 0%, transparent 60%), radial-gradient(50% 100% at 85% 20%, #E0A83C 0%, transparent 55%)",
-          }}
-        />
-        <div className="relative max-w-5xl mx-auto px-5 sm:px-8 pt-12 sm:pt-16 pb-10 sm:pb-12 text-center">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-3 py-1.5 rounded-full mb-4">
+        {/* Floating leaf accents */}
+        <Leaf size={26} className="absolute top-24 left-[8%] text-[#4CAF7D]/25 rotate-[-15deg] hidden sm:block" />
+        <Leaf size={20} className="absolute top-16 right-[14%] text-[#4CAF7D]/20 rotate-[25deg] hidden sm:block" />
+        <Sparkles size={18} className="absolute bottom-24 right-[10%] text-[#E0A83C]/25 hidden sm:block" />
+
+        <header className="relative z-10">
+          <div className="max-w-5xl mx-auto flex items-center justify-between px-5 sm:px-8 py-5">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                <ChefHat size={18} className="text-white" />
+              </div>
+              <p className="text-[15px] font-bold text-white tracking-tight">MenuPilot</p>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <LangSwitcher dark />
+              <a
+                href="/admin"
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-white bg-white/10 border border-white/15 px-3.5 py-2 rounded-full hover:bg-white/15 transition-colors active:scale-95"
+              >
+                <KeyRound size={13} />
+                <span className="hidden sm:inline">{t("directory_admin_login")}</span>
+              </a>
+            </div>
+          </div>
+        </header>
+
+        <div className="relative z-10 max-w-3xl mx-auto px-5 sm:px-8 pt-8 sm:pt-14 pb-24 sm:pb-28 text-center">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#B7E4C7] bg-white/10 border border-white/10 px-3 py-1.5 rounded-full mb-5">
             <UtensilsCrossed size={12} />
             {t("directory_eyebrow")}
           </span>
-          <h1 className="text-[30px] sm:text-[38px] font-bold text-[#22201B] tracking-tight leading-[1.1] mb-3">
-            {t("directory_title")}
+          <h1 className="text-[34px] sm:text-[48px] font-bold text-white tracking-tight leading-[1.08] mb-4 text-balance">
+            {t("directory_hero_line1")} <span className="text-[#E0A83C]">{t("directory_hero_highlight")}</span>
           </h1>
-          <p className="text-[14.5px] sm:text-[15px] text-[#8A8272] max-w-md mx-auto leading-relaxed">
+          <p className="text-[14.5px] sm:text-[16px] text-white/65 max-w-md mx-auto leading-relaxed mb-8">
             {t("directory_subtitle")}
           </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a
+              href="#restaurants"
+              className="flex items-center gap-2 bg-[#4CAF7D] text-[#0F1F16] font-bold text-[14px] px-7 py-3.5 rounded-full active:scale-95 transition-transform shadow-[0_8px_30px_-8px_rgba(76,175,125,0.6)]"
+            >
+              {t("directory_cta_view_menu")}
+              <ArrowRight size={16} />
+            </a>
+            <button
+              type="button"
+              title={t("directory_app_soon_tooltip")}
+              className="flex items-center gap-2 border border-white/20 text-white/50 font-semibold text-[14px] px-7 py-3.5 rounded-full cursor-not-allowed"
+            >
+              <Smartphone size={16} />
+              {t("directory_cta_download_app")}
+              <span className="text-[10px] font-bold bg-white/10 px-2 py-0.5 rounded-full">{t("directory_soon_badge")}</span>
+            </button>
+          </div>
+
+          {stores && stores.length > 0 && (
+            <div className="flex items-center justify-center gap-2 mt-10 text-white/70">
+              <Store size={15} />
+              <span className="text-[13px]">{t("directory_stat_stores", { count: stores.length })}</span>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="flex-1 px-5 sm:px-8 pb-16">
+      {/* ---------------- Restaurant grid ---------------- */}
+      <div id="restaurants" className="flex-1 px-5 sm:px-8 -mt-10 sm:-mt-14 pb-16 relative z-10">
         <div className="max-w-5xl mx-auto w-full">
           {error && (
-            <div className="bg-white rounded-2xl p-12 border border-black/5 text-center text-[13px] text-[#B0553C] max-w-lg mx-auto">
+            <div className="bg-white rounded-2xl p-12 border border-black/5 shadow-lg text-center text-[13px] text-[#B0553C] max-w-lg mx-auto">
               {t("directory_load_error")}
             </div>
           )}
@@ -104,7 +134,7 @@ export function StoreDirectory() {
           {!error && stores === null && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="rounded-2xl overflow-hidden border border-black/5 bg-white">
+                <div key={i} className="rounded-2xl overflow-hidden border border-black/5 bg-white shadow-lg">
                   <div className="h-24 bg-black/5 animate-pulse" />
                   <div className="p-4 flex flex-col gap-2">
                     <div className="h-4 w-2/3 bg-black/5 rounded animate-pulse" />
@@ -117,7 +147,7 @@ export function StoreDirectory() {
           )}
 
           {!error && stores !== null && stores.length === 0 && (
-            <div className="bg-white rounded-2xl p-12 border border-black/5 text-center text-[13px] text-[#B0A794] max-w-lg mx-auto">
+            <div className="bg-white rounded-2xl p-12 border border-black/5 shadow-lg text-center text-[13px] text-[#B0A794] max-w-lg mx-auto">
               {t("directory_empty")}
             </div>
           )}
@@ -132,7 +162,7 @@ export function StoreDirectory() {
                   <a
                     key={store.id}
                     href={`/?store=${store.slug}&mode=web`}
-                    className="group flex flex-col bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.99] active:translate-y-0 transition-all duration-200"
+                    className="group flex flex-col bg-white rounded-2xl border border-black/5 shadow-lg overflow-hidden hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.99] active:translate-y-0 transition-all duration-200"
                   >
                     <div className={`relative h-24 bg-gradient-to-br ${themeForStore(store.id)} flex items-center px-5 overflow-hidden shrink-0`}>
                       <span className="absolute -right-3 -bottom-5 text-[88px] font-black text-white/10 leading-none select-none">

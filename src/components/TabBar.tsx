@@ -16,7 +16,7 @@ const TABS: { key: TabKey; labelKey: TranslationKey; icon: typeof MessageCircle 
 ];
 
 export function TabBar() {
-  const { activeTab, setActiveTab, totalItems } = useApp();
+  const { activeTab, setActiveTab, totalItems, setSelectedDishId } = useApp();
   const { t } = useI18n();
 
   return (
@@ -28,7 +28,10 @@ export function TabBar() {
           return (
             <button
               key={key}
-              onClick={() => setActiveTab(key)}
+              onClick={() => {
+                setActiveTab(key);
+                setSelectedDishId(null);
+              }}
               className="relative flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors"
             >
               <div className="relative">

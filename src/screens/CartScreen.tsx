@@ -226,6 +226,7 @@ export function CartScreen() {
     tableId,
     orders,
     mode,
+    webOrderIntent,
     store,
   } = useApp();
   const { t, lang } = useI18n();
@@ -356,7 +357,11 @@ export function CartScreen() {
           <span className="text-[13px] text-[#8A8272]">{t("cart_total")}</span>
           <span className="text-[18px] font-bold text-[#22201B]">${totalPrice.toFixed(2)}</span>
         </div>
-        {mode === "web" ? (
+        {mode === "web" && webOrderIntent !== "pickup" ? (
+          <p className="text-center text-[12px] text-[#8A6B1F] bg-[#FDECC8] rounded-full py-3 px-4">
+            {t("reservation_web_mode_blocked")}
+          </p>
+        ) : mode === "web" ? (
           <div className="flex flex-col gap-2">
             <p className="text-center text-[11.5px] text-[#8A8272] px-2">{t("pickup_checkout_note")}</p>
             {bankTransferAvailable && (

@@ -750,6 +750,29 @@ const dict = {
     en: "No restaurants on this platform yet.",
     ko: "아직 등록된 매장이 없습니다.",
   },
+  directory_hero_line1: {
+    vi: "Không chỉ là món ăn,",
+    en: "It's not just food,",
+    ko: "단순한 음식이 아니라,",
+  },
+  directory_hero_highlight: {
+    vi: "là trải nghiệm",
+    en: "it's an experience",
+    ko: "하나의 경험입니다",
+  },
+  directory_cta_view_menu: { vi: "Xem thực đơn", en: "View menu", ko: "메뉴 보기" },
+  directory_cta_download_app: { vi: "Tải ứng dụng", en: "Download app", ko: "앱 다운로드" },
+  directory_soon_badge: { vi: "Sắp ra mắt", en: "Coming soon", ko: "출시 예정" },
+  directory_app_soon_tooltip: {
+    vi: "Ứng dụng đang được phát triển, ra mắt sau.",
+    en: "The app is still in development — coming later.",
+    ko: "앱은 현재 개발 중이며 추후 출시됩니다.",
+  },
+  directory_stat_stores: {
+    vi: "{count} nhà hàng đang hoạt động trên nền tảng",
+    en: "{count} restaurants active on the platform",
+    ko: "{count}개 매장이 플랫폼에서 운영 중",
+  },
 } as const;
 
 export type TranslationKey = keyof typeof dict;

@@ -6,13 +6,14 @@ import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 
 export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "chat" | "grid" }) {
-  const { setSelectedDishId, addToCart, getDishRating, mode } = useApp();
+  const { setSelectedDishId, addToCart, getDishRating, mode, webOrderIntent } = useApp();
   const { t, lang } = useI18n();
   const [added, setAdded] = useState(false);
   const [qty, setQty] = useState(1);
   const soldOut = !!dish.soldOut;
   const rating = getDishRating(dish.id);
   const name = getDishName(dish, lang);
+  const canOrder = mode === "store" || webOrderIntent === "pickup";
 
   if (variant === "grid") {
     return (
@@ -68,7 +69,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
         </div>
         <div className="flex items-center justify-between mt-2.5">
           <span className="text-[15px] font-bold text-[#2D5A3D]">${dish.price.toFixed(2)}</span>
-          {mode === "store" && !soldOut && !added && (
+          {canOrder && !soldOut && !added && (
             <div className="flex items-center gap-2 bg-[#F5F1E6] rounded-full px-2 py-1">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -86,7 +87,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
             </div>
           )}
         </div>
-        {mode === "store" && (
+        {canOrder && (
           <button
             onClick={() => {
               addToCart(dish.id, qty);

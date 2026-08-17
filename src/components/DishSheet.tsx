@@ -8,12 +8,13 @@ import { getDishName, getDishDescription, getPairingReason } from "../data/menu"
 import { OrderModeNotice } from "./OrderModeNotice";
 
 function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
-  const { findDish, addToCart, setSelectedDishId, mode } = useApp();
+  const { findDish, addToCart, setSelectedDishId, mode, webOrderIntent } = useApp();
   const { t, lang } = useI18n();
   const [added, setAdded] = useState(false);
   const paired = findDish(dishId);
   if (!paired || paired.soldOut) return null;
   const pairedName = getDishName(paired, lang);
+  const canOrder = mode === "store" || webOrderIntent === "pickup";
 
   return (
     <div
@@ -30,7 +31,7 @@ function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
         <p className="text-[12.5px] font-semibold text-[#22201B] leading-tight">{pairedName}</p>
         <p className="text-[11px] text-[#8A8272] leading-snug line-clamp-2">{reason}</p>
       </div>
-      {mode === "store" && (
+      {canOrder && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -48,7 +49,7 @@ function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
 }
 
 export function DishSheet() {
-  const { selectedDishId, setSelectedDishId, addToCart, findDish, mode } = useApp();
+  const { selectedDishId, setSelectedDishId, addToCart, findDish, mode, webOrderIntent } = useApp();
   const { t, lang } = useI18n();
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
@@ -58,6 +59,7 @@ export function DishSheet() {
   const dish = findDish(selectedDishId);
   if (!dish) return null;
   const dishName = getDishName(dish, lang);
+  const canOrder = mode === "store" || webOrderIntent === "pickup";
 
   const close = () => {
     setSelectedDishId(null);
@@ -160,7 +162,7 @@ export function DishSheet() {
 
           <ReviewSection dishId={dish.id} />
 
-          {mode === "store" ? (
+          {canOrder ? (
             <>
               <label className="block mt-4">
                 <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("dish_note_label")}</p>
