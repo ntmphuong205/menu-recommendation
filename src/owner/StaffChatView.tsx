@@ -8,6 +8,16 @@ function timeShort(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+/** No-table guests have no name/phone to show — this is the only thing
+ *  that lets staff tell two different anonymous conversations apart in
+ *  the inbox list. */
+function guestLabel(
+  sessionId: string,
+  t: (key: import("../i18n/translations").TranslationKey, vars?: Record<string, string | number>) => string
+): string {
+  return t("staffchatview_unknown_table_id", { code: sessionId.slice(0, 4).toUpperCase() });
+}
+
 function ThreadRow({
   thread,
   active,
@@ -28,7 +38,7 @@ function ThreadRow({
     >
       <div className="flex items-center justify-between gap-2 mb-0.5">
         <span className="text-[13px] font-semibold text-[#22201B] truncate">
-          {thread.table_id ? `${t("chat_table")} ${thread.table_id}` : t("staffchatview_unknown_table")}
+          {thread.table_id ? `${t("chat_table")} ${thread.table_id}` : guestLabel(thread.customer_session_id, t)}
         </span>
         {thread.needs_reply && <span className="w-2 h-2 rounded-full bg-[#B0553C] shrink-0" />}
       </div>
@@ -123,7 +133,9 @@ export function StaffChatView() {
               <p className="text-[13.5px] font-bold text-[#22201B]">
                 {selectedThread?.table_id
                   ? `${t("chat_table")} ${selectedThread.table_id}`
-                  : t("staffchatview_unknown_table")}
+                  : selected
+                    ? guestLabel(selected, t)
+                    : t("staffchatview_unknown_table")}
               </p>
             </div>
             <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-2.5">

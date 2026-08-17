@@ -14,6 +14,7 @@ import { ACTIVE_STATUSES } from "../data/orders";
 import type { Review, DishRatingSummary } from "../data/reviews";
 import { summarizeRatings } from "../data/reviews";
 import type { TableRequest } from "../data/tableRequests";
+import { getStoreSlug } from "../lib/storeSlug";
 
 export interface CartItem {
   id: string;
@@ -114,6 +115,23 @@ function getModeFromUrl(): "web" | "store" {
   return new URLSearchParams(window.location.search).get("mode") === "web" ? "web" : "store";
 }
 
+// Keyed per store slug so switching restaurants in the same tab (e.g. from
+// the homepage directory) doesn't carry over a stale choice from whichever
+// store was visited previously.
+function webOrderIntentStorageKey(): string {
+  return `mp_web_order_intent:${getStoreSlug() || "default"}`;
+}
+
+/** DiningChoiceScreen's pick would otherwise live only in React state — a
+ *  plain tab refresh (or the browser reclaiming a backgrounded tab) reset it
+ *  to null, silently bouncing a "pickup" customer back into the dine-in
+ *  restriction with no indication anything changed. sessionStorage survives
+ *  reloads within the same tab without outliving the visit. */
+function getStoredWebOrderIntent(): "dine_in" | "pickup" | null {
+  const value = sessionStorage.getItem(webOrderIntentStorageKey());
+  return value === "dine_in" || value === "pickup" ? value : null;
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const isOwnerRoute = location.pathname.startsWith("/admin");
@@ -141,7 +159,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const [tableId] = useState<string>(getTableFromUrl);
   const [mode] = useState<"web" | "store">(getModeFromUrl);
-  const [webOrderIntent, setWebOrderIntent] = useState<"dine_in" | "pickup" | null>(null);
+  const [webOrderIntent, setWebOrderIntentState] = useState<"dine_in" | "pickup" | null>(getStoredWebOrderIntent);
+  const setWebOrderIntent = (intent: "dine_in" | "pickup") => {
+    sessionStorage.setItem(webOrderIntentStorageKey(), intent);
+    setWebOrderIntentState(intent);
+  };
 
   const findDish = (id: string) => menu.find((d) => d.id === id);
 
