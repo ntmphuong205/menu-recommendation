@@ -36,6 +36,7 @@ function groupOrders(rows: ApiOrder[]): Order[] {
       pickupCode: groupRows[0].pickup_code,
       pickupTime: groupRows[0].pickup_time,
       paymentMethod: groupRows[0].payment_method,
+      customerSessionId: groupRows[0].customer_session_id,
     };
   });
 }

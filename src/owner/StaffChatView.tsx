@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Send, MessageCircle, ChevronLeft } from "lucide-react";
 import { useChatThreads } from "../store/useChatThreads";
+import { useApp } from "../context/AppContext";
+import type { Order } from "../data/orders";
 import { useI18n } from "../i18n/I18nContext";
 import type { ApiChatMessage, ApiChatThread } from "../lib/apiClient";
 
@@ -8,23 +10,32 @@ function timeShort(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-/** No-table guests have no name/phone to show — this is the only thing
- *  that lets staff tell two different anonymous conversations apart in
- *  the inbox list. */
+/** No-table guests have no name/phone — the only thing that connects a chat
+ *  thread back to a real order is the pickup code the customer was already
+ *  given (and will hand over at the counter). `orders` is sorted newest
+ *  first, so the first match is this guest's most recent pickup order. */
+function pickupCodeForSession(orders: Order[], sessionId: string): string | null {
+  return orders.find((o) => o.customerSessionId === sessionId && o.pickupCode)?.pickupCode ?? null;
+}
+
 function guestLabel(
-  sessionId: string,
+  pickupCode: string | null,
   t: (key: import("../i18n/translations").TranslationKey, vars?: Record<string, string | number>) => string
 ): string {
-  return t("staffchatview_unknown_table_id", { code: sessionId.slice(0, 4).toUpperCase() });
+  return pickupCode
+    ? t("staffchatview_guest_order_code", { code: pickupCode })
+    : t("staffchatview_unknown_table");
 }
 
 function ThreadRow({
   thread,
+  pickupCode,
   active,
   onClick,
   t,
 }: {
   thread: ApiChatThread;
+  pickupCode: string | null;
   active: boolean;
   onClick: () => void;
   t: (key: import("../i18n/translations").TranslationKey, vars?: Record<string, string | number>) => string;
@@ -38,7 +49,7 @@ function ThreadRow({
     >
       <div className="flex items-center justify-between gap-2 mb-0.5">
         <span className="text-[13px] font-semibold text-[#22201B] truncate">
-          {thread.table_id ? `${t("chat_table")} ${thread.table_id}` : guestLabel(thread.customer_session_id, t)}
+          {thread.table_id ? `${t("chat_table")} ${thread.table_id}` : guestLabel(pickupCode, t)}
         </span>
         {thread.needs_reply && <span className="w-2 h-2 rounded-full bg-[#B0553C] shrink-0" />}
       </div>
@@ -53,6 +64,7 @@ function ThreadRow({
 
 export function StaffChatView() {
   const { threads, loadThread, reply, sending } = useChatThreads();
+  const { orders } = useApp();
   const { t } = useI18n();
   const [selected, setSelected] = useState<string | null>(null);
   const [messages, setMessages] = useState<ApiChatMessage[]>([]);
@@ -109,6 +121,7 @@ export function StaffChatView() {
             <ThreadRow
               key={th.customer_session_id}
               thread={th}
+              pickupCode={pickupCodeForSession(orders, th.customer_session_id)}
               active={selected === th.customer_session_id}
               onClick={() => setSelected(th.customer_session_id)}
               t={t}
@@ -133,9 +146,7 @@ export function StaffChatView() {
               <p className="text-[13.5px] font-bold text-[#22201B]">
                 {selectedThread?.table_id
                   ? `${t("chat_table")} ${selectedThread.table_id}`
-                  : selected
-                    ? guestLabel(selected, t)
-                    : t("staffchatview_unknown_table")}
+                  : guestLabel(selected ? pickupCodeForSession(orders, selected) : null, t)}
               </p>
             </div>
             <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-2.5">

@@ -40,6 +40,9 @@ export interface Order {
   /** Null for dine_in. For pickup: vnpay confirms itself via IPN, staff
    *  must manually confirm bank_transfer (see OrdersView). */
   paymentMethod: PaymentMethod | null;
+  /** Same anonymous id used for chat threads — lets the admin chat inbox
+   *  show a guest's real pickupCode instead of a made-up label. */
+  customerSessionId: string;
 }
 
 /** Maps a status to its translation key rather than baking in English text,

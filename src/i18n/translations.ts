@@ -173,10 +173,14 @@ const dict = {
   staffchatview_select_prompt: { vi: "Chọn 1 cuộc trò chuyện để xem", en: "Select a conversation to view it", ko: "대화를 선택해 주세요" },
   staffchatview_reply_placeholder: { vi: "Nhập phản hồi...", en: "Type a reply...", ko: "답장 입력..." },
   staffchatview_unknown_table: { vi: "Khách (từ xa)", en: "Guest (remote)", ko: "고객 (원격)" },
-  // {code} is a short slice of the guest's anonymous session id — the only
-  // way to tell two no-table conversations apart in the inbox list, since
-  // there's no login/name to show instead.
-  staffchatview_unknown_table_id: { vi: "Khách (từ xa) #{code}", en: "Guest (remote) #{code}", ko: "고객 (원격) #{code}" },
+  // {code} is the guest's real pickup_code (same one shown to them and
+  // handed over at the counter) — lets staff match a no-table conversation
+  // to an actual order instead of a made-up label.
+  staffchatview_guest_order_code: {
+    vi: "Khách — Đơn #{code}",
+    en: "Guest — Order #{code}",
+    ko: "고객 — 주문 #{code}",
+  },
   staffchatview_you: { vi: "Bạn", en: "You", ko: "나" },
   staffchat_subtitle: { vi: "Nhắn tin trực tiếp với nhân viên", en: "Message the restaurant directly", ko: "매장에 직접 메시지 보내기" },
   staffchat_empty: {
