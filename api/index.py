@@ -510,6 +510,11 @@ class ChatRequest(BaseModel):
     query: str = Field(min_length=1, max_length=2000)
     language: str = Field(default="ko", min_length=2, max_length=10)
     mode: Literal["web", "store"] = "store"
+    # Only meaningful when mode=="web" — mirrors DiningChoiceScreen's choice
+    # on the frontend. "pickup" may order (paid upfront); "dine_in" (or
+    # unset, before choosing) may not, same restriction as mode=="web" alone
+    # used to mean before pickup ordering existed.
+    web_order_intent: Optional[Literal["dine_in", "pickup"]] = None
     # Prior turns in this conversation (oldest first), excluding `query`
     # itself — lets the model handle follow-ups like "the second one" or
     # "make that spicier" instead of answering each message in isolation.
@@ -1791,6 +1796,14 @@ def payment_status(order_group_id: str = Query(...)) -> Dict[str, Any]:
         "payment_method": rows[0].get("payment_method"),
         "total_price": order_group_amount(rows),
         "currency": rows[0].get("currency", "USD"),
+        # The actual amount the bank-transfer QR is generated for (and what
+        # VNPay would charge) — always VND, converted from total_price/
+        # currency when those aren't already VND. Frontend must use this,
+        # not total_price, for anything VND-denominated (see
+        # PickupResultScreen.tsx) — total_price is in the store's own menu
+        # currency and was previously being passed to the QR builder as if
+        # it were already VND, requesting amounts off by ~25,000x.
+        "amount_vnd": order_group_amount_vnd(rows),
     }
 
 
@@ -2078,20 +2091,35 @@ def chat(payload: ChatRequest) -> Dict[str, Any]:
                 table_summary["total"].get(status, 0) + 1
             )
 
-        mode_instruction = (
-            "This is web browsing mode (general QR, no table assigned yet): the "
-            "customer can browse the menu and seating, and request a table "
-            "reservation or join the waitlist, but cannot place a food order yet "
-            "— tell them to order once seated at their table. Always return an "
-            "empty suggested_cart_items array."
-            if payload.mode == "web"
-            else (
+        # Mirrors the frontend's DishSheet/DishCard/CartScreen gating: dine-in
+        # ordering still requires being physically at a table (mode=="store");
+        # web-mode ordering is only allowed once the customer has chosen
+        # "pickup" on DiningChoiceScreen (paid upfront, collected later).
+        can_order = payload.mode == "store" or payload.web_order_intent == "pickup"
+        if payload.mode == "store":
+            mode_instruction = (
                 "This is store mode (scanned at their own table): you may help "
                 "with menu and seating questions, and they can order food now. "
                 "Only add to suggested_cart_items when the customer clearly asks "
                 "for a specific dish to be added."
             )
-        )
+        elif can_order:
+            mode_instruction = (
+                "This is web browsing mode, and the customer has chosen remote "
+                "pickup: they pay upfront and collect the order later, no table "
+                "involved. You may help with menu questions and they can order "
+                "now for pickup. Only add to suggested_cart_items when the "
+                "customer clearly asks for a specific dish to be added. Never "
+                "discuss table reservations or seating — pickup has no table."
+            )
+        else:
+            mode_instruction = (
+                "This is web browsing mode (general QR, no table assigned yet, "
+                "and the customer hasn't chosen remote pickup): they can browse "
+                "the menu, but cannot place a food order yet — tell them to "
+                "order once seated at their table, or choose remote pickup "
+                "instead. Always return an empty suggested_cart_items array."
+            )
         system_prompt = f"""
 You are Q-Menu's friendly AI assistant for menu recommendations and seating info at this restaurant.
 Reply language: {language_names.get(payload.language, payload.language)}. Do not mix languages.
@@ -2150,7 +2178,7 @@ Respond with exactly this JSON shape, nothing else:
             if str(menu_id) in valid_ids
         ][:3]
         suggested_cart_items = []
-        if payload.mode == "store":
+        if can_order:
             for item in parsed.get("suggested_cart_items", []):
                 menu_id = str(item.get("menu_id", ""))
                 if menu_id not in valid_ids:

@@ -286,6 +286,10 @@ export const apiClient = {
       payment_method: ApiPaymentMethod | null;
       total_price: number;
       currency: string;
+      // The actual bank-transfer/VNPay amount, always VND — use this (not
+      // total_price, which is in the store's own menu currency) for
+      // anything shown on or fed into the payment QR.
+      amount_vnd: number;
     }>("GET", `/payments/status?order_group_id=${orderGroupId}`),
   // Only succeeds when the backend's ALLOW_TEST_PAYMENT_CONFIRM is set —
   // lets the pickup-result screen preview the post-payment state without a
@@ -342,6 +346,11 @@ export const apiClient = {
       { message }
     ),
 
-  chat: (payload: { query: string; language: string; mode: "web" | "store"; history?: ChatHistoryTurn[] }) =>
-    request<ChatResponse>("POST", "/chat", payload),
+  chat: (payload: {
+    query: string;
+    language: string;
+    mode: "web" | "store";
+    web_order_intent?: "dine_in" | "pickup" | null;
+    history?: ChatHistoryTurn[];
+  }) => request<ChatResponse>("POST", "/chat", payload),
 };

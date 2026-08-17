@@ -104,6 +104,15 @@ export function StoreSettingsView() {
   }, [keywords]);
 
   const handleSave = async () => {
+    // Caught here rather than left to the backend's model_validator: a
+    // pydantic ValidationError comes back as a 422 with `detail` as an
+    // array of error objects, not a string, so apiClient.ts's error
+    // handling can't extract a readable message from it — the owner would
+    // just see an opaque "Request failed (422)".
+    if (openingTime >= closingTime) {
+      alert(t("store_settings_pickup_window_error"));
+      return;
+    }
     setSaving(true);
     setSaved(false);
     try {

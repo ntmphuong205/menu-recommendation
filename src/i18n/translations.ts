@@ -499,6 +499,11 @@ const dict = {
     ko: "픽업 고객은 이 시간 범위 내에서만 수령 시간을 선택할 수 있습니다.",
   },
   store_settings_pickup_window_to: { vi: "đến", en: "to", ko: "~" },
+  store_settings_pickup_window_error: {
+    vi: "Giờ mở phải trước giờ đóng.",
+    en: "Opening time must be before closing time.",
+    ko: "오픈 시간은 마감 시간보다 빨라야 합니다.",
+  },
   store_settings_field_description: { vi: "Mô tả", en: "Description", ko: "설명" },
   store_settings_field_categories: { vi: "Danh mục món", en: "Menu categories", ko: "메뉴 카테고리" },
   store_settings_field_categories_placeholder: { vi: "vd. Món chính, Khai vị", en: "e.g. Main, Starter", ko: "예: 메인, 애피타이저" },

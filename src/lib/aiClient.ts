@@ -32,10 +32,18 @@ function toHistory(messages: ChatMessage[]): ChatHistoryTurn[] {
 export async function getAiChatReply(
   query: string,
   lang: Lang,
-  history: ChatMessage[] = []
+  history: ChatMessage[] = [],
+  mode: "web" | "store" = "store",
+  webOrderIntent: "dine_in" | "pickup" | null = null
 ): Promise<AiChatReply | null> {
   try {
-    const res = await apiClient.chat({ query, language: lang, mode: "store", history: toHistory(history) });
+    const res = await apiClient.chat({
+      query,
+      language: lang,
+      mode,
+      web_order_intent: webOrderIntent,
+      history: toHistory(history),
+    });
     if (!res.success) return null;
     const dishIds = Array.from(
       new Set([...res.recommended_menu_ids, ...res.suggested_cart_items.map((i) => i.menu_id)])

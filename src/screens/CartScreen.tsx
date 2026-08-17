@@ -270,7 +270,11 @@ function PickupTimeSheet({
             className="text-[15px] font-semibold text-[#22201B] outline-none bg-transparent"
           />
         </label>
-        <p className="text-center text-[11px] text-[#8A8272] -mt-2">
+        <p
+          className={`text-center text-[11px] -mt-2 ${
+            pickupTime && !pickupTimeInWindow ? "text-[#B0553C] font-semibold" : "text-[#8A8272]"
+          }`}
+        >
           {t("pickup_time_window", { start: minPickupTime, end: maxPickupTime })}
         </p>
         <button

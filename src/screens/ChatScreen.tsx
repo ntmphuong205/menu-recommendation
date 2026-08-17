@@ -10,8 +10,9 @@ import { LangSwitcher } from "../components/LangSwitcher";
 import { OrderModeNotice } from "../components/OrderModeNotice";
 
 export function ChatScreen() {
-  const { addToCart, menu, tableId, mode } = useApp();
+  const { addToCart, menu, tableId, mode, webOrderIntent } = useApp();
   const { t, lang } = useI18n();
+  const canOrder = mode === "store" || webOrderIntent === "pickup";
   const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages(lang));
   const [state, setState] = useState<ConversationState>({ stage: "idle" });
   const [input, setInput] = useState("");
@@ -42,12 +43,13 @@ export function ChatScreen() {
 
     setTimeout(async () => {
       // The backend's Gemini-grounded /api/chat handles the message first —
-      // it sees the live menu/table data and answers accordingly. It never
-      // adds to the cart itself, only suggests dishes; getAiChatReply()
-      // resolves to null on any failure (no GEMINI_API_KEY configured,
-      // network error, etc.), and the rule-based engine below is the
-      // complete offline fallback either way.
-      const ai = await getAiChatReply(trimmed, lang, messages);
+      // it sees the live menu/table data and answers accordingly, and (told
+      // the real mode/webOrderIntent) only ever suggests dishes when
+      // canOrder is true. It never adds to the cart itself, only suggests;
+      // getAiChatReply() resolves to null on any failure (no GEMINI_API_KEY
+      // configured, network error, etc.), and the rule-based engine below is
+      // the complete offline fallback either way.
+      const ai = await getAiChatReply(trimmed, lang, messages, mode, webOrderIntent);
       if (ai) {
         const dishes = ai.dishIds.map((id) => menu.find((d) => d.id === id)).filter((d): d is NonNullable<typeof d> => !!d);
         setMessages((prev) => [...prev, botMessage(ai.reply, dishes.length > 0 ? dishes : undefined)]);
@@ -56,11 +58,23 @@ export function ChatScreen() {
       }
 
       const result = respond(trimmed, state, menu, lang);
+      if (result.cartOp && !canOrder) {
+        // respond()'s own messages for this turn assume the add succeeded
+        // ("Added X to your cart...") — showing those while silently not
+        // adding anything would be a lie, so swap in the same blocked
+        // explanation DishSheet/DishCard show instead, and drop the
+        // half-finished order-taking state rather than leaving it stuck
+        // waiting for a qty/note that will never get anywhere.
+        setMessages((prev) => [...prev, botMessage(t("reservation_web_mode_blocked"))]);
+        setState({ stage: "idle" });
+        setTyping(false);
+        return;
+      }
       setMessages((prev) => [...prev, ...result.messages]);
       setState(result.state);
       if (result.cartOp) {
         // Chat only ever adds to the customer's cart — placing the real order
-        // happens explicitly from the Cart tab's "Confirm order" button.
+        // happens explicitly from the Cart tab's confirm button.
         addToCart(result.cartOp.dishId, result.cartOp.qty, result.cartOp.note);
       }
       setTyping(false);

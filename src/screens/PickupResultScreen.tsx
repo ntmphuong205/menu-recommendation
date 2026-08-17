@@ -21,8 +21,7 @@ interface PaymentSnapshot {
   pickupCode: string | null;
   pickupTime: string | null;
   paymentMethod: ApiPaymentMethod | null;
-  totalPrice: number;
-  currency: string;
+  amountVnd: number;
 }
 
 type ResultState =
@@ -97,8 +96,7 @@ export function PickupResultScreen() {
             pickupCode: res.pickup_code,
             pickupTime: res.pickup_time,
             paymentMethod: res.payment_method,
-            totalPrice: res.total_price,
-            currency: res.currency,
+            amountVnd: res.amount_vnd,
           },
         });
       } catch {
@@ -146,7 +144,7 @@ export function PickupResultScreen() {
           bankBin: store.bank_bin,
           accountNumber: store.bank_account_number,
           accountHolder: store.bank_account_holder,
-          amountVnd: bankSnapshot.totalPrice,
+          amountVnd: bankSnapshot.amountVnd,
           note: `DH ${bankSnapshot.pickupCode ?? ""}`,
         })
       : null) || store?.bank_qr_image;
@@ -172,7 +170,7 @@ export function PickupResultScreen() {
               <div className="flex items-center justify-between text-[12.5px]">
                 <span className="text-[#8A8272]">{t("pickup_bank_transfer_amount")}</span>
                 <span className="font-bold text-[#22201B]">
-                  {Math.round(bankSnapshot.totalPrice).toLocaleString()} VND
+                  {Math.round(bankSnapshot.amountVnd).toLocaleString()} VND
                 </span>
               </div>
               <div className="flex items-center justify-between text-[12.5px]">
