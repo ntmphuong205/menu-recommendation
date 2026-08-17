@@ -11,6 +11,8 @@ export interface StoreUpdatePayload {
   bank_account_number?: string;
   bank_account_holder?: string;
   bank_qr_image?: string | null;
+  opening_time?: string;
+  closing_time?: string;
 }
 
 export interface StoreData {

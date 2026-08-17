@@ -61,6 +61,8 @@ export function StoreSettingsView() {
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [bankAccountHolder, setBankAccountHolder] = useState("");
   const [bankQrImage, setBankQrImage] = useState("");
+  const [openingTime, setOpeningTime] = useState("09:00");
+  const [closingTime, setClosingTime] = useState("22:00");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -74,6 +76,8 @@ export function StoreSettingsView() {
     setBankAccountNumber(store.bank_account_number ?? "");
     setBankAccountHolder(store.bank_account_holder ?? "");
     setBankQrImage(store.bank_qr_image ?? "");
+    setOpeningTime(store.opening_time || "09:00");
+    setClosingTime(store.closing_time || "22:00");
   }, [store]);
 
   const handleQrUpload = (file: File | undefined) => {
@@ -101,6 +105,8 @@ export function StoreSettingsView() {
           bank_account_number: bankAccountNumber,
           bank_account_holder: bankAccountHolder,
           bank_qr_image: bankQrImage || null,
+          opening_time: openingTime,
+          closing_time: closingTime,
         }),
         updateKeywords(localKeywords),
       ]);
@@ -139,6 +145,14 @@ export function StoreSettingsView() {
           </Field>
           <Field label={t("store_settings_field_hours")}>
             <input value={hours} onChange={(e) => setHours(e.target.value)} className={inputCls} placeholder={t("store_settings_field_hours_placeholder")} />
+          </Field>
+          <Field label={t("store_settings_pickup_window")}>
+            <p className="text-[11px] text-[#8A8272] mb-1.5 -mt-1">{t("store_settings_pickup_window_desc")}</p>
+            <div className="flex items-center gap-2">
+              <input type="time" value={openingTime} onChange={(e) => setOpeningTime(e.target.value)} className={inputCls} />
+              <span className="text-[12px] text-[#8A8272] shrink-0">{t("store_settings_pickup_window_to")}</span>
+              <input type="time" value={closingTime} onChange={(e) => setClosingTime(e.target.value)} className={inputCls} />
+            </div>
           </Field>
           <Field label={t("store_settings_field_description")}>
             <textarea

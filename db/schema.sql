@@ -37,6 +37,12 @@ create table if not exists public.stores (
     -- menus.image_url) — takes priority over the auto-generated VietQR
     -- image when set, since it's the bank's own QR and can't be wrong.
     bank_qr_image text,
+    -- Daily window remote pickup orders may be scheduled into (HH:MM,
+    -- store's own local time) — separate from the freeform `hours` text
+    -- above since this needs to be a single comparable pair the backend
+    -- validates orders.pickup_time against.
+    opening_time text not null default '09:00',
+    closing_time text not null default '22:00',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -355,7 +361,9 @@ alter table public.stores
     add column if not exists bank_bin text,
     add column if not exists bank_account_number text,
     add column if not exists bank_account_holder text,
-    add column if not exists bank_qr_image text;
+    add column if not exists bank_qr_image text,
+    add column if not exists opening_time text not null default '09:00',
+    add column if not exists closing_time text not null default '22:00';
 
 create table if not exists public.chat_messages (
     id uuid primary key default gen_random_uuid(),

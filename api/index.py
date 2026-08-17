@@ -173,6 +173,11 @@ class StoreUpdate(BaseModel):
     # Owner-uploaded QR image — takes priority over the auto-generated
     # VietQR image (built from bank_bin/bank_account_number) when set.
     bank_qr_image: Optional[str] = None
+    # Daily window remote pickup orders may be scheduled into — separate
+    # from `hours` (freeform display text) since this needs to be a single
+    # comparable HH:MM pair to validate pickup_time against in create_order.
+    opening_time: str = Field(default="09:00")
+    closing_time: str = Field(default="22:00")
 
     @field_validator("name", "hours", "description", "bank_bin", "bank_account_number", "bank_account_holder")
     @classmethod
@@ -188,6 +193,19 @@ class StoreUpdate(BaseModel):
     @classmethod
     def validate_bank_qr_image(cls, value: Optional[str]) -> Optional[str]:
         return validate_image_value(value)
+
+    @field_validator("opening_time", "closing_time")
+    @classmethod
+    def validate_time_of_day(cls, value: str) -> str:
+        if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", value):
+            raise ValueError("Time must be in HH:MM 24-hour format.")
+        return value
+
+    @model_validator(mode="after")
+    def check_hours_order(self) -> "StoreUpdate":
+        if self.opening_time >= self.closing_time:
+            raise ValueError("Opening time must be before closing time.")
+        return self
 
 
 class IngredientLine(BaseModel):
@@ -1302,6 +1320,8 @@ def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "bank_account_number": row.get("bank_account_number") or "",
         "bank_account_holder": row.get("bank_account_holder") or "",
         "bank_qr_image": row.get("bank_qr_image") or "",
+        "opening_time": row.get("opening_time") or "09:00",
+        "closing_time": row.get("closing_time") or "22:00",
     }
 
 
@@ -1433,6 +1453,8 @@ def update_store(
             "bank_account_number": payload.bank_account_number or None,
             "bank_account_holder": payload.bank_account_holder or None,
             "bank_qr_image": payload.bank_qr_image or None,
+            "opening_time": payload.opening_time,
+            "closing_time": payload.closing_time,
         }
     )
     return {
@@ -1547,6 +1569,17 @@ def create_order(payload: OrderCreate) -> Dict[str, Any]:
             detail="Ordering isn't available in web browsing mode.",
         )
     repo = get_repository()
+    if payload.fulfillment_type == "pickup":
+        store = repo.get_store()
+        opening_time = store.get("opening_time") or "09:00"
+        closing_time = store.get("closing_time") or "22:00"
+        # Plain string comparison works here since both sides are always
+        # "HH:MM" 24-hour — lexicographic order matches chronological order.
+        if not (opening_time <= payload.pickup_time <= closing_time):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Pickup time must be between {opening_time} and {closing_time}.",
+            )
     menu = repo.get_menu(str(payload.menu_id))
     if not menu:
         raise HTTPException(status_code=404, detail="Menu item not found.")

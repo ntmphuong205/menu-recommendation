@@ -230,6 +230,11 @@ const dict = {
     ko: "미리 주문하고 결제한 뒤, 카운터에서 코드를 보여주고 수령하세요.",
   },
   pickup_time_label: { vi: "Giờ dự kiến ra lấy", en: "Pickup time", ko: "픽업 시간" },
+  pickup_time_window: {
+    vi: "Chỉ nhận lấy hàng trong khung giờ {start} - {end}",
+    en: "Pickup is only available between {start} and {end}",
+    ko: "픽업은 {start} ~ {end} 사이에만 가능합니다",
+  },
   pickup_bank_transfer_button: {
     vi: "Chuyển khoản ngân hàng",
     en: "Pay by bank transfer",
@@ -467,6 +472,13 @@ const dict = {
     en: "e.g. Weekdays 11:30 - 22:00",
     ko: "예: 평일 11:30 - 22:00",
   },
+  store_settings_pickup_window: { vi: "Khung giờ nhận đơn đặt trước", en: "Pickup order window", ko: "픽업 주문 가능 시간" },
+  store_settings_pickup_window_desc: {
+    vi: "Khách đặt trước chỉ được chọn giờ ra lấy trong khung này.",
+    en: "Pickup customers can only choose a collection time inside this window.",
+    ko: "픽업 고객은 이 시간 범위 내에서만 수령 시간을 선택할 수 있습니다.",
+  },
+  store_settings_pickup_window_to: { vi: "đến", en: "to", ko: "~" },
   store_settings_field_description: { vi: "Mô tả", en: "Description", ko: "설명" },
   store_settings_field_categories: { vi: "Danh mục món", en: "Menu categories", ko: "메뉴 카테고리" },
   store_settings_field_categories_placeholder: { vi: "vd. Món chính, Khai vị", en: "e.g. Main, Starter", ko: "예: 메인, 애피타이저" },

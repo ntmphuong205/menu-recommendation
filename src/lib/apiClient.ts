@@ -184,6 +184,9 @@ export interface ApiStore {
   // Owner-uploaded QR image (data URL) — takes priority over the
   // auto-generated VietQR image built from bank_bin/bank_account_number.
   bank_qr_image: string;
+  // Daily "HH:MM" window remote pickup orders may be scheduled into.
+  opening_time: string;
+  closing_time: string;
 }
 
 export interface ChatResponse {
@@ -236,6 +239,8 @@ export const apiClient = {
     bank_account_number?: string;
     bank_account_holder?: string;
     bank_qr_image?: string | null;
+    opening_time?: string;
+    closing_time?: string;
   }) => request<{ success: boolean; store: ApiStore }>("PUT", "/store", payload),
 
   getKeywords: () => request<{ keywords: string[] }>("GET", "/keywords"),

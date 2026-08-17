@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt, Sparkles } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import type { QueueInfo } from "../context/AppContext";
@@ -234,11 +234,30 @@ export function CartScreen() {
   const [justSubmitted, setJustSubmitted] = useState(false);
   const [pickupState, setPickupState] = useState<"idle" | "bank" | "error">("idle");
   // Defaults to 30 minutes from now — a reasonable "ready by" guess the
-  // customer can freely change to any time.
+  // customer can freely change to any time, clamped into the store's
+  // pickup window once it's loaded (see the effect below).
   const [pickupTime, setPickupTime] = useState(() => {
     const d = new Date(Date.now() + 30 * 60 * 1000);
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   });
+
+  const minPickupTime = store?.opening_time || "09:00";
+  const maxPickupTime = store?.closing_time || "22:00";
+  const pickupTimeInWindow = pickupTime >= minPickupTime && pickupTime <= maxPickupTime;
+
+  // store loads asynchronously (polled) — once its pickup window is known,
+  // pull the "now + 30min" guess back inside it instead of leaving the
+  // customer with an unsubmittable default they'd have to notice and fix
+  // themselves.
+  useEffect(() => {
+    if (!store) return;
+    setPickupTime((current) => {
+      if (current < minPickupTime) return minPickupTime;
+      if (current > maxPickupTime) return maxPickupTime;
+      return current;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store?.opening_time, store?.closing_time]);
 
   const handleBankTransferCheckout = async () => {
     setPickupState("bank");
@@ -370,15 +389,22 @@ export function CartScreen() {
           <div className="flex flex-col gap-2">
             <p className="text-center text-[11.5px] text-[#8A8272] px-2">{t("pickup_checkout_note")}</p>
             {bankTransferAvailable && (
-              <label className="flex items-center justify-between gap-3 bg-white rounded-xl border border-black/10 px-3.5 py-2.5 mb-1">
-                <span className="text-[12.5px] font-medium text-[#5C5240]">{t("pickup_time_label")}</span>
-                <input
-                  type="time"
-                  value={pickupTime}
-                  onChange={(e) => setPickupTime(e.target.value)}
-                  className="text-[13px] font-semibold text-[#22201B] outline-none bg-transparent"
-                />
-              </label>
+              <>
+                <label className="flex items-center justify-between gap-3 bg-white rounded-xl border border-black/10 px-3.5 py-2.5 mb-1">
+                  <span className="text-[12.5px] font-medium text-[#5C5240]">{t("pickup_time_label")}</span>
+                  <input
+                    type="time"
+                    value={pickupTime}
+                    min={minPickupTime}
+                    max={maxPickupTime}
+                    onChange={(e) => setPickupTime(e.target.value)}
+                    className="text-[13px] font-semibold text-[#22201B] outline-none bg-transparent"
+                  />
+                </label>
+                <p className="text-center text-[10.5px] text-[#8A8272] -mt-1 mb-1">
+                  {t("pickup_time_window", { start: minPickupTime, end: maxPickupTime })}
+                </p>
+              </>
             )}
             {pickupState === "error" && (
               <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-2 px-4">
@@ -388,7 +414,7 @@ export function CartScreen() {
             {bankTransferAvailable ? (
               <button
                 onClick={handleBankTransferCheckout}
-                disabled={pickupState === "bank" || !pickupTime}
+                disabled={pickupState === "bank" || !pickupTime || !pickupTimeInWindow}
                 className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform disabled:opacity-60"
               >
                 {pickupState === "bank" ? t("pickup_pay_loading") : t("pickup_bank_transfer_button")}
