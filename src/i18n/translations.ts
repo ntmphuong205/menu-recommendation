@@ -529,6 +529,25 @@ const dict = {
   ownerlogin_password: { vi: "Mật khẩu", en: "Password", ko: "비밀번호" },
   ownerlogin_submit: { vi: "Đăng nhập", en: "Sign in", ko: "로그인" },
   ownerlogin_submitting: { vi: "Đang đăng nhập...", en: "Signing in...", ko: "로그인 중..." },
+  ownerlogin_forgot_password: { vi: "Quên mật khẩu?", en: "Forgot password?", ko: "비밀번호를 잊으셨나요?" },
+  ownerlogin_reset_title: { vi: "Đặt lại mật khẩu", en: "Reset password", ko: "비밀번호 재설정" },
+  ownerlogin_reset_desc: {
+    vi: "Nhập email tài khoản, chúng tôi sẽ gửi liên kết để đặt lại mật khẩu.",
+    en: "Enter your account email and we'll send you a link to reset your password.",
+    ko: "계정 이메일을 입력하면 비밀번호 재설정 링크를 보내드립니다.",
+  },
+  ownerlogin_reset_submit: { vi: "Gửi liên kết đặt lại", en: "Send reset link", ko: "재설정 링크 보내기" },
+  ownerlogin_reset_sent: {
+    vi: "Nếu email này có tài khoản, một liên kết đặt lại mật khẩu đã được gửi tới. Kiểm tra hộp thư của bạn.",
+    en: "If that email has an account, a password reset link has been sent. Check your inbox.",
+    ko: "해당 이메일로 계정이 있다면 비밀번호 재설정 링크가 전송되었습니다. 받은편지함을 확인해 주세요.",
+  },
+  ownerlogin_back_to_login: { vi: "Quay lại đăng nhập", en: "Back to login", ko: "로그인으로 돌아가기" },
+  ownerlogin_need_account: {
+    vi: "Chưa có tài khoản? Liên hệ quản trị viên để được cấp quyền.",
+    en: "Need an account? Contact an administrator.",
+    ko: "계정이 필요하신가요? 관리자에게 문의하세요.",
+  },
 
   // Store switcher (admin, multi-store)
   storeswitcher_load_error_title: { vi: "Không tải được danh sách quán", en: "Couldn't load your stores", ko: "매장 목록을 불러오지 못했습니다" },
@@ -554,6 +573,12 @@ const dict = {
 
   // Change password (admin)
   changepw_title: { vi: "Đổi mật khẩu", en: "Change password", ko: "비밀번호 변경" },
+  changepw_forced_title: { vi: "Đặt mật khẩu mới", en: "Set a new password", ko: "새 비밀번호 설정" },
+  changepw_forced_desc: {
+    vi: "Bạn cần đặt mật khẩu mới trước khi tiếp tục.",
+    en: "You need to set a new password before continuing.",
+    ko: "계속하려면 새 비밀번호를 설정해야 합니다.",
+  },
   changepw_new: { vi: "Mật khẩu mới", en: "New password", ko: "새 비밀번호" },
   changepw_new_placeholder: { vi: "Ít nhất 6 ký tự", en: "At least 6 characters", ko: "6자 이상" },
   changepw_confirm: { vi: "Xác nhận mật khẩu mới", en: "Confirm new password", ko: "새 비밀번호 확인" },

@@ -33,7 +33,7 @@ export function OwnerApp() {
   const [section, setSection] = useState<Section>("orders");
   const [navOpen, setNavOpen] = useState(false);
   const { t } = useI18n();
-  const { authRequired, user, loading, signIn, signOut } = useOwnerAuth();
+  const { authRequired, user, loading, passwordRecovery, signIn, signOut, requestPasswordReset } = useOwnerAuth();
   // Resolved once we know which store this login belongs to (see
   // StoreSwitcher) — null means "not resolved yet", not "no store".
   const [storeSlug, setStoreSlug] = useState<string | null>(() => (authRequired ? null : getStoreSlug() || null));
@@ -50,7 +50,15 @@ export function OwnerApp() {
   }
 
   if (authRequired && !user) {
-    return <OwnerLogin signIn={signIn} />;
+    return <OwnerLogin signIn={signIn} requestPasswordReset={requestPasswordReset} />;
+  }
+
+  if (authRequired && passwordRecovery) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-[#F5F1E6]">
+        <ChangePasswordModal forced onClose={() => {}} />
+      </div>
+    );
   }
 
   if (authRequired && !storeSlug) {

@@ -3,7 +3,15 @@ import { X, KeyRound, CheckCircle2 } from "lucide-react";
 import { useOwnerAuth } from "../store/useOwnerAuth";
 import { useI18n } from "../i18n/I18nContext";
 
-export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+export function ChangePasswordModal({
+  onClose,
+  forced = false,
+}: {
+  onClose: () => void;
+  /** True after arriving via a "reset password" email link — must set a
+   *  new password before doing anything else, so no way to dismiss. */
+  forced?: boolean;
+}) {
   const { t } = useI18n();
   const { changePassword } = useOwnerAuth();
   const [newPassword, setNewPassword] = useState("");
@@ -33,14 +41,16 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={forced ? undefined : onClose}>
       <div
         className="relative bg-white rounded-2xl w-full max-w-sm p-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 rounded-full bg-black/5 flex items-center justify-center">
-          <X size={14} className="text-[#22201B]" />
-        </button>
+        {!forced && (
+          <button onClick={onClose} className="absolute top-4 right-4 w-7 h-7 rounded-full bg-black/5 flex items-center justify-center">
+            <X size={14} className="text-[#22201B]" />
+          </button>
+        )}
 
         {done ? (
           <div className="flex flex-col items-center text-center gap-2 py-4">
@@ -61,8 +71,11 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
               <div className="w-9 h-9 rounded-full bg-[#2D5A3D] flex items-center justify-center">
                 <KeyRound size={16} className="text-white" />
               </div>
-              <h2 className="text-[16px] font-bold text-[#22201B]">{t("changepw_title")}</h2>
+              <h2 className="text-[16px] font-bold text-[#22201B]">
+                {forced ? t("changepw_forced_title") : t("changepw_title")}
+              </h2>
             </div>
+            {forced && <p className="text-[12.5px] text-[#8A8272] -mt-2 mb-1">{t("changepw_forced_desc")}</p>}
 
             <div className="flex flex-col gap-3">
               <label className="block">
