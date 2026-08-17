@@ -98,11 +98,12 @@ export function PickupResultScreen() {
   const bankSnapshot =
     state.kind === "waiting" && state.snapshot?.paymentMethod === "bank_transfer" ? state.snapshot : null;
 
-  // The owner's own uploaded QR image always wins (it's straight from their
-  // bank, can't be wrong) — otherwise build one from bank_bin/account_number,
-  // which self-embeds the exact amount and transfer note.
+  // The auto-generated QR wins whenever it can be built — it's the only
+  // one that embeds this order's exact amount and "DH <pickup_code>" note,
+  // which is how staff match an incoming bank transfer back to an order.
+  // A static owner-uploaded image can't carry either, so it's only a
+  // fallback for stores that haven't filled in bank_bin/account_number.
   const qrImageSrc =
-    store?.bank_qr_image ||
     (bankSnapshot && store?.bank_bin && store?.bank_account_number
       ? vietQrImageUrl({
           bankBin: store.bank_bin,
@@ -111,7 +112,7 @@ export function PickupResultScreen() {
           amountVnd: bankSnapshot.totalPrice,
           note: `DH ${bankSnapshot.pickupCode ?? ""}`,
         })
-      : null);
+      : null) || store?.bank_qr_image;
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#F5F1E6] p-6">

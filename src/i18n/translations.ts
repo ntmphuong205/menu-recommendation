@@ -515,9 +515,9 @@ const dict = {
   store_settings_bank_account_holder: { vi: "Tên chủ tài khoản", en: "Account holder name", ko: "예금주" },
   store_settings_bank_qr_upload: { vi: "Ảnh mã QR (tuỳ chọn)", en: "QR code image (optional)", ko: "QR 코드 이미지 (선택)" },
   store_settings_bank_qr_upload_desc: {
-    vi: "Nếu tải ảnh QR có sẵn từ ngân hàng, ảnh này sẽ hiện thay vì mã QR tự tạo — chính xác hơn vì đúng ảnh từ ngân hàng.",
-    en: "If you upload your bank's own QR image, it's shown instead of the auto-generated one — more reliable since it's straight from your bank.",
-    ko: "은행에서 제공한 QR 이미지를 업로드하면 자동 생성된 QR 대신 사용됩니다 — 은행에서 직접 받은 것이라 더 정확합니다.",
+    vi: "Chỉ dùng khi chưa điền được số tài khoản ở trên — mã QR tự tạo từ số tài khoản mới nhúng được mã đơn hàng để đối chiếu, ảnh tải lên là ảnh tĩnh nên không nhúng được.",
+    en: "Only used as a fallback if you can't fill in the account number above — the auto-generated QR is the only one that embeds an order code for matching against payments; an uploaded image can't.",
+    ko: "위 계좌번호를 입력할 수 없을 때만 대체용으로 사용됩니다 — 자동 생성된 QR만 결제 대조용 주문 코드를 포함할 수 있으며, 업로드한 이미지는 불가능합니다.",
   },
   store_settings_bank_qr_choose_file: { vi: "Chọn ảnh", en: "Choose file", ko: "파일 선택" },
   store_settings_bank_qr_remove: { vi: "Xoá ảnh", en: "Remove", ko: "삭제" },

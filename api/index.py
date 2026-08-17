@@ -170,8 +170,9 @@ class StoreUpdate(BaseModel):
     bank_bin: str = Field(default="", max_length=20)
     bank_account_number: str = Field(default="", max_length=50)
     bank_account_holder: str = Field(default="", max_length=120)
-    # Owner-uploaded QR image — takes priority over the auto-generated
-    # VietQR image (built from bank_bin/bank_account_number) when set.
+    # Owner-uploaded QR image — fallback only (see PickupResultScreen.tsx);
+    # the auto-generated VietQR image is preferred since it embeds each
+    # order's amount + tracking code, which a static image can't.
     bank_qr_image: Optional[str] = None
     # Daily window remote pickup orders may be scheduled into — separate
     # from `hours` (freeform display text) since this needs to be a single

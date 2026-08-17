@@ -181,8 +181,10 @@ export interface ApiStore {
   bank_bin: string;
   bank_account_number: string;
   bank_account_holder: string;
-  // Owner-uploaded QR image (data URL) — takes priority over the
-  // auto-generated VietQR image built from bank_bin/bank_account_number.
+  // Owner-uploaded QR image (data URL) — fallback only, used when
+  // bank_bin/bank_account_number aren't set. The auto-generated VietQR
+  // image is preferred since it embeds each order's amount + tracking
+  // code (a static uploaded image can't).
   bank_qr_image: string;
   // Daily "HH:MM" window remote pickup orders may be scheduled into.
   opening_time: string;

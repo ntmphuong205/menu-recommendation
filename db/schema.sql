@@ -34,8 +34,9 @@ create table if not exists public.stores (
     bank_account_number text,
     bank_account_holder text,
     -- Owner-uploaded QR code image (data URL, same convention as
-    -- menus.image_url) — takes priority over the auto-generated VietQR
-    -- image when set, since it's the bank's own QR and can't be wrong.
+    -- menus.image_url) — fallback only, used when bank_bin/account_number
+    -- aren't set. The auto-generated VietQR image is preferred since it
+    -- embeds each order's amount + tracking code, which a static image can't.
     bank_qr_image text,
     -- Daily window remote pickup orders may be scheduled into (HH:MM,
     -- store's own local time) — separate from the freeform `hours` text
