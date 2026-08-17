@@ -235,6 +235,15 @@ const dict = {
     en: "Pickup is only available between {start} and {end}",
     ko: "픽업은 {start} ~ {end} 사이에만 가능합니다",
   },
+  cart_confirm_pickup_button: { vi: "Xác nhận đơn hàng", en: "Confirm order", ko: "주문 확인" },
+  pickup_time_sheet_title: {
+    vi: "Bạn muốn nhận đơn lúc mấy giờ?",
+    en: "What time would you like to pick up your order?",
+    ko: "몇 시에 픽업하시겠어요?",
+  },
+  pickup_time_sheet_continue: { vi: "Tiếp tục", en: "Continue", ko: "계속" },
+  invoice_title: { vi: "Hóa đơn", en: "Invoice", ko: "영수증" },
+  invoice_change_time: { vi: "Đổi giờ", en: "Change", ko: "변경" },
   pickup_bank_transfer_button: {
     vi: "Chuyển khoản ngân hàng",
     en: "Pay by bank transfer",

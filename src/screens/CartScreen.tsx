@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt, Sparkles } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt, Sparkles, ChevronLeft, X } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import type { QueueInfo } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
@@ -212,6 +212,156 @@ function OrderPlacedScreen({ order, onDone }: { order: Order | undefined; onDone
   );
 }
 
+/** Bottom sheet asking for a pickup time before moving on to the invoice —
+ *  a separate step (instead of an inline field in the cart footer) so the
+ *  customer explicitly confirms it rather than glancing past a default. */
+function PickupTimeSheet({
+  pickupTime,
+  setPickupTime,
+  minPickupTime,
+  maxPickupTime,
+  pickupTimeInWindow,
+  onContinue,
+  onClose,
+}: {
+  pickupTime: string;
+  setPickupTime: (value: string) => void;
+  minPickupTime: string;
+  maxPickupTime: string;
+  pickupTimeInWindow: boolean;
+  onContinue: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+
+  return (
+    <div className="absolute inset-0 z-40 flex flex-col justify-end">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-[#FBF7EF] rounded-t-[32px] p-5 pb-8 flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[16px] font-bold text-[#22201B]">{t("pickup_time_sheet_title")}</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center">
+            <X size={16} className="text-[#22201B]" />
+          </button>
+        </div>
+        <label className="flex items-center justify-between gap-3 bg-white rounded-xl border border-black/10 px-3.5 py-3">
+          <span className="text-[12.5px] font-medium text-[#5C5240]">{t("pickup_time_label")}</span>
+          <input
+            type="time"
+            value={pickupTime}
+            min={minPickupTime}
+            max={maxPickupTime}
+            onChange={(e) => setPickupTime(e.target.value)}
+            className="text-[15px] font-semibold text-[#22201B] outline-none bg-transparent"
+          />
+        </label>
+        <p className="text-center text-[11px] text-[#8A8272] -mt-2">
+          {t("pickup_time_window", { start: minPickupTime, end: maxPickupTime })}
+        </p>
+        <button
+          onClick={onContinue}
+          disabled={!pickupTime || !pickupTimeInWindow}
+          className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform disabled:opacity-60"
+        >
+          {t("pickup_time_sheet_continue")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Order review shown after the customer confirms a pickup time, before
+ *  actually paying — so they see exactly what they're about to pay for
+ *  (and can still back out or change the time) instead of the previous
+ *  flow's single "confirm = pay immediately" button. */
+function PickupInvoiceScreen({
+  onBack,
+  onChangeTime,
+  pickupTime,
+  bankTransferAvailable,
+  pickupState,
+  onPay,
+}: {
+  onBack: () => void;
+  onChangeTime: () => void;
+  pickupTime: string;
+  bankTransferAvailable: boolean;
+  pickupState: "idle" | "bank" | "error";
+  onPay: () => void;
+}) {
+  const { cart, findDish, totalPrice } = useApp();
+  const { t, lang } = useI18n();
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="shrink-0 flex items-center gap-2.5 px-4 pt-2 pb-3 border-b border-black/5 bg-[#FBF7EF]">
+        <button onClick={onBack} className="text-[#5C5240]">
+          <ChevronLeft size={20} />
+        </button>
+        <h1 className="text-[19px] font-bold text-[#22201B] flex-1">{t("invoice_title")}</h1>
+        <LangSwitcher />
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-4 flex flex-col gap-2.5">
+          {cart.map((item) => {
+            const dish = findDish(item.dishId);
+            if (!dish) return null;
+            return (
+              <div key={item.id} className="flex items-center justify-between gap-2 text-[13px]">
+                <span className="text-[#22201B]">
+                  {item.qty}× {getDishName(dish, lang)}
+                  {item.note && <span className="text-[#B0553C]"> ({item.note})</span>}
+                </span>
+                <span className="font-semibold text-[#5C5240] shrink-0">${(dish.price * item.qty).toFixed(2)}</span>
+              </div>
+            );
+          })}
+          <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-black/5">
+            <span className="text-[13px] font-bold text-[#22201B]">{t("cart_total")}</span>
+            <span className="text-[16px] font-bold text-[#2D5A3D]">${totalPrice.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <button
+          onClick={onChangeTime}
+          className="flex items-center justify-between bg-white rounded-2xl border border-black/5 shadow-sm px-4 py-3 text-left"
+        >
+          <span className="flex items-center gap-2 text-[13px] text-[#5C5240]">
+            <Clock3 size={15} className="text-[#2D5A3D]" />
+            {t("pickup_time_label")}
+          </span>
+          <span className="flex items-center gap-1.5 text-[13.5px] font-bold text-[#22201B]">
+            {pickupTime}
+            <span className="text-[11px] font-medium text-[#2D5A3D] underline">{t("invoice_change_time")}</span>
+          </span>
+        </button>
+      </div>
+
+      <div className="shrink-0 px-4 pt-3 pb-4 border-t border-black/5 bg-[#FBF7EF] flex flex-col gap-2">
+        {pickupState === "error" && (
+          <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-2 px-4">
+            {t("pickup_pay_error")}
+          </p>
+        )}
+        {bankTransferAvailable ? (
+          <button
+            onClick={onPay}
+            disabled={pickupState === "bank"}
+            className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform disabled:opacity-60"
+          >
+            {pickupState === "bank" ? t("pickup_pay_loading") : t("pickup_bank_transfer_button")}
+          </button>
+        ) : (
+          <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-3 px-4">
+            {t("pickup_not_configured")}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function CartScreen() {
   const {
     cart,
@@ -233,6 +383,10 @@ export function CartScreen() {
   const { t, lang } = useI18n();
   const [justSubmitted, setJustSubmitted] = useState(false);
   const [pickupState, setPickupState] = useState<"idle" | "bank" | "error">("idle");
+  // "cart" -> tap confirm -> "time" (ask pickup time) -> "invoice" (review,
+  // then actually pay). Reset whenever the cart empties out from under it
+  // (e.g. after a successful order) so a stale invoice doesn't linger.
+  const [checkoutStep, setCheckoutStep] = useState<"cart" | "time" | "invoice">("cart");
   // Defaults to 30 minutes from now — a reasonable "ready by" guess the
   // customer can freely change to any time, clamped into the store's
   // pickup window once it's loaded (see the effect below).
@@ -284,6 +438,19 @@ export function CartScreen() {
     return <OrderPlacedScreen order={order} onDone={() => setJustSubmitted(false)} />;
   }
 
+  if (checkoutStep === "invoice" && cart.length > 0) {
+    return (
+      <PickupInvoiceScreen
+        onBack={() => setCheckoutStep("cart")}
+        onChangeTime={() => setCheckoutStep("time")}
+        pickupTime={pickupTime}
+        bankTransferAvailable={bankTransferAvailable}
+        pickupState={pickupState}
+        onPay={handleBankTransferCheckout}
+      />
+    );
+  }
+
   if (cart.length === 0) {
     return (
       <div className="flex flex-col h-full">
@@ -312,7 +479,18 @@ export function CartScreen() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
+      {checkoutStep === "time" && (
+        <PickupTimeSheet
+          pickupTime={pickupTime}
+          setPickupTime={setPickupTime}
+          minPickupTime={minPickupTime}
+          maxPickupTime={maxPickupTime}
+          pickupTimeInWindow={pickupTimeInWindow}
+          onContinue={() => setCheckoutStep("invoice")}
+          onClose={() => setCheckoutStep("cart")}
+        />
+      )}
       <div className="shrink-0 px-4 pt-2 pb-3 border-b border-black/5 bg-[#FBF7EF] flex items-center justify-between">
         <div>
           <h1 className="text-[19px] font-bold text-[#22201B]">{t("cart_title")}</h1>
@@ -388,36 +566,12 @@ export function CartScreen() {
         ) : mode === "web" ? (
           <div className="flex flex-col gap-2">
             <p className="text-center text-[11.5px] text-[#8A8272] px-2">{t("pickup_checkout_note")}</p>
-            {bankTransferAvailable && (
-              <>
-                <label className="flex items-center justify-between gap-3 bg-white rounded-xl border border-black/10 px-3.5 py-2.5 mb-1">
-                  <span className="text-[12.5px] font-medium text-[#5C5240]">{t("pickup_time_label")}</span>
-                  <input
-                    type="time"
-                    value={pickupTime}
-                    min={minPickupTime}
-                    max={maxPickupTime}
-                    onChange={(e) => setPickupTime(e.target.value)}
-                    className="text-[13px] font-semibold text-[#22201B] outline-none bg-transparent"
-                  />
-                </label>
-                <p className="text-center text-[10.5px] text-[#8A8272] -mt-1 mb-1">
-                  {t("pickup_time_window", { start: minPickupTime, end: maxPickupTime })}
-                </p>
-              </>
-            )}
-            {pickupState === "error" && (
-              <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-2 px-4">
-                {t("pickup_pay_error")}
-              </p>
-            )}
             {bankTransferAvailable ? (
               <button
-                onClick={handleBankTransferCheckout}
-                disabled={pickupState === "bank" || !pickupTime || !pickupTimeInWindow}
-                className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform disabled:opacity-60"
+                onClick={() => setCheckoutStep("time")}
+                className="w-full bg-[#2D5A3D] text-white font-semibold text-[14px] py-3.5 rounded-full active:scale-[0.98] transition-transform"
               >
-                {pickupState === "bank" ? t("pickup_pay_loading") : t("pickup_bank_transfer_button")}
+                {t("cart_confirm_pickup_button")}
               </button>
             ) : (
               <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-3 px-4">
