@@ -666,11 +666,18 @@ const dict = {
 
   // Store directory (homepage — bare domain root, no ?store= param)
   directory_admin_login: { vi: "Đăng nhập quản lý", en: "Owner login", ko: "사장님 로그인" },
+  directory_eyebrow: { vi: "Nền tảng gọi món QR", en: "QR ordering platform", ko: "QR 주문 플랫폼" },
   directory_title: { vi: "Chọn nhà hàng", en: "Choose a restaurant", ko: "매장을 선택하세요" },
   directory_subtitle: {
     vi: "Chọn quán bạn muốn xem thực đơn, đặt món hoặc đặt bàn.",
     en: "Pick a restaurant to view its menu, order, or reserve a table.",
     ko: "메뉴를 보거나 주문, 예약하고 싶은 매장을 선택하세요.",
+  },
+  directory_view_menu: { vi: "Xem thực đơn", en: "View menu", ko: "메뉴 보기" },
+  directory_footer: {
+    vi: "Powered by MenuPilot",
+    en: "Powered by MenuPilot",
+    ko: "Powered by MenuPilot",
   },
   directory_load_error: {
     vi: "Không tải được danh sách nhà hàng. Vui lòng thử lại.",
