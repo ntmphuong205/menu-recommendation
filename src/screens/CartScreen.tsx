@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt, Sparkles, ChevronLeft, X } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, CheckCircle2, Clock3, Users, Ban, Receipt, Sparkles, ChevronLeft, X, Ticket } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import type { QueueInfo } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL_KEY, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { getDishName, getPairingReason, type Dish } from "../data/menu";
+import { getCustomerSessionId } from "../lib/apiClient";
 
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
@@ -18,11 +19,15 @@ const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
 function MyOrdersSection() {
   const { orders, tableId, cancelOrder, getQueueInfo } = useApp();
   const { t } = useI18n();
-  // Everything this table has ordered so far — new, preparing, served, and
-  // cancelled — stays visible here, so the customer always sees the current
-  // status of every item they ordered, not just the ones still active.
+  // Dine-in orders aren't tied to any one customer_session_id — everyone
+  // seated at the table sees the table's combined orders. Pickup orders
+  // have no table at all (tableId is null), so they only ever show up for
+  // the customer_session_id that placed them — otherwise a pickup order
+  // (and its pickup code) became unfindable the moment the customer left
+  // the payment-result page, with no way back to it.
+  const mySessionId = getCustomerSessionId();
   const myOrders = orders
-    .filter((o) => o.tableId === tableId)
+    .filter((o) => (o.fulfillmentType === "pickup" ? o.customerSessionId === mySessionId : o.tableId === tableId))
     .sort((a, b) => b.createdAt - a.createdAt);
 
   if (myOrders.length === 0) return null;
@@ -39,6 +44,15 @@ function MyOrdersSection() {
         const orderQueue = firstActiveIdx >= 0 ? getQueueInfo(order, firstActiveIdx) : null;
         return (
           <div key={order.id} className="bg-white rounded-2xl p-3 border border-black/5 shadow-sm">
+            {order.fulfillmentType === "pickup" && order.pickupCode && (
+              <div className="flex items-center justify-between bg-[#F3E9D2] rounded-xl px-3 py-2 mb-2">
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#8A6B3F]">
+                  <Ticket size={13} />
+                  {t("cart_pickup_code_label")}
+                </span>
+                <span className="text-[15px] font-bold text-[#22201B] tracking-widest">{order.pickupCode}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-2">
               {orderQueue ? (
                 <span className="flex items-center gap-1 text-[11px] text-[#8A8272]">

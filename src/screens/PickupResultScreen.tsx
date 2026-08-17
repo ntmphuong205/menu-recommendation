@@ -209,6 +209,7 @@ export function PickupResultScreen() {
               )}
             </div>
             <p className="text-[13px] text-[#8A8272] leading-relaxed">{t("pickup_result_instructions")}</p>
+            <p className="text-[11.5px] text-[#B0A794] leading-relaxed">{t("pickup_result_find_later")}</p>
           </>
         )}
         {(state.kind === "failed" || state.kind === "invalid") && (

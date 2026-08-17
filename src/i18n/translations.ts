@@ -112,6 +112,7 @@ const dict = {
   cart_queue_position: { vi: "Vị trí hàng đợi", en: "Queue position", ko: "대기 순번" },
   cart_estimated_wait: { vi: "Thời gian chờ dự kiến", en: "Estimated wait", ko: "예상 대기 시간" },
   cart_your_orders: { vi: "Đơn của bạn", en: "Your orders", ko: "내 주문" },
+  cart_pickup_code_label: { vi: "Mã lấy đơn", en: "Pickup code", ko: "픽업 코드" },
   cart_total_bill: { vi: "Tổng hoá đơn", en: "Total bill", ko: "총 청구액" },
   cart_cancel_order: { vi: "Huỷ đơn", en: "Cancel order", ko: "주문 취소" },
   cart_cancel_confirm: {
@@ -286,6 +287,11 @@ const dict = {
     vi: "Đưa mã này cho nhân viên tại quầy để nhận đồ ăn.",
     en: "Show this code to staff at the counter to collect your order.",
     ko: "이 코드를 카운터 직원에게 보여주고 주문을 받으세요.",
+  },
+  pickup_result_find_later: {
+    vi: "Lỡ thoát ra? Mã này vẫn lưu ở tab Giỏ hàng, mục \"Đơn của bạn\".",
+    en: "Left this page by accident? Find this code again under \"Your orders\" in the Cart tab.",
+    ko: "실수로 페이지를 나갔나요? 장바구니 탭의 \"내 주문\"에서 이 코드를 다시 확인할 수 있습니다.",
   },
   pickup_result_failed_title: { vi: "Thanh toán không thành công", en: "Payment failed", ko: "결제 실패" },
   pickup_result_failed_desc: {
