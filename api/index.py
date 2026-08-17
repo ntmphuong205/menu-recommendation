@@ -436,6 +436,37 @@ class TableRequestCreate(BaseModel):
         return value.strip()
 
 
+class ChatMessageCreate(BaseModel):
+    customer_session_id: UUID
+    table_id: Optional[str] = Field(default=None, max_length=32)
+    message: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("table_id")
+    @classmethod
+    def normalize_chat_table_code(cls, value: Optional[str]) -> Optional[str]:
+        return value.strip().upper() if value else value
+
+    @field_validator("message")
+    @classmethod
+    def strip_chat_message(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Message can't be empty.")
+        return value
+
+
+class StaffChatReply(BaseModel):
+    message: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("message")
+    @classmethod
+    def strip_staff_reply(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Message can't be empty.")
+        return value
+
+
 class ChatHistoryTurn(BaseModel):
     role: Literal["user", "assistant"]
     text: str = Field(min_length=1, max_length=2000)
@@ -565,6 +596,17 @@ def table_request_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "reason": row.get("reason") or "",
         "resolved": bool(row.get("resolved", False)),
         "customer_session_id": row.get("customer_session_id"),
+        "created_at": row["created_at"],
+    }
+
+
+def chat_message_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "id": str(row["id"]),
+        "customer_session_id": row["customer_session_id"],
+        "table_id": row.get("table_id"),
+        "sender": row["sender"],
+        "message": row["message"],
         "created_at": row["created_at"],
     }
 
@@ -919,6 +961,53 @@ class SupabaseRepository:
         if not response.data:
             raise HTTPException(status_code=404, detail="Request not found.")
         return response.data[0]
+
+    def get_chat_messages(self, customer_session_id: str) -> List[Dict[str, Any]]:
+        response = self._run(
+            lambda: self.client.table("chat_messages")
+            .select("*")
+            .eq("store_id", self.store_id)
+            .eq("customer_session_id", customer_session_id)
+            .order("created_at")
+            .execute(),
+            "Failed to load chat messages.",
+        )
+        return response.data or []
+
+    def create_chat_message(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        response = self._run(
+            lambda: self.client.table("chat_messages")
+            .insert({"store_id": self.store_id, **payload})
+            .execute(),
+            "Failed to send the message.",
+        )
+        return response.data[0]
+
+    def get_chat_threads(self) -> List[Dict[str, Any]]:
+        """One summary per customer_session_id — last message, who sent it
+        (needs_reply=True means the customer's waiting on staff), and
+        whichever table_id was last seen for that session, if any."""
+        response = self._run(
+            lambda: self.client.table("chat_messages")
+            .select("*")
+            .eq("store_id", self.store_id)
+            .order("created_at")
+            .execute(),
+            "Failed to load chat threads.",
+        )
+        threads: Dict[str, Dict[str, Any]] = {}
+        for row in response.data or []:
+            sid = row["customer_session_id"]
+            existing_table_id = threads.get(sid, {}).get("table_id")
+            threads[sid] = {
+                "customer_session_id": sid,
+                "table_id": row.get("table_id") or existing_table_id,
+                "last_message": row["message"],
+                "last_sender": row["sender"],
+                "last_at": row["created_at"],
+                "needs_reply": row["sender"] == "customer",
+            }
+        return sorted(threads.values(), key=lambda t: t["last_at"], reverse=True)
 
     def is_staff(self, user_id: str) -> bool:
         response = self._run(
@@ -1794,6 +1883,48 @@ def resolve_table_request(
         "message": "Staff call request resolved.",
         "request": table_request_to_public(row),
     }
+
+
+@app.get("/api/chat-messages")
+def get_chat_messages(customer_session_id: UUID = Query(...)) -> List[Dict[str, Any]]:
+    return [
+        chat_message_to_public(row)
+        for row in get_repository().get_chat_messages(str(customer_session_id))
+    ]
+
+
+@app.post("/api/chat-messages", status_code=201)
+def create_chat_message(payload: ChatMessageCreate) -> Dict[str, Any]:
+    row = get_repository().create_chat_message(
+        {
+            "customer_session_id": str(payload.customer_session_id),
+            "table_id": payload.table_id,
+            "sender": "customer",
+            "message": payload.message,
+        }
+    )
+    return {"success": True, "chat_message": chat_message_to_public(row)}
+
+
+@app.get("/api/chat-messages/threads")
+def get_chat_threads(_staff: Dict[str, Any] = Depends(require_staff)) -> List[Dict[str, Any]]:
+    return get_repository().get_chat_threads()
+
+
+@app.post("/api/chat-messages/{customer_session_id}/reply", status_code=201)
+def reply_chat_message(
+    customer_session_id: UUID,
+    payload: StaffChatReply,
+    _staff: Dict[str, Any] = Depends(require_staff),
+) -> Dict[str, Any]:
+    row = get_repository().create_chat_message(
+        {
+            "customer_session_id": str(customer_session_id),
+            "sender": "staff",
+            "message": payload.message,
+        }
+    )
+    return {"success": True, "chat_message": chat_message_to_public(row)}
 
 
 @app.get("/api/queue/status")

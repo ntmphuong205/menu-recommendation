@@ -4,6 +4,7 @@ import { useApp } from "../context/AppContext";
 import { NEXT_STATUS, ORDER_STATUS_LABEL_KEY, ACTIVE_STATUSES, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
+import { RESERVATIONS_ENABLED } from "../data/featureFlags";
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
@@ -107,7 +108,7 @@ export function OrdersView() {
         </div>
       )}
 
-      {pendingReservations.length > 0 && (
+      {RESERVATIONS_ENABLED && pendingReservations.length > 0 && (
         <div className="mb-6 bg-[#DCEBFB] border border-[#2A5C8A]/20 rounded-2xl p-4">
           <h2 className="flex items-center gap-1.5 text-[13px] font-bold text-[#2A5C8A] mb-2.5">
             <CalendarClock size={14} />

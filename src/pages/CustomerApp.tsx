@@ -6,20 +6,23 @@ import { DishSheet } from "../components/DishSheet";
 import { WelcomeScreen } from "../components/WelcomeScreen";
 import { DiningChoiceScreen } from "../components/DiningChoiceScreen";
 import { ChatScreen } from "../screens/ChatScreen";
+import { StaffChatScreen } from "../screens/StaffChatScreen";
 import { MenuScreen } from "../screens/MenuScreen";
 import { CartScreen } from "../screens/CartScreen";
 import { InfoScreen } from "../screens/InfoScreen";
 import { ReserveScreen } from "../screens/ReserveScreen";
+import { RESERVATIONS_ENABLED } from "../data/featureFlags";
 
 function Screens() {
   const { activeTab } = useApp();
   return (
     <div className="flex-1 min-h-0 relative">
       {activeTab === "chat" && <ChatScreen />}
+      {activeTab === "staff_chat" && <StaffChatScreen />}
       {activeTab === "menu" && <MenuScreen />}
       {activeTab === "cart" && <CartScreen />}
       {activeTab === "info" && <InfoScreen />}
-      {activeTab === "reserve" && <ReserveScreen />}
+      {RESERVATIONS_ENABLED && activeTab === "reserve" && <ReserveScreen />}
       <DishSheet />
     </div>
   );

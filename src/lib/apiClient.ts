@@ -143,6 +143,26 @@ export interface ApiTableRequest {
   created_at: string;
 }
 
+export interface ApiChatMessage {
+  id: string;
+  customer_session_id: string;
+  table_id: string | null;
+  sender: "customer" | "staff";
+  message: string;
+  created_at: string;
+}
+
+/** One row per customer_session_id — the admin's inbox list, not the full
+ *  message history (see getChatMessages for that). */
+export interface ApiChatThread {
+  customer_session_id: string;
+  table_id: string | null;
+  last_message: string;
+  last_sender: "customer" | "staff";
+  last_at: string;
+  needs_reply: boolean;
+}
+
 export interface ApiStore {
   id: string;
   slug: string;
@@ -292,6 +312,19 @@ export const apiClient = {
     request<{ success: boolean; teams_ahead: number; people_ahead: number; est_time_mins: number }>(
       "GET",
       "/queue/status"
+    ),
+
+  getChatMessages: (customerSessionId: string) =>
+    request<ApiChatMessage[]>("GET", `/chat-messages?customer_session_id=${customerSessionId}`),
+  sendChatMessage: (payload: { customer_session_id: string; table_id?: string | null; message: string }) =>
+    request<{ success: boolean; chat_message: ApiChatMessage }>("POST", "/chat-messages", payload),
+  // Staff-only (JWT required) — the admin inbox and replying to a thread.
+  getChatThreads: () => request<ApiChatThread[]>("GET", "/chat-messages/threads"),
+  replyToChatThread: (customerSessionId: string, message: string) =>
+    request<{ success: boolean; chat_message: ApiChatMessage }>(
+      "POST",
+      `/chat-messages/${customerSessionId}/reply`,
+      { message }
     ),
 
   chat: (payload: { query: string; language: string; mode: "web" | "store"; history?: ChatHistoryTurn[] }) =>

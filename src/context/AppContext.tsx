@@ -89,7 +89,7 @@ interface AppContextValue {
   mode: "web" | "store";
 }
 
-export type TabKey = "chat" | "menu" | "cart" | "info" | "reserve";
+export type TabKey = "chat" | "staff_chat" | "menu" | "cart" | "info" | "reserve";
 
 const AppContext = createContext<AppContextValue | null>(null);
 

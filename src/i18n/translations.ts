@@ -11,6 +11,7 @@ export const DEFAULT_LANG: Lang = "en";
 const dict = {
   // Tab bar
   tab_chat: { vi: "Trò chuyện", en: "Chat", ko: "채팅" },
+  tab_staff_chat: { vi: "Nhân viên", en: "Staff", ko: "직원" },
   tab_menu: { vi: "Thực đơn", en: "Menu", ko: "메뉴" },
   tab_cart: { vi: "Giỏ hàng", en: "Cart", ko: "장바구니" },
   tab_info: { vi: "Thông tin", en: "Info", ko: "정보" },
@@ -166,10 +167,24 @@ const dict = {
     ko: "아직 좌석 배치가 없습니다. 매장에 직접 문의해 주세요.",
   },
   reserve_screen_browse_menu: { vi: "Xem thực đơn", en: "Browse menu", ko: "메뉴 보기" },
+  staffchatview_title: { vi: "Tin nhắn khách hàng", en: "Customer messages", ko: "고객 메시지" },
+  staffchatview_subtitle: { vi: "Trả lời khách đang nhắn tin", en: "Reply to customers messaging in", ko: "메시지를 보낸 고객에게 답장하세요" },
+  staffchatview_empty: { vi: "Chưa có cuộc trò chuyện nào.", en: "No conversations yet.", ko: "아직 대화가 없습니다." },
+  staffchatview_select_prompt: { vi: "Chọn 1 cuộc trò chuyện để xem", en: "Select a conversation to view it", ko: "대화를 선택해 주세요" },
+  staffchatview_reply_placeholder: { vi: "Nhập phản hồi...", en: "Type a reply...", ko: "답장 입력..." },
+  staffchatview_unknown_table: { vi: "Khách (từ xa)", en: "Guest (remote)", ko: "고객 (원격)" },
+  staffchatview_you: { vi: "Bạn", en: "You", ko: "나" },
+  staffchat_subtitle: { vi: "Nhắn tin trực tiếp với nhân viên", en: "Message the restaurant directly", ko: "매장에 직접 메시지 보내기" },
+  staffchat_empty: {
+    vi: "Chưa có tin nhắn nào — gửi tin đầu tiên cho nhân viên nhé.",
+    en: "No messages yet — send the first one to staff.",
+    ko: "아직 메시지가 없어요 — 직원에게 첫 메시지를 보내보세요.",
+  },
+  staffchat_placeholder: { vi: "Nhắn tin cho nhân viên...", en: "Message staff...", ko: "직원에게 메시지 보내기..." },
   order_mode_banner: {
-    vi: "Bạn đang xem trước — cần ngồi vào bàn và quét mã QR riêng của bàn đó để gọi món.",
-    en: "You're browsing — sit at a table and scan its own QR code to place an order.",
-    ko: "지금은 둘러보는 중입니다 — 주문하려면 테이블에 앉아 해당 테이블의 QR 코드를 스캔하세요.",
+    vi: "Muốn đặt món? Thêm vào giỏ hàng, thanh toán trước và hẹn giờ ra lấy.",
+    en: "Ready to order? Add to your cart, pay in advance, and pick a time to collect it.",
+    ko: "주문하시겠어요? 장바구니에 담고 미리 결제한 뒤 수령 시간을 정하세요.",
   },
   reservation_title: { vi: "Đặt bàn {table}", en: "Reserve table {table}", ko: "{table} 예약" },
   reservation_status_label: { vi: "Trạng thái", en: "Status", ko: "상태" },
@@ -286,6 +301,7 @@ const dict = {
   // Owner dashboard
   owner_dashboard: { vi: "Trang quản lý", en: "Owner Dashboard", ko: "사장님 대시보드" },
   owner_nav_orders: { vi: "Đơn hàng", en: "Orders", ko: "주문" },
+  owner_nav_chat: { vi: "Tin nhắn", en: "Messages", ko: "메시지" },
   owner_nav_menu: { vi: "Quản lý thực đơn", en: "Menu Management", ko: "메뉴 관리" },
   owner_nav_analytics: { vi: "Thống kê", en: "Analytics", ko: "분석" },
   owner_nav_seating: { vi: "Sơ đồ bàn", en: "Seating", ko: "좌석 배치" },
@@ -709,9 +725,9 @@ const dict = {
   },
   dining_choice_dine_in_title: { vi: "Ăn tại quán", en: "Dine in", ko: "매장 식사" },
   dining_choice_dine_in_desc: {
-    vi: "Xem menu trước — quét mã QR trên bàn khi tới quán để gọi món.",
-    en: "Browse the menu now — scan the QR code on your table once you're at the restaurant to order.",
-    ko: "지금 메뉴를 둘러보세요 — 매장에 도착하면 테이블의 QR 코드를 스캔해 주문하세요.",
+    vi: "Xem menu trước, gọi món trực tiếp khi tới quán.",
+    en: "Browse the menu now, order in person once you're at the restaurant.",
+    ko: "지금 메뉴를 둘러보고, 매장에 도착하면 직접 주문하세요.",
   },
   dining_choice_pickup_title: { vi: "Đặt trước — lấy sau", en: "Order ahead — pick up later", ko: "미리 주문 — 나중에 픽업" },
   dining_choice_pickup_desc: {

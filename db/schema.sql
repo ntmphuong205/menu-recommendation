@@ -189,6 +189,25 @@ create table if not exists public.table_requests (
 );
 create index if not exists table_requests_store_id_idx on public.table_requests(store_id);
 
+-- Two-way messaging between a customer (identified by their browser's
+-- customer_session_id, same id used for orders/reviews) and restaurant
+-- staff — a real conversation, unlike the one-shot "call staff" requests
+-- above. One row per message; a "thread" is every row sharing the same
+-- customer_session_id, reconstructed client-side like orders are.
+create table if not exists public.chat_messages (
+    id uuid primary key default gen_random_uuid(),
+    store_id uuid not null references public.stores(id) on delete cascade,
+    customer_session_id uuid not null,
+    -- Whichever table the customer had selected when they sent a message,
+    -- if any — informational only, staff replies don't set it.
+    table_id text,
+    sender text not null check (sender in ('customer', 'staff')),
+    message text not null check (char_length(message) > 0),
+    created_at timestamptz not null default now()
+);
+create index if not exists chat_messages_store_id_idx on public.chat_messages(store_id);
+create index if not exists chat_messages_session_idx on public.chat_messages(customer_session_id);
+
 -- Whole-layout replace used by the admin seat-layout drag editor: deletes
 -- rows missing from the new payload, upserts the rest on (store_id, table_code).
 create or replace function public.replace_store_tables(p_store_id uuid, p_tables jsonb)
@@ -306,6 +325,7 @@ alter table public.orders enable row level security;
 alter table public.reservations enable row level security;
 alter table public.reviews enable row level security;
 alter table public.table_requests enable row level security;
+alter table public.chat_messages enable row level security;
 
 -- ---------------------------------------------------------------------
 -- Migration for an already-provisioned database (this `create table`
@@ -336,3 +356,16 @@ alter table public.stores
     add column if not exists bank_account_number text,
     add column if not exists bank_account_holder text,
     add column if not exists bank_qr_image text;
+
+create table if not exists public.chat_messages (
+    id uuid primary key default gen_random_uuid(),
+    store_id uuid not null references public.stores(id) on delete cascade,
+    customer_session_id uuid not null,
+    table_id text,
+    sender text not null check (sender in ('customer', 'staff')),
+    message text not null check (char_length(message) > 0),
+    created_at timestamptz not null default now()
+);
+create index if not exists chat_messages_store_id_idx on public.chat_messages(store_id);
+create index if not exists chat_messages_session_idx on public.chat_messages(customer_session_id);
+alter table public.chat_messages enable row level security;

@@ -1,33 +1,28 @@
-import { MessageCircle, UtensilsCrossed, ShoppingBag, Store, Armchair } from "lucide-react";
+import { MessageCircle, UtensilsCrossed, ShoppingBag, Store, Users } from "lucide-react";
 import { useApp, type TabKey } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
 
+// Same 5 tabs regardless of mode now — remote pickup ordering (Cart) and
+// the staff chat both work whether or not a table QR was scanned. Web mode
+// used to swap Cart for Reserve here; reservations are disabled for now
+// (see data/featureFlags.ts) and pickup made Cart relevant in both modes.
 const TABS: { key: TabKey; labelKey: TranslationKey; icon: typeof MessageCircle }[] = [
   { key: "chat", labelKey: "tab_chat", icon: MessageCircle },
+  { key: "staff_chat", labelKey: "tab_staff_chat", icon: Users },
   { key: "menu", labelKey: "tab_menu", icon: UtensilsCrossed },
   { key: "cart", labelKey: "tab_cart", icon: ShoppingBag },
   { key: "info", labelKey: "tab_info", icon: Store },
 ];
 
-// The general "web" QR has no table assigned, so ordering (Cart) doesn't
-// apply — Reserve leads instead, since that's the point of that QR.
-const WEB_MODE_TABS: { key: TabKey; labelKey: TranslationKey; icon: typeof MessageCircle }[] = [
-  { key: "reserve", labelKey: "tab_reserve", icon: Armchair },
-  { key: "chat", labelKey: "tab_chat", icon: MessageCircle },
-  { key: "menu", labelKey: "tab_menu", icon: UtensilsCrossed },
-  { key: "info", labelKey: "tab_info", icon: Store },
-];
-
 export function TabBar() {
-  const { activeTab, setActiveTab, totalItems, mode } = useApp();
+  const { activeTab, setActiveTab, totalItems } = useApp();
   const { t } = useI18n();
-  const tabs = mode === "web" ? WEB_MODE_TABS : TABS;
 
   return (
     <div className="shrink-0 border-t border-black/5 bg-white/90 backdrop-blur-xl px-2 pt-2 pb-7">
       <div className="flex items-center justify-around">
-        {tabs.map(({ key, labelKey, icon: Icon }) => {
+        {TABS.map(({ key, labelKey, icon: Icon }) => {
           const label = t(labelKey);
           const active = activeTab === key;
           return (

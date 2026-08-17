@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { ChefHat, ClipboardList, UtensilsCrossed, ExternalLink, BarChart3, QrCode, LogOut, Armchair, Star, Settings, Store as StoreIcon, KeyRound, Menu, X } from "lucide-react";
+import { ChefHat, ClipboardList, UtensilsCrossed, ExternalLink, BarChart3, QrCode, LogOut, Armchair, Star, Settings, Store as StoreIcon, KeyRound, Menu, X, MessageCircle } from "lucide-react";
 import { RESTAURANT } from "../data/restaurant";
 import { OrdersView } from "../owner/OrdersView";
+import { StaffChatView } from "../owner/StaffChatView";
 import { MenuManagementView } from "../owner/MenuManagementView";
 import { AnalyticsView } from "../owner/AnalyticsView";
 import { TableQrView } from "../owner/TableQrView";
@@ -17,10 +18,11 @@ import { LangSwitcher } from "../components/LangSwitcher";
 import { getStoreSlug } from "../lib/storeSlug";
 import type { TranslationKey } from "../i18n/translations";
 
-type Section = "orders" | "menu" | "analytics" | "seating" | "tables" | "reviews" | "store";
+type Section = "orders" | "chat" | "menu" | "analytics" | "seating" | "tables" | "reviews" | "store";
 
 const NAV: { key: Section; labelKey: TranslationKey; icon: typeof ClipboardList }[] = [
   { key: "orders", labelKey: "owner_nav_orders", icon: ClipboardList },
+  { key: "chat", labelKey: "owner_nav_chat", icon: MessageCircle },
   { key: "menu", labelKey: "owner_nav_menu", icon: UtensilsCrossed },
   { key: "analytics", labelKey: "owner_nav_analytics", icon: BarChart3 },
   { key: "seating", labelKey: "owner_nav_seating", icon: Armchair },
@@ -162,6 +164,7 @@ export function OwnerApp() {
 
       <main className="flex-1 min-w-0 overflow-y-auto pt-14 md:pt-0">
         {section === "orders" && <OrdersView />}
+        {section === "chat" && <StaffChatView />}
         {section === "menu" && <MenuManagementView />}
         {section === "analytics" && <AnalyticsView />}
         {section === "seating" && <SeatLayoutView />}
