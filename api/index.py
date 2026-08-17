@@ -1202,6 +1202,31 @@ def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def store_to_directory_entry(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Public, unauthenticated listing (GET /api/stores) — deliberately
+    excludes bank details and anything else store_to_public() exposes that
+    isn't safe to hand out to anyone browsing the homepage."""
+    return {
+        "id": str(row["id"]),
+        "slug": row.get("slug") or "",
+        "name_i18n": {
+            "ko": row["name"],
+            "en": row.get("name_en") or row["name"],
+            "vi": row.get("name_vi") or row["name"],
+        },
+        "description_i18n": {
+            "ko": row.get("description") or "",
+            "en": row.get("description_en") or row.get("description") or "",
+            "vi": row.get("description_vi") or row.get("description") or "",
+        },
+        "hours_i18n": {
+            "ko": row.get("hours") or "",
+            "en": row.get("hours_en") or row.get("hours") or "",
+            "vi": row.get("hours_vi") or row.get("hours") or "",
+        },
+    }
+
+
 @app.get("/api/health")
 def health() -> Dict[str, Any]:
     database = "misconfigured"
@@ -1258,6 +1283,23 @@ def get_my_stores(authorization: str = Header(default="")) -> Dict[str, Any]:
         if row.get("stores")
     ]
     return {"stores": stores}
+
+
+@app.get("/api/stores")
+def list_stores() -> List[Dict[str, Any]]:
+    """Public homepage directory — every store on this deployment, not
+    scoped by X-Store-Slug (there isn't one yet; the customer is choosing
+    which store to enter). Bypasses get_repository() on purpose since that
+    requires a resolved store_id."""
+    if not supabase_client:
+        raise HTTPException(status_code=503, detail="The database is not configured.")
+    response = (
+        supabase_client.table("stores")
+        .select("id, slug, name, name_en, name_vi, description, description_en, description_vi, hours, hours_en, hours_vi")
+        .order("name_en")
+        .execute()
+    )
+    return [store_to_directory_entry(row) for row in (response.data or [])]
 
 
 @app.get("/api/store")

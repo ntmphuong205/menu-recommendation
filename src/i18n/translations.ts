@@ -663,6 +663,25 @@ const dict = {
   qr_suggest_else: { vi: "Gợi ý món khác", en: "Suggest something else", ko: "다른 메뉴 추천해줘" },
   qr_opening_hours: { vi: "Giờ mở cửa", en: "Opening hours", ko: "영업시간" },
   qr_best_sellers: { vi: "Món bán chạy", en: "Best sellers", ko: "인기 메뉴" },
+
+  // Store directory (homepage — bare domain root, no ?store= param)
+  directory_admin_login: { vi: "Đăng nhập quản lý", en: "Owner login", ko: "사장님 로그인" },
+  directory_title: { vi: "Chọn nhà hàng", en: "Choose a restaurant", ko: "매장을 선택하세요" },
+  directory_subtitle: {
+    vi: "Chọn quán bạn muốn xem thực đơn, đặt món hoặc đặt bàn.",
+    en: "Pick a restaurant to view its menu, order, or reserve a table.",
+    ko: "메뉴를 보거나 주문, 예약하고 싶은 매장을 선택하세요.",
+  },
+  directory_load_error: {
+    vi: "Không tải được danh sách nhà hàng. Vui lòng thử lại.",
+    en: "Couldn't load the restaurant list. Please try again.",
+    ko: "매장 목록을 불러오지 못했습니다. 다시 시도해 주세요.",
+  },
+  directory_empty: {
+    vi: "Chưa có nhà hàng nào trên nền tảng.",
+    en: "No restaurants on this platform yet.",
+    ko: "아직 등록된 매장이 없습니다.",
+  },
 } as const;
 
 export type TranslationKey = keyof typeof dict;

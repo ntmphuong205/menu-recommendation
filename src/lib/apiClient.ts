@@ -183,9 +183,23 @@ export interface ApiStoreSummary {
   name: string;
 }
 
+/** Public homepage directory entry — deliberately excludes bank/private
+ *  fields ApiStore carries (see store_to_directory_entry() in api/index.py). */
+export interface ApiStoreDirectoryEntry {
+  id: string;
+  slug: string;
+  name_i18n: Record<string, string>;
+  description_i18n: Record<string, string>;
+  hours_i18n: Record<string, string>;
+}
+
 export const apiClient = {
   health: () =>
     request<{ success: boolean; database: string; gemini_configured: boolean }>("GET", "/health"),
+
+  // Public — every store on this deployment, for the homepage's "choose a
+  // restaurant" list. Not scoped to any particular store.
+  getStores: () => request<ApiStoreDirectoryEntry[]>("GET", "/stores"),
 
   // Independent of the current X-Store-Slug — lists every store this
   // logged-in user is staff of, for the admin store switcher.
