@@ -71,7 +71,7 @@ const dict = {
   menu_category_side: { vi: "Món phụ", en: "Side", ko: "사이드" },
 
   dish_add: { vi: "Thêm", en: "Add", ko: "담기" },
-  dish_choose_size: { vi: "Chọn size", en: "Choose size", ko: "사이즈 선택" },
+  dish_choose_size: { vi: "Chọn loại", en: "Choose option", ko: "옵션 선택" },
   dish_sold_out: { vi: "Hết hàng", en: "Sold out", ko: "품절" },
 
   // Dish sheet
@@ -576,18 +576,18 @@ const dict = {
   dishform_name_placeholder: { vi: "vd. Hamburger nhà làm", en: "e.g. Handmade Hamburger", ko: "예: 수제 햄버거" },
   dishform_price: { vi: "Giá", en: "Price", ko: "가격" },
   dishform_price_from_variants: {
-    vi: "Lấy theo size đầu tiên bên dưới",
-    en: "Taken from the first size below",
-    ko: "아래 첫 번째 사이즈 기준",
+    vi: "Lấy theo lựa chọn đầu tiên bên dưới",
+    en: "Taken from the first option below",
+    ko: "아래 첫 번째 옵션 기준",
   },
-  dishform_sizes_title: { vi: "Các size (tuỳ chọn)", en: "Sizes (optional)", ko: "사이즈 (선택)" },
+  dishform_sizes_title: { vi: "Các lựa chọn (tuỳ chọn)", en: "Options (optional)", ko: "옵션 (선택)" },
   dishform_sizes_desc: {
-    vi: "Thêm để khách chọn size (vd. M/L) với giá khác nhau cho cùng 1 món — bỏ trống nếu món chỉ có 1 giá.",
-    en: "Add these to let customers pick a size (e.g. M/L) at different prices on one dish — leave empty for a single-price dish.",
-    ko: "고객이 한 메뉴에서 다른 가격의 사이즈(예: M/L)를 선택하게 하려면 추가하세요 — 단일 가격이면 비워두세요.",
+    vi: "Thêm để khách chọn giữa nhiều size (vd. M/L, giá khác nhau) hoặc nhiều vị (vd. Xoài/Dâu, cùng giá) cho cùng 1 món — bỏ trống nếu món chỉ có 1 lựa chọn.",
+    en: "Add these to let customers pick between sizes (e.g. M/L, different prices) or flavors (e.g. Mango/Strawberry, same price) on one dish — leave empty for a single-option dish.",
+    ko: "고객이 한 메뉴에서 사이즈(예: M/L, 가격 다름) 또는 맛(예: 망고/딸기, 가격 동일)을 선택하게 하려면 추가하세요 — 옵션이 하나뿐이면 비워두세요.",
   },
-  dishform_size_label_placeholder: { vi: "vd. M", en: "e.g. M", ko: "예: M" },
-  dishform_add_size: { vi: "Thêm size", en: "Add size", ko: "사이즈 추가" },
+  dishform_size_label_placeholder: { vi: "vd. M hoặc Xoài", en: "e.g. M or Mango", ko: "예: M 또는 망고" },
+  dishform_add_size: { vi: "Thêm lựa chọn", en: "Add option", ko: "옵션 추가" },
   dishform_category: { vi: "Danh mục", en: "Category", ko: "카테고리" },
   dishform_description: { vi: "Mô tả", en: "Description", ko: "설명" },
   dishform_description_placeholder: { vi: "Mô tả ngắn, hấp dẫn", en: "Short, appetizing description", ko: "짧고 먹음직스러운 설명" },

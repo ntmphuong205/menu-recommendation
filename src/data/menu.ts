@@ -43,11 +43,14 @@ export interface Pairing {
   reasons?: Partial<Record<"vi" | "ko", string>>;
 }
 
-/** One size option on a dish that offers a size choice (e.g. M/L) — the
- *  dish stays a single menu item; picking a variant changes price/calories. */
+/** One option on a dish offering a choice (a size like M/L, or a flavor
+ *  like Mango/Strawberry) — the dish stays a single menu item; picking a
+ *  variant changes price/calories (same price across flavor options). */
 export interface SizeVariant {
   id: string;
+  /** English fallback label — see Dish.name for the same convention. */
   label: string;
+  labels?: Partial<Record<"vi" | "en" | "ko", string>>;
   price: number;
   calories?: number;
 }
@@ -118,4 +121,8 @@ export function getVariant(dish: Dish, variantId?: string): SizeVariant | undefi
 
 export function getVariantPrice(dish: Dish, variantId?: string): number {
   return getVariant(dish, variantId)?.price ?? dish.price;
+}
+
+export function getVariantLabel(variant: SizeVariant, lang: "vi" | "en" | "ko"): string {
+  return variant.labels?.[lang] ?? variant.label;
 }

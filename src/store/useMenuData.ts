@@ -44,6 +44,11 @@ function fromApi(row: ApiMenu): Dish {
           (v): SizeVariant => ({
             id: v.id,
             label: v.label,
+            labels: {
+              vi: v.labels?.vi || undefined,
+              en: v.labels?.en || undefined,
+              ko: v.labels?.ko || undefined,
+            },
             price: Number(v.price),
             calories: v.calories ?? undefined,
           })

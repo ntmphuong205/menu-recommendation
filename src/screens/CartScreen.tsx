@@ -5,7 +5,7 @@ import type { QueueInfo } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL_KEY, orderTotal, type Order, type OrderStatus } from "../data/orders";
-import { getDishName, getPairingReason, getVariant, getVariantPrice, type Dish } from "../data/menu";
+import { getDishName, getPairingReason, getVariant, getVariantPrice, getVariantLabel, type Dish } from "../data/menu";
 import { getCustomerSessionId } from "../lib/apiClient";
 import { getStoreSlug } from "../lib/storeSlug";
 import { formatPrice, formatPriceRange } from "../lib/currency";
@@ -339,7 +339,7 @@ function PickupInvoiceScreen({
               <div key={item.id} className="flex items-center justify-between gap-2 text-[13px]">
                 <span className="text-[#22201B]">
                   {item.qty}× {getDishName(dish, lang)}
-                  {getVariant(dish, item.variantId) && ` (${getVariant(dish, item.variantId)!.label})`}
+                  {getVariant(dish, item.variantId) && ` (${getVariantLabel(getVariant(dish, item.variantId)!, lang)})`}
                   {item.note && <span className="text-[#B0553C]"> ({item.note})</span>}
                 </span>
                 <span className="font-semibold text-[#5C5240] shrink-0">
@@ -577,7 +577,7 @@ export function CartScreen() {
                     <p className="text-[13.5px] font-semibold text-[#22201B] leading-tight">
                       {getDishName(dish, lang)}
                       {getVariant(dish, item.variantId) && (
-                        <span className="text-[#8A8272] font-normal"> ({getVariant(dish, item.variantId)!.label})</span>
+                        <span className="text-[#8A8272] font-normal"> ({getVariantLabel(getVariant(dish, item.variantId)!, lang)})</span>
                       )}
                     </p>
                     <button onClick={() => removeItem(item.id)} className="text-[#B0A794] shrink-0">

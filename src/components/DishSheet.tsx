@@ -4,7 +4,7 @@ import { TagPill } from "./TagPill";
 import { ReviewSection } from "./ReviewSection";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
-import { getDishName, getDishDescription, getPairingReason } from "../data/menu";
+import { getDishName, getDishDescription, getPairingReason, getVariantLabel } from "../data/menu";
 import type { SizeVariant } from "../data/menu";
 import { OrderModeNotice } from "./OrderModeNotice";
 import { formatPrice } from "../lib/currency";
@@ -73,6 +73,10 @@ export function DishSheet() {
     : undefined;
   const unitPrice = selectedVariant?.price ?? dish.price;
   const displayCalories = selectedVariant?.calories ?? dish.calories;
+  // Flavor-only options (e.g. Mango/Strawberry) share one price — showing
+  // it under every pill is just noise there. Size options (M/L) do differ,
+  // so keep the per-pill price for those.
+  const showVariantPrices = !!variants?.length && variants.some((v) => v.price !== variants[0].price);
 
   const close = () => {
     setSelectedDishId(null);
@@ -119,21 +123,23 @@ export function DishSheet() {
           </div>
 
           {variants && variants.length > 0 && (
-            <div className="flex gap-1.5 mt-3">
+            <div className="flex flex-wrap gap-1.5 mt-3">
               {variants.map((v) => (
                 <button
                   key={v.id}
                   onClick={() => setVariantId(v.id)}
-                  className={`flex-1 flex flex-col items-center py-2 rounded-xl border text-[12.5px] font-semibold transition-colors ${
+                  className={`flex flex-col items-center px-3.5 py-2 rounded-xl border text-[12.5px] font-semibold transition-colors ${
                     selectedVariant?.id === v.id
                       ? "bg-[#2D5A3D] text-white border-[#2D5A3D]"
                       : "bg-white text-[#5C5240] border-black/10"
                   }`}
                 >
-                  {v.label}
-                  <span className={`text-[10.5px] font-normal mt-0.5 ${selectedVariant?.id === v.id ? "text-white/80" : "text-[#8A8272]"}`}>
-                    {formatPrice(v.price, dish.currency)}
-                  </span>
+                  {getVariantLabel(v, lang)}
+                  {showVariantPrices && (
+                    <span className={`text-[10.5px] font-normal mt-0.5 ${selectedVariant?.id === v.id ? "text-white/80" : "text-[#8A8272]"}`}>
+                      {formatPrice(v.price, dish.currency)}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
