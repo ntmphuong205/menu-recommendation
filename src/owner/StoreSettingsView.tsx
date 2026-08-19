@@ -4,6 +4,10 @@ import { useApp } from "../context/AppContext";
 import { useStoreData } from "../store/useStoreData";
 import { useI18n } from "../i18n/I18nContext";
 import { VIETNAM_BANKS } from "../data/banks";
+import { TAGS, type TagKey } from "../data/menu";
+import type { TranslationKey } from "../i18n/translations";
+
+const ALL_FILTER_TAGS = Object.keys(TAGS) as TagKey[];
 
 function TagInput({ values, onChange, placeholder }: { values: string[]; onChange: (v: string[]) => void; placeholder: string }) {
   const [draft, setDraft] = useState("");
@@ -56,6 +60,7 @@ export function StoreSettingsView() {
   const [hours, setHours] = useState("");
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<string[]>([]);
+  const [filterTags, setFilterTags] = useState<Set<TagKey>>(new Set());
   const [localKeywords, setLocalKeywords] = useState<string[]>([]);
   const [bankBin, setBankBin] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
@@ -94,6 +99,7 @@ export function StoreSettingsView() {
     setWifiPassword(store.wifi_password ?? "");
     setAddress(store.address ?? "");
     setCoverImage(store.cover_image ?? "");
+    setFilterTags(new Set((store.filter_tags ?? []).filter((k): k is TagKey => k in TAGS)));
   }, [store]);
 
   const handleQrUpload = (file: File | undefined) => {
@@ -108,6 +114,15 @@ export function StoreSettingsView() {
     const reader = new FileReader();
     reader.onload = () => setCoverImage(reader.result as string);
     reader.readAsDataURL(file);
+  };
+
+  const toggleFilterTag = (tag: TagKey) => {
+    setFilterTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
   };
 
   // Same polling-clobbers-edits issue as the store fields above — seed once,
@@ -150,6 +165,7 @@ export function StoreSettingsView() {
           wifi_password: wifiPassword,
           address,
           cover_image: coverImage || null,
+          filter_tags: Array.from(filterTags),
         }),
         updateKeywords(localKeywords),
       ]);
@@ -206,6 +222,23 @@ export function StoreSettingsView() {
           </Field>
           <Field label={t("store_settings_field_categories")}>
             <TagInput values={categories} onChange={setCategories} placeholder={t("store_settings_field_categories_placeholder")} />
+          </Field>
+          <Field label={t("store_settings_field_filter_tags")}>
+            <p className="text-[11px] text-[#8A8272] mb-1.5 -mt-1">{t("store_settings_field_filter_tags_desc")}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {ALL_FILTER_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleFilterTag(tag)}
+                  className={`px-2.5 py-1 rounded-full text-[11.5px] font-medium transition-colors ${
+                    filterTags.has(tag) ? "bg-[#2D5A3D] text-white" : "bg-[#EFE9D8] text-[#5C5240]"
+                  }`}
+                >
+                  {t(`tag_${tag}` as TranslationKey)}
+                </button>
+              ))}
+            </div>
           </Field>
           <Field label={t("store_settings_field_keywords")}>
             <p className="text-[11px] text-[#8A8272] mb-1.5 -mt-1">{t("store_settings_field_keywords_desc")}</p>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { getDishName, type Dish, type TagKey } from "../data/menu";
+import { getDishName, TAGS, type Dish, type TagKey } from "../data/menu";
 import { DishCard } from "../components/DishCard";
 import { OrderModeNotice } from "../components/OrderModeNotice";
 import { LangSwitcher } from "../components/LangSwitcher";
@@ -8,7 +8,7 @@ import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
 
-const FILTER_KEYS: (TagKey | "all")[] = ["all", "popular", "spicy", "lowCalorie", "vegan", "beverage"];
+const DEFAULT_FILTER_TAGS: TagKey[] = ["popular", "spicy", "lowCalorie", "vegan", "beverage"];
 // Legacy fixed categories stay translated; anything a store entered itself
 // (see StoreSettingsView's menu_categories) is shown exactly as typed.
 const CATEGORY_KEY: Partial<Record<string, TranslationKey>> = {
@@ -19,10 +19,16 @@ const CATEGORY_KEY: Partial<Record<string, TranslationKey>> = {
 };
 
 export function MenuScreen() {
-  const { menu } = useApp();
+  const { menu, store } = useApp();
   const { t, lang } = useI18n();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<TagKey | "all">("all");
+
+  // Each store picks which quick filters fit its menu (Store Settings) —
+  // "Spicy"/"Vegan" suit a full-kitchen restaurant, not a drinks bar.
+  // Falls back to the original default set when a store hasn't set any.
+  const storeFilterTags = (store?.filter_tags ?? []).filter((k): k is TagKey => k in TAGS);
+  const filterKeys: (TagKey | "all")[] = ["all", ...(storeFilterTags.length ? storeFilterTags : DEFAULT_FILTER_TAGS)];
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -60,7 +66,7 @@ export function MenuScreen() {
           />
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-          {FILTER_KEYS.map((key) => (
+          {filterKeys.map((key) => (
             <button
               key={key}
               onClick={() => setFilter(key)}

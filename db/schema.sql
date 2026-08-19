@@ -27,6 +27,11 @@ create table if not exists public.stores (
     description_vi text default '',
     recommendation_keywords jsonb not null default '[]'::jsonb,
     menu_categories jsonb not null default '[]'::jsonb,
+    -- Which of the fixed TagKey slugs (see src/data/menu.ts) show as quick
+    -- filter chips on the customer Menu screen — "spicy"/"vegan" fit a
+    -- full-kitchen restaurant, not a drinks bar. Empty means "use the
+    -- built-in default set" (existing stores keep their current chips).
+    filter_tags jsonb not null default '[]'::jsonb,
     -- Bank transfer details for remote pre-orders (VietQR) — an
     -- alternative to VNPay that needs no merchant/business registration.
     -- Null until the owner fills them in via Store Settings.
@@ -384,7 +389,8 @@ alter table public.stores
     add column if not exists wifi_name text default '',
     add column if not exists wifi_password text default '',
     add column if not exists address text default '',
-    add column if not exists cover_image text;
+    add column if not exists cover_image text,
+    add column if not exists filter_tags jsonb not null default '[]'::jsonb;
 
 alter table public.menus
     add column if not exists size_variants jsonb not null default '[]'::jsonb;

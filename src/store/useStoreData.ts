@@ -18,6 +18,7 @@ export interface StoreUpdatePayload {
   wifi_password?: string;
   address?: string;
   cover_image?: string | null;
+  filter_tags?: string[];
 }
 
 export interface StoreData {

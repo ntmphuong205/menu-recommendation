@@ -196,6 +196,7 @@ export interface ApiStore {
   wifi_password: string;
   address: string;
   cover_image: string;
+  filter_tags: string[];
 }
 
 export interface ChatResponse {
@@ -258,6 +259,7 @@ export const apiClient = {
     wifi_password?: string;
     address?: string;
     cover_image?: string | null;
+    filter_tags?: string[];
   }) => request<{ success: boolean; store: ApiStore }>("PUT", "/store", payload),
 
   getKeywords: () => request<{ keywords: string[] }>("GET", "/keywords"),

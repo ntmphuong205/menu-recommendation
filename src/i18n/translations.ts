@@ -522,6 +522,12 @@ const dict = {
   store_settings_field_description: { vi: "Mô tả", en: "Description", ko: "설명" },
   store_settings_field_categories: { vi: "Danh mục món", en: "Menu categories", ko: "메뉴 카테고리" },
   store_settings_field_categories_placeholder: { vi: "vd. Món chính, Khai vị", en: "e.g. Main, Starter", ko: "예: 메인, 애피타이저" },
+  store_settings_field_filter_tags: { vi: "Bộ lọc thực đơn", en: "Menu filters", ko: "메뉴 필터" },
+  store_settings_field_filter_tags_desc: {
+    vi: "Các nút lọc nhanh hiện ở tab Thực đơn — chọn cái phù hợp với quán (bỏ trống để dùng bộ mặc định).",
+    en: "The quick-filter chips shown on the Menu tab — pick what fits this store (leave empty to use the default set).",
+    ko: "메뉴 탭에 표시되는 빠른 필터 칩입니다 — 매장에 맞는 항목을 선택하세요(비워두면 기본 설정 사용).",
+  },
   store_settings_field_keywords: {
     vi: "Từ khoá gợi ý AI",
     en: "AI recommendation keywords",

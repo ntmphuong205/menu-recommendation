@@ -199,6 +199,11 @@ class StoreUpdate(BaseModel):
     # Cover photo behind the store name/description on the customer app's
     # Info tab — same data-URL/hosted-URL convention as bank_qr_image.
     cover_image: Optional[str] = None
+    # Which TagKey slugs (src/data/menu.ts) show as quick filter chips on
+    # the customer Menu screen — empty means "use the built-in default set".
+    # Not validated against the fixed TagKey enum here, same as menus.tags —
+    # the frontend only ever offers valid slugs and ignores anything else.
+    filter_tags: List[str] = Field(default_factory=list, max_length=20)
 
     @field_validator(
         "name", "hours", "description", "bank_bin", "bank_account_number",
@@ -208,7 +213,7 @@ class StoreUpdate(BaseModel):
     def strip_text(cls, value: str) -> str:
         return value.strip()
 
-    @field_validator("menu_categories")
+    @field_validator("menu_categories", "filter_tags")
     @classmethod
     def strip_categories(cls, values: List[str]) -> List[str]:
         return [str(item).strip() for item in values if str(item).strip()]
@@ -1389,6 +1394,7 @@ def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "wifi_password": row.get("wifi_password") or "",
         "address": row.get("address") or "",
         "cover_image": row.get("cover_image") or "",
+        "filter_tags": row.get("filter_tags") or [],
     }
 
 
@@ -1528,6 +1534,7 @@ def update_store(
             "wifi_password": payload.wifi_password,
             "address": payload.address,
             "cover_image": payload.cover_image or None,
+            "filter_tags": payload.filter_tags,
         }
     )
     return {
