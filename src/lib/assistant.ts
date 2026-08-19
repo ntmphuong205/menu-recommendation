@@ -1,5 +1,5 @@
 import type { Dish, TagKey } from "../data/menu";
-import { getDishDescription, getDishAllergyNote } from "../data/menu";
+import { getDishName, getDishDescription, getDishAllergyNote } from "../data/menu";
 import { RESTAURANT, FAQ, getHoursLabel, getFaqText } from "../data/restaurant";
 import { t as translate, type Lang } from "../i18n/translations";
 
@@ -205,7 +205,7 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
       return {
         messages: [
           bot(
-            tr("bot_confirm_qty", { qty, dish: dish.name }),
+            tr("bot_confirm_qty", { qty, dish: getDishName(dish, lang) }),
             undefined,
             [tr("qr_nothing_else"), tr("qr_remove_onions")]
           ),
@@ -223,7 +223,7 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
     const qty = state.pendingQty ?? 1;
     if (isDeclineAdditional(t)) {
       return {
-        messages: [bot(tr("bot_order_done", { qty, dish: dish.name }))],
+        messages: [bot(tr("bot_order_done", { qty, dish: getDishName(dish, lang) }))],
         state: { stage: "idle" },
         cartOp: { type: "add", dishId: dish.id, qty },
       };
@@ -231,7 +231,7 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
     const removal = parseRemoval(t);
     const note = removal ? `No ${removal}` : input.trim();
     return {
-      messages: [bot(tr("bot_order_done_note", { qty, dish: dish.name, note }))],
+      messages: [bot(tr("bot_order_done_note", { qty, dish: getDishName(dish, lang), note }))],
       state: { stage: "idle" },
       cartOp: { type: "add", dishId: dish.id, qty, note },
     };
@@ -265,7 +265,7 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
       messages: [
         bot(
           tr("bot_allergy", {
-            dish: namedDish.name,
+            dish: getDishName(namedDish, lang),
             ingredients: namedDish.ingredients.join(", "),
             allergyNote: getDishAllergyNote(namedDish, lang),
           }),
@@ -289,7 +289,7 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
 
   if (namedDish && namedDish.soldOut) {
     return {
-      messages: [bot(tr("bot_sold_out", { dish: namedDish.name }), undefined, [tr("qr_suggest_else")])],
+      messages: [bot(tr("bot_sold_out", { dish: getDishName(namedDish, lang) }), undefined, [tr("qr_suggest_else")])],
       state: { stage: "idle" },
     };
   }
@@ -297,7 +297,7 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
   // Direct dish name mention -> treat as recommendation/confirmation start
   if (namedDish) {
     return {
-      messages: [bot(tr("bot_dish_pick_qty", { dish: namedDish.name }), [namedDish])],
+      messages: [bot(tr("bot_dish_pick_qty", { dish: getDishName(namedDish, lang) }), [namedDish])],
       state: { stage: "awaitingConfirm", pendingDishId: namedDish.id },
     };
   }

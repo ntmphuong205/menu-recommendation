@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import type { Dish, TagKey } from "../data/menu";
+import { getDishName, type Dish, type TagKey } from "../data/menu";
 import { DishCard } from "../components/DishCard";
 import { OrderModeNotice } from "../components/OrderModeNotice";
 import { LangSwitcher } from "../components/LangSwitcher";
@@ -20,17 +20,18 @@ const CATEGORY_KEY: Partial<Record<string, TranslationKey>> = {
 
 export function MenuScreen() {
   const { menu } = useApp();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<TagKey | "all">("all");
 
   const filtered = useMemo(() => {
+    const q = query.toLowerCase();
     return menu.filter((d) => {
-      const matchesQuery = d.name.toLowerCase().includes(query.toLowerCase());
+      const matchesQuery = getDishName(d, lang).toLowerCase().includes(q) || d.name.toLowerCase().includes(q);
       const matchesFilter = filter === "all" || d.tags.includes(filter);
       return matchesQuery && matchesFilter;
     });
-  }, [menu, query, filter]);
+  }, [menu, query, filter, lang]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Dish[]>();

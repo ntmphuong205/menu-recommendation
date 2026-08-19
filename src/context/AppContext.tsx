@@ -9,7 +9,8 @@ import { useReservationsData } from "../store/useReservationsData";
 import { useStoreData } from "../store/useStoreData";
 import type { ApiTable, ApiReservation, ApiStore } from "../lib/apiClient";
 import type { Dish } from "../data/menu";
-import { getVariant, getVariantPrice } from "../data/menu";
+import { getVariantPrice } from "../data/menu";
+import { useI18n } from "../i18n/I18nContext";
 import type { Order, OrderStatus } from "../data/orders";
 import { ACTIVE_STATUSES } from "../data/orders";
 import type { Review, DishRatingSummary } from "../data/reviews";
@@ -155,6 +156,7 @@ function getStoredWebOrderIntent(): "dine_in" | "pickup" | null {
 export function AppProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const isOwnerRoute = location.pathname.startsWith("/admin");
+  const { lang } = useI18n();
   const { menu, addDish, updateDish, deleteDish } = useMenuData();
   const {
     orders,
@@ -215,25 +217,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
   const currency = menu[0]?.currency ?? "USD";
 
-  // A variant's size is baked into dishName (e.g. "Trà chanh (L)") rather
-  // than added as a new order-line column — the backend already snapshots
-  // dishName/price per line, so this is enough for kitchen/admin to see
-  // which size was ordered without any schema change.
+  // The backend derives the actual price and kitchen-facing name itself
+  // from dishId + variantId + lang (see create_order in api/index.py) —
+  // never trusted directly from the client, so a tampered price can't
+  // undercharge and a stale client can't send a wrong dish name.
   const cartToOrderItems = () =>
-    cart.map((i) => {
-      const dish = findDish(i.dishId);
-      const variant = dish ? getVariant(dish, i.variantId) : undefined;
-      const dishName = (dish?.name ?? "Unknown dish") + (variant ? ` (${variant.label})` : "");
-      const price = dish ? getVariantPrice(dish, i.variantId) : 0;
-      return { dishId: i.dishId, dishName, qty: i.qty, price, note: i.note };
-    });
+    cart.map((i) => ({ dishId: i.dishId, variantId: i.variantId, qty: i.qty, note: i.note }));
 
   const placeOrder = (tableIdToUse: string) => {
-    return placeOrderRaw(tableIdToUse, cartToOrderItems(), mode);
+    return placeOrderRaw(tableIdToUse, cartToOrderItems(), mode, lang);
   };
 
   const placePickupOrder = (paymentMethod: "vnpay" | "bank_transfer", pickupTime: string) => {
-    return placePickupOrderRaw(cartToOrderItems(), paymentMethod, pickupTime);
+    return placePickupOrderRaw(cartToOrderItems(), paymentMethod, pickupTime, lang);
   };
 
   const requestReservation = async (tableIdToReserve: string, partySize: number) => {

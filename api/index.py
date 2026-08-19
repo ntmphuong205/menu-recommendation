@@ -374,6 +374,14 @@ class OrderCreate(BaseModel):
     # the frontend can regroup rows back into a single "order" for display.
     # Required for pickup orders — it's also what derives the pickup_code.
     order_group_id: Optional[UUID] = None
+    # Which of the dish's size_variants (if any) was picked — the price and
+    # kitchen-facing name are derived server-side from this, never trusted
+    # directly from the client (see create_order).
+    variant_id: Optional[str] = Field(default=None, max_length=32)
+    # The customer's selected language when they placed the order — baked
+    # into menu_name once and frozen from then on (order history isn't
+    # re-translated later). Falls back to English if omitted.
+    lang: Optional[Literal["vi", "en", "ko"]] = None
 
     @field_validator("table_id")
     @classmethod
@@ -1651,11 +1659,32 @@ def create_order(payload: OrderCreate) -> Dict[str, Any]:
     if menu.get("is_sold_out"):
         raise HTTPException(status_code=409, detail="This item is sold out and can't be ordered.")
 
+    # The price actually charged always comes from the menu item itself
+    # (base price, or a matched size_variant's price) — never trusted
+    # directly from the client, so a tampered request can't undercharge.
+    variant = None
+    if payload.variant_id is not None:
+        variant = next(
+            (v for v in (menu.get("size_variants") or []) if v.get("id") == payload.variant_id),
+            None,
+        )
+        if not variant:
+            raise HTTPException(status_code=400, detail="Invalid size/option selected.")
+    unit_price = variant["price"] if variant else menu["price"]
+
+    lang = payload.lang or "en"
+    name_dict = menu.get("name") or {}
+    menu_name = name_dict.get(lang) or name_dict.get("en") or ""
+    if variant:
+        variant_label = (variant.get("labels") or {}).get(lang) or variant.get("label") or ""
+        if variant_label:
+            menu_name = f"{menu_name} ({variant_label})"
+
     order_row: Dict[str, Any] = {
         "menu_id": str(payload.menu_id),
-        "menu_name": (menu.get("name") or {}).get("en", ""),
+        "menu_name": menu_name,
         "quantity": payload.quantity,
-        "total_price": float(menu["price"]) * payload.quantity,
+        "total_price": float(unit_price) * payload.quantity,
         "currency": menu.get("currency", "KRW"),
         "note": payload.note,
         "customer_session_id": str(payload.customer_session_id),

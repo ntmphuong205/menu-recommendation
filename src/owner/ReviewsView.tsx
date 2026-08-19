@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Star, CornerDownRight } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
+import { getDishName } from "../data/menu";
 
 function Stars({ value }: { value: number }) {
   return (
@@ -59,7 +60,7 @@ function ReplyBox({ reviewId, initial }: { reviewId: string; initial: string }) 
 
 export function ReviewsView() {
   const { reviews, menu } = useApp();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   return (
     <div className="p-4 md:p-8 max-w-3xl">
@@ -83,7 +84,7 @@ export function ReviewsView() {
                   <span className="text-[11.5px] text-[#8A8272]">{r.rating.toFixed(1)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-[11px] text-[#B0A794]">
-                  {dish && <span className="font-medium text-[#5C5240]">{dish.name}</span>}
+                  {dish && <span className="font-medium text-[#5C5240]">{getDishName(dish, lang)}</span>}
                   {r.tableId && <span>{t("chat_table")} {r.tableId}</span>}
                 </div>
               </div>

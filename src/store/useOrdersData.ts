@@ -43,10 +43,11 @@ function groupOrders(rows: ApiOrder[]): Order[] {
 
 export interface NewOrderItem {
   dishId: string;
-  dishName: string;
   qty: number;
-  price: number;
   note?: string;
+  /** Which size_variant (if any) was picked — the backend derives the
+   *  actual price and kitchen-facing name from this, never from the client. */
+  variantId?: string;
 }
 
 export interface OrdersData {
@@ -56,12 +57,13 @@ export interface OrdersData {
    *  just placed (not just "whichever is newest for this table", which
    *  breaks if another diner at the same table submits one moments later),
    *  and to know if any item failed instead of silently declaring success. */
-  placeOrder: (tableId: string, items: NewOrderItem[], mode: "web" | "store") => Promise<string>;
+  placeOrder: (tableId: string, items: NewOrderItem[], mode: "web" | "store", lang: string) => Promise<string>;
   /** Remote pre-order, paid upfront — not tied to a table. */
   placePickupOrder: (
     items: NewOrderItem[],
     paymentMethod: "vnpay" | "bank_transfer",
-    pickupTime: string
+    pickupTime: string,
+    lang: string
   ) => Promise<string>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateItemStatus: (itemId: string, status: OrderStatus) => void;
@@ -72,7 +74,12 @@ export function useOrdersData(): OrdersData {
   const rows = usePollingData(fetcher);
   const orders = groupOrders(rows ?? []).sort((a, b) => b.createdAt - a.createdAt);
 
-  const placeOrder = async (tableId: string, items: NewOrderItem[], mode: "web" | "store"): Promise<string> => {
+  const placeOrder = async (
+    tableId: string,
+    items: NewOrderItem[],
+    mode: "web" | "store",
+    lang: string
+  ): Promise<string> => {
     const sessionId = getCustomerSessionId();
     const groupId = crypto.randomUUID();
     await Promise.all(
@@ -85,6 +92,8 @@ export function useOrdersData(): OrdersData {
           customer_session_id: sessionId,
           mode,
           order_group_id: groupId,
+          variant_id: item.variantId,
+          lang,
         })
       )
     );
@@ -94,7 +103,8 @@ export function useOrdersData(): OrdersData {
   const placePickupOrder = async (
     items: NewOrderItem[],
     paymentMethod: "vnpay" | "bank_transfer",
-    pickupTime: string
+    pickupTime: string,
+    lang: string
   ): Promise<string> => {
     const sessionId = getCustomerSessionId();
     const groupId = crypto.randomUUID();
@@ -110,6 +120,8 @@ export function useOrdersData(): OrdersData {
           payment_method: paymentMethod,
           pickup_time: pickupTime,
           order_group_id: groupId,
+          variant_id: item.variantId,
+          lang,
         })
       )
     );
