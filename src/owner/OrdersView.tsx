@@ -5,6 +5,7 @@ import { NEXT_STATUS, ORDER_STATUS_LABEL_KEY, ACTIVE_STATUSES, orderTotal, type 
 import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
 import { RESERVATIONS_ENABLED } from "../data/featureFlags";
+import { formatPrice } from "../lib/currency";
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
@@ -43,6 +44,7 @@ export function OrdersView() {
     resolveRequest,
     reservations,
     updateReservationStatus,
+    currency,
   } = useApp();
   const { t } = useI18n();
 
@@ -167,7 +169,7 @@ export function OrdersView() {
               <div key={order.id} className="flex items-center justify-between bg-white rounded-xl px-3.5 py-2.5">
                 <div>
                   <span className="text-[13px] font-semibold text-[#22201B]">{orderLabel(order, t)}</span>
-                  <span className="text-[12px] text-[#5C5240] ml-2 font-medium">${orderTotal(order).toFixed(2)}</span>
+                  <span className="text-[12px] text-[#5C5240] ml-2 font-medium">{formatPrice(orderTotal(order), currency)}</span>
                 </div>
                 {order.paymentMethod === "bank_transfer" ? (
                   <button
@@ -200,7 +202,7 @@ export function OrdersView() {
         </div>
         <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
           <p className="text-[12px] text-[#8A8272] mb-1">{t("orders_stat_revenue")}</p>
-          <p className="text-[26px] font-bold text-[#2D5A3D]">${revenueToday.toFixed(2)}</p>
+          <p className="text-[26px] font-bold text-[#2D5A3D]">{formatPrice(revenueToday, currency)}</p>
         </div>
       </div>
 
@@ -247,7 +249,7 @@ export function OrdersView() {
                             {item.qty}× {item.dishName}
                             {item.note && <span className="text-[#B0553C]"> ({item.note})</span>}
                           </span>
-                          <span className="text-[#5C5240] font-medium ml-2">${(item.price * item.qty).toFixed(2)}</span>
+                          <span className="text-[#5C5240] font-medium ml-2">{formatPrice(item.price * item.qty, currency)}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[item.status]}`}>
@@ -279,7 +281,7 @@ export function OrdersView() {
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[order.status]}`}>
                       {t(ORDER_STATUS_LABEL_KEY[order.status])}
                     </span>
-                    <span className="text-[12px] font-bold text-[#2D5A3D]">${orderTotal(order).toFixed(2)}</span>
+                    <span className="text-[12px] font-bold text-[#2D5A3D]">{formatPrice(orderTotal(order), currency)}</span>
                   </div>
                 </div>
               ))}
@@ -306,7 +308,7 @@ export function OrdersView() {
                 <span className="text-[#8A8272]">
                   {order.items.map((i) => `${i.qty}× ${i.dishName}`).join(", ")}
                 </span>
-                <span className="font-semibold text-[#2D5A3D]">${orderTotal(order).toFixed(2)}</span>
+                <span className="font-semibold text-[#2D5A3D]">{formatPrice(orderTotal(order), currency)}</span>
               </div>
             ))}
           </div>
@@ -331,7 +333,7 @@ export function OrdersView() {
                 <span className="text-[#8A8272]">
                   {order.items.map((i) => `${i.qty}× ${i.dishName}`).join(", ")}
                 </span>
-                <span className="font-semibold text-[#B0553C]">${orderTotal(order).toFixed(2)}</span>
+                <span className="font-semibold text-[#B0553C]">{formatPrice(orderTotal(order), currency)}</span>
               </div>
             ))}
           </div>

@@ -3,19 +3,17 @@ import { TrendingUp, Receipt, Wallet, Table2, BarChart3 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { orderTotal } from "../data/orders";
 import { useI18n } from "../i18n/I18nContext";
+import { formatPrice } from "../lib/currency";
 
 const BRAND_GREEN = "#2D5A3D";
-
-function formatMoney(n: number) {
-  return `$${n.toFixed(2)}`;
-}
 
 function formatDay(ts: number) {
   return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 export function AnalyticsView() {
-  const { orders } = useApp();
+  const { orders, currency } = useApp();
+  const formatMoney = (n: number) => formatPrice(n, currency);
   const { t } = useI18n();
   const [view, setView] = useState<"chart" | "table">("chart");
 

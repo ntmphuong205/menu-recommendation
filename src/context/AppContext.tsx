@@ -46,6 +46,8 @@ interface AppContextValue {
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
+  /** This store's menu currency — every dish shares one, so any dish's is fine. */
+  currency: string;
 
   // orders (shared, created by customer app, managed by owner dashboard)
   orders: Order[];
@@ -204,6 +206,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => cart.reduce((sum, i) => sum + (findDish(i.dishId)?.price ?? 0) * i.qty, 0),
     [cart, menu]
   );
+  const currency = menu[0]?.currency ?? "USD";
 
   const placeOrder = (tableIdToUse: string) => {
     const items = cart.map((i) => {
@@ -260,6 +263,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clearCart,
         totalItems,
         totalPrice,
+        currency,
         orders,
         placeOrder,
         placePickupOrder,

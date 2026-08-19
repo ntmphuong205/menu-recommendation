@@ -6,6 +6,7 @@ import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { getDishName, getDishDescription, getPairingReason } from "../data/menu";
 import { OrderModeNotice } from "./OrderModeNotice";
+import { formatPrice } from "../lib/currency";
 
 function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
   const { findDish, addToCart, setSelectedDishId, mode, webOrderIntent } = useApp();
@@ -89,7 +90,7 @@ export function DishSheet() {
         <div className="p-5 pb-8">
           <div className="flex items-start justify-between gap-3">
             <h2 className="text-[19px] font-bold text-[#22201B] leading-tight">{dishName}</h2>
-            <span className="text-[18px] font-bold text-[#2D5A3D] shrink-0">${dish.price.toFixed(2)}</span>
+            <span className="text-[18px] font-bold text-[#2D5A3D] shrink-0">{formatPrice(dish.price, dish.currency)}</span>
           </div>
 
           {dish.soldOut && (
@@ -199,7 +200,7 @@ export function DishSheet() {
                   className="flex-1 bg-[#2D5A3D] text-white font-semibold text-[14px] py-3 rounded-full active:scale-[0.98] transition-transform disabled:opacity-50"
                   disabled={added || dish.soldOut}
                 >
-                  {dish.soldOut ? t("dish_sold_out") : added ? t("dish_added") : `${t("dish_add_to_cart")} · $${(dish.price * qty).toFixed(2)}`}
+                  {dish.soldOut ? t("dish_sold_out") : added ? t("dish_added") : `${t("dish_add_to_cart")} · ${formatPrice(dish.price * qty, dish.currency)}`}
                 </button>
               </div>
             </>

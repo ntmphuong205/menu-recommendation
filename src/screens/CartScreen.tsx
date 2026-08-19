@@ -8,6 +8,7 @@ import { ACTIVE_STATUSES, ORDER_STATUS_LABEL_KEY, orderTotal, type Order, type O
 import { getDishName, getPairingReason, type Dish } from "../data/menu";
 import { getCustomerSessionId } from "../lib/apiClient";
 import { getStoreSlug } from "../lib/storeSlug";
+import { formatPrice } from "../lib/currency";
 
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
@@ -18,7 +19,7 @@ const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
 };
 
 function MyOrdersSection() {
-  const { orders, tableId, cancelOrder, getQueueInfo } = useApp();
+  const { orders, tableId, cancelOrder, getQueueInfo, currency } = useApp();
   const { t } = useI18n();
   // Dine-in orders aren't tied to any one customer_session_id — everyone
   // seated at the table sees the table's combined orders. Pickup orders
@@ -98,7 +99,7 @@ function MyOrdersSection() {
                       <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_BADGE_STYLE[item.status]}`}>
                         {t(ORDER_STATUS_LABEL_KEY[item.status])}
                       </span>
-                      <span className="text-[12px] font-bold text-[#2D5A3D]">${(item.price * item.qty).toFixed(2)}</span>
+                      <span className="text-[12px] font-bold text-[#2D5A3D]">{formatPrice(item.price * item.qty, currency)}</span>
                     </div>
                   </div>
                 );
@@ -112,7 +113,7 @@ function MyOrdersSection() {
           <Receipt size={14} />
           {t("cart_total_bill")}
         </span>
-        <span className="text-[16px] font-bold">${billTotal.toFixed(2)}</span>
+        <span className="text-[16px] font-bold">{formatPrice(billTotal, currency)}</span>
       </div>
     </div>
   );
@@ -160,7 +161,7 @@ function PairingSuggestions() {
               </div>
               <div className="min-w-0">
                 <p className="text-[12px] font-semibold text-[#22201B] leading-tight line-clamp-1">{getDishName(dish, lang)}</p>
-                <p className="text-[11px] text-[#2D5A3D] font-bold">${dish.price.toFixed(2)}</p>
+                <p className="text-[11px] text-[#2D5A3D] font-bold">{formatPrice(dish.price, dish.currency)}</p>
               </div>
             </div>
             <p className="text-[10.5px] text-[#8A8272] leading-snug line-clamp-2">{reason}</p>
@@ -308,7 +309,7 @@ function PickupInvoiceScreen({
   pickupState: "idle" | "bank" | "error";
   onPay: () => void;
 }) {
-  const { cart, findDish, totalPrice } = useApp();
+  const { cart, findDish, totalPrice, currency } = useApp();
   const { t, lang } = useI18n();
 
   return (
@@ -332,13 +333,13 @@ function PickupInvoiceScreen({
                   {item.qty}× {getDishName(dish, lang)}
                   {item.note && <span className="text-[#B0553C]"> ({item.note})</span>}
                 </span>
-                <span className="font-semibold text-[#5C5240] shrink-0">${(dish.price * item.qty).toFixed(2)}</span>
+                <span className="font-semibold text-[#5C5240] shrink-0">{formatPrice(dish.price * item.qty, currency)}</span>
               </div>
             );
           })}
           <div className="flex items-center justify-between pt-2.5 mt-1 border-t border-black/5">
             <span className="text-[13px] font-bold text-[#22201B]">{t("cart_total")}</span>
-            <span className="text-[16px] font-bold text-[#2D5A3D]">${totalPrice.toFixed(2)}</span>
+            <span className="text-[16px] font-bold text-[#2D5A3D]">{formatPrice(totalPrice, currency)}</span>
           </div>
         </div>
 
@@ -389,6 +390,7 @@ export function CartScreen() {
     clearCart,
     findDish,
     totalPrice,
+    currency,
     setActiveTab,
     placeOrder,
     placePickupOrder,
@@ -584,7 +586,7 @@ export function CartScreen() {
                       </button>
                     </div>
                     <span className="text-[13px] font-bold text-[#2D5A3D]">
-                      ${(dish.price * item.qty).toFixed(2)}
+                      {formatPrice(dish.price * item.qty, currency)}
                     </span>
                   </div>
                 </div>
@@ -599,7 +601,7 @@ export function CartScreen() {
       <div className="shrink-0 px-4 pt-3 pb-4 border-t border-black/5 bg-[#FBF7EF]">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[13px] text-[#8A8272]">{t("cart_total")}</span>
-          <span className="text-[18px] font-bold text-[#22201B]">${totalPrice.toFixed(2)}</span>
+          <span className="text-[18px] font-bold text-[#22201B]">{formatPrice(totalPrice, currency)}</span>
         </div>
         {mode === "web" && webOrderIntent !== "pickup" ? (
           <button

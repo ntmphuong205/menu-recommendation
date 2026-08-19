@@ -4,6 +4,7 @@ import { getDishName, type Dish } from "../data/menu";
 import { TagPill } from "./TagPill";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
+import { formatPrice } from "../lib/currency";
 
 export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "chat" | "grid" }) {
   const { setSelectedDishId, addToCart, getDishRating, mode, webOrderIntent } = useApp();
@@ -32,7 +33,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
         <div className="p-2.5">
           <p className="text-[13px] font-semibold text-[#22201B] leading-tight line-clamp-1">{name}</p>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <p className="text-[12px] text-[#2D5A3D] font-bold">${dish.price.toFixed(2)}</p>
+            <p className="text-[12px] text-[#2D5A3D] font-bold">{formatPrice(dish.price, dish.currency)}</p>
             {rating.count > 0 && (
               <span className="flex items-center gap-0.5 text-[10.5px] text-[#8A8272]">
                 <Star size={10} className="text-[#E0A83C] fill-[#E0A83C]" />
@@ -68,7 +69,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
           ))}
         </div>
         <div className="flex items-center justify-between mt-2.5">
-          <span className="text-[15px] font-bold text-[#2D5A3D]">${dish.price.toFixed(2)}</span>
+          <span className="text-[15px] font-bold text-[#2D5A3D]">{formatPrice(dish.price, dish.currency)}</span>
           {canOrder && !soldOut && !added && (
             <div className="flex items-center gap-2 bg-[#F5F1E6] rounded-full px-2 py-1">
               <button

@@ -50,6 +50,8 @@ export interface Dish {
   name: string;
   names?: Partial<Record<"vi" | "en" | "ko", string>>;
   price: number;
+  /** ISO 4217-ish code for `price` — stores aren't all USD (e.g. VND). */
+  currency: string;
   description: string;
   descriptions?: Partial<Record<"vi" | "en" | "ko", string>>;
   image: string;
@@ -63,7 +65,11 @@ export interface Dish {
   ingredientLines?: IngredientLine[];
   ingredients: string[];
   allergyNote: string;
-  category: "Main" | "Starter" | "Beverage" | "Side";
+  /** Free-text grouping label — each store keeps its own list in
+   *  stores.menu_categories. "Main"/"Starter"/"Beverage"/"Side" are the
+   *  legacy defaults and stay translated in MenuScreen's CATEGORY_KEY;
+   *  anything else is shown as entered. */
+  category: string;
   soldOut?: boolean;
   /** Kitchen prep time, used to estimate wait time and queue position. */
   prepTimeMinutes?: number;

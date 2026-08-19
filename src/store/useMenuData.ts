@@ -9,6 +9,7 @@ function fromApi(row: ApiMenu): Dish {
     name: row.name.en || row.name.ko || row.name.vi || "",
     names: { vi: row.name.vi || undefined, en: row.name.en || undefined, ko: row.name.ko || undefined },
     price: Number(row.price),
+    currency: row.currency || "USD",
     description: row.desc.en || row.desc.ko || row.desc.vi || "",
     descriptions: { vi: row.desc.vi || undefined, ko: row.desc.ko || undefined },
     image: row.img,
@@ -45,7 +46,7 @@ function toPayload(dish: Dish) {
   return {
     name: { en: dish.name, ko: dish.names?.ko ?? "", vi: dish.names?.vi ?? "" },
     price: dish.price,
-    currency: "USD",
+    currency: dish.currency || "USD",
     desc: { en: dish.description, ko: dish.descriptions?.ko ?? "", vi: dish.descriptions?.vi ?? "" },
     category: dish.category,
     tags: dish.tags,

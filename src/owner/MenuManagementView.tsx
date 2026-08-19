@@ -5,9 +5,10 @@ import { TagPill } from "../components/TagPill";
 import { DishFormModal } from "./DishFormModal";
 import { useI18n } from "../i18n/I18nContext";
 import { getDishName, getDishDescription, type Dish } from "../data/menu";
+import { formatPrice } from "../lib/currency";
 
 export function MenuManagementView() {
-  const { menu, addDish, updateDish, deleteDish } = useApp();
+  const { menu, addDish, updateDish, deleteDish, store } = useApp();
   const { t, lang } = useI18n();
   const [editing, setEditing] = useState<Dish | null>(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -100,7 +101,7 @@ export function MenuManagementView() {
                   </td>
                   <td className="px-4 py-3 align-top font-semibold text-[#22201B] whitespace-nowrap">{getDishName(dish, lang)}</td>
                   <td className="px-4 py-3 align-top font-semibold text-[#2D5A3D] whitespace-nowrap">
-                    ${dish.price.toFixed(2)}
+                    {formatPrice(dish.price, dish.currency)}
                   </td>
                   <td className="px-4 py-3 align-top text-[#5C5240] max-w-[220px]">{getDishDescription(dish, lang)}</td>
                   <td className="px-4 py-3 align-top">
@@ -139,6 +140,7 @@ export function MenuManagementView() {
 
       {showAdd && (
         <DishFormModal
+          menuCategories={store?.menu_categories ?? []}
           onClose={() => setShowAdd(false)}
           onSave={(dish) => {
             addDish(dish);
@@ -150,6 +152,7 @@ export function MenuManagementView() {
       {editing && (
         <DishFormModal
           initial={editing}
+          menuCategories={store?.menu_categories ?? []}
           onClose={() => setEditing(null)}
           onSave={(dish) => {
             updateDish(editing.id, dish);

@@ -9,7 +9,9 @@ import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
 
 const FILTER_KEYS: (TagKey | "all")[] = ["all", "popular", "spicy", "lowCalorie", "vegan", "beverage"];
-const CATEGORY_KEY: Record<Dish["category"], TranslationKey> = {
+// Legacy fixed categories stay translated; anything a store entered itself
+// (see StoreSettingsView's menu_categories) is shown exactly as typed.
+const CATEGORY_KEY: Partial<Record<string, TranslationKey>> = {
   Main: "menu_category_main",
   Starter: "menu_category_starter",
   Beverage: "menu_category_beverage",
@@ -80,7 +82,7 @@ export function MenuScreen() {
         {grouped.map(([category, dishes]) => (
           <div key={category} className="mb-5">
             <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-2">
-              {t(CATEGORY_KEY[category as Dish["category"]])}
+              {CATEGORY_KEY[category] ? t(CATEGORY_KEY[category]!) : category}
             </h2>
             <div className="grid grid-cols-2 gap-2.5">
               {dishes.map((d) => (

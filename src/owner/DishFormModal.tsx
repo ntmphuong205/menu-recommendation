@@ -4,9 +4,10 @@ import { TAGS, type Dish, type TagKey } from "../data/menu";
 import { INGREDIENT_NAMES, findIngredientByName, computeNutrition, type IngredientLine } from "../data/ingredients";
 import { useI18n } from "../i18n/I18nContext";
 
-const CATEGORIES: Dish["category"][] = ["Main", "Starter", "Beverage", "Side"];
+const LEGACY_CATEGORIES = ["Main", "Starter", "Beverage", "Side"];
 const ALL_TAGS = Object.keys(TAGS) as TagKey[];
 const INGREDIENT_DATALIST_ID = "known-ingredients";
+const CATEGORY_DATALIST_ID = "known-categories";
 
 function slugify(name: string) {
   return name
@@ -61,17 +62,22 @@ function toIngredientLine(line: LineState): IngredientLine | null {
 
 export function DishFormModal({
   initial,
+  menuCategories = [],
   onClose,
   onSave,
 }: {
   initial?: Dish;
+  /** This store's own category list (Store Settings) — suggested via a
+   *  datalist alongside the legacy defaults, but any text can be typed. */
+  menuCategories?: string[];
   onClose: () => void;
   onSave: (dish: Dish) => void;
 }) {
   const { t } = useI18n();
   const [name, setName] = useState(initial?.name ?? "");
   const [price, setPrice] = useState(initial?.price?.toString() ?? "");
-  const [category, setCategory] = useState<Dish["category"]>(initial?.category ?? "Main");
+  const [category, setCategory] = useState(initial?.category ?? "Main");
+  const categoryOptions = Array.from(new Set([...menuCategories, ...LEGACY_CATEGORIES]));
   const [description, setDescription] = useState(initial?.description ?? "");
   const [image, setImage] = useState(initial?.image ?? "");
   const [prepTime, setPrepTime] = useState(initial?.prepTimeMinutes?.toString() ?? "");
@@ -117,6 +123,7 @@ export function DishFormModal({
       id: initial?.id ?? (slugify(name) || `dish-${Date.now()}`),
       name: name.trim(),
       price: parseFloat(price) || 0,
+      currency: initial?.currency ?? "USD",
       description: description.trim(),
       image: image.trim() || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80",
       tags: Array.from(tags),
@@ -154,11 +161,18 @@ export function DishFormModal({
               <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" step="0.01" className={inputCls} placeholder="8.00" />
             </Field>
             <Field label={t("dishform_category")}>
-              <select value={category} onChange={(e) => setCategory(e.target.value as Dish["category"])} className={inputCls}>
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+              <input
+                list={CATEGORY_DATALIST_ID}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className={inputCls}
+                placeholder={categoryOptions[0]}
+              />
+              <datalist id={CATEGORY_DATALIST_ID}>
+                {categoryOptions.map((c) => (
+                  <option key={c} value={c} />
                 ))}
-              </select>
+              </datalist>
             </Field>
           </div>
 
