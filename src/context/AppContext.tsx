@@ -9,6 +9,7 @@ import { useReservationsData } from "../store/useReservationsData";
 import { useStoreData } from "../store/useStoreData";
 import type { ApiTable, ApiReservation, ApiStore } from "../lib/apiClient";
 import type { Dish } from "../data/menu";
+import { getVariant, getVariantPrice } from "../data/menu";
 import type { Order, OrderStatus } from "../data/orders";
 import { ACTIVE_STATUSES } from "../data/orders";
 import type { Review, DishRatingSummary } from "../data/reviews";
@@ -21,6 +22,8 @@ export interface CartItem {
   dishId: string;
   qty: number;
   note?: string;
+  /** Which of the dish's sizeVariants was picked — undefined for dishes with no size choice. */
+  variantId?: string;
 }
 
 export interface QueueInfo {
@@ -40,7 +43,7 @@ interface AppContextValue {
 
   // customer cart
   cart: CartItem[];
-  addToCart: (dishId: string, qty?: number, note?: string) => void;
+  addToCart: (dishId: string, qty?: number, note?: string, variantId?: string) => void;
   updateQty: (id: string, qty: number) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
@@ -188,8 +191,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const findDish = (id: string) => menu.find((d) => d.id === id);
 
-  const addToCart = (dishId: string, qty = 1, note?: string) => {
-    setCart((prev) => [...prev, { id: `c${Date.now()}_${itemCounter++}`, dishId, qty, note }]);
+  const addToCart = (dishId: string, qty = 1, note?: string, variantId?: string) => {
+    setCart((prev) => [...prev, { id: `c${Date.now()}_${itemCounter++}`, dishId, qty, note, variantId }]);
   };
 
   const updateQty = (id: string, qty: number) => {
@@ -203,25 +206,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const totalItems = useMemo(() => cart.reduce((sum, i) => sum + i.qty, 0), [cart]);
   const totalPrice = useMemo(
-    () => cart.reduce((sum, i) => sum + (findDish(i.dishId)?.price ?? 0) * i.qty, 0),
+    () =>
+      cart.reduce((sum, i) => {
+        const dish = findDish(i.dishId);
+        return sum + (dish ? getVariantPrice(dish, i.variantId) : 0) * i.qty;
+      }, 0),
     [cart, menu]
   );
   const currency = menu[0]?.currency ?? "USD";
 
-  const placeOrder = (tableIdToUse: string) => {
-    const items = cart.map((i) => {
+  // A variant's size is baked into dishName (e.g. "Trà chanh (L)") rather
+  // than added as a new order-line column — the backend already snapshots
+  // dishName/price per line, so this is enough for kitchen/admin to see
+  // which size was ordered without any schema change.
+  const cartToOrderItems = () =>
+    cart.map((i) => {
       const dish = findDish(i.dishId);
-      return { dishId: i.dishId, dishName: dish?.name ?? "Unknown dish", qty: i.qty, price: dish?.price ?? 0, note: i.note };
+      const variant = dish ? getVariant(dish, i.variantId) : undefined;
+      const dishName = (dish?.name ?? "Unknown dish") + (variant ? ` (${variant.label})` : "");
+      const price = dish ? getVariantPrice(dish, i.variantId) : 0;
+      return { dishId: i.dishId, dishName, qty: i.qty, price, note: i.note };
     });
-    return placeOrderRaw(tableIdToUse, items, mode);
+
+  const placeOrder = (tableIdToUse: string) => {
+    return placeOrderRaw(tableIdToUse, cartToOrderItems(), mode);
   };
 
   const placePickupOrder = (paymentMethod: "vnpay" | "bank_transfer", pickupTime: string) => {
-    const items = cart.map((i) => {
-      const dish = findDish(i.dishId);
-      return { dishId: i.dishId, dishName: dish?.name ?? "Unknown dish", qty: i.qty, price: dish?.price ?? 0, note: i.note };
-    });
-    return placePickupOrderRaw(items, paymentMethod, pickupTime);
+    return placePickupOrderRaw(cartToOrderItems(), paymentMethod, pickupTime);
   };
 
   const requestReservation = async (tableIdToReserve: string, partySize: number) => {

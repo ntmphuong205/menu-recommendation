@@ -190,8 +190,16 @@ class StoreUpdate(BaseModel):
     # comparable HH:MM pair to validate pickup_time against in create_order.
     opening_time: str = Field(default="09:00")
     closing_time: str = Field(default="22:00")
+    # Shown on the customer app's Info tab — plain text, same in every
+    # language (a phone number and a wifi password don't need translating).
+    phone: str = Field(default="", max_length=100)
+    wifi_name: str = Field(default="", max_length=100)
+    wifi_password: str = Field(default="", max_length=100)
 
-    @field_validator("name", "hours", "description", "bank_bin", "bank_account_number", "bank_account_holder")
+    @field_validator(
+        "name", "hours", "description", "bank_bin", "bank_account_number",
+        "bank_account_holder", "phone", "wifi_name", "wifi_password",
+    )
     @classmethod
     def strip_text(cls, value: str) -> str:
         return value.strip()
@@ -231,6 +239,13 @@ class MenuPairing(BaseModel):
     reason: Dict[str, str] = Field(default_factory=dict)
 
 
+class SizeVariant(BaseModel):
+    id: str = Field(min_length=1, max_length=32)
+    label: str = Field(min_length=1, max_length=20)
+    price: float = Field(ge=0)
+    calories: Optional[int] = Field(default=None, ge=0)
+
+
 class MenuPayload(BaseModel):
     name: Dict[str, str]
     price: float = Field(ge=0)
@@ -254,6 +269,7 @@ class MenuPayload(BaseModel):
     allergyNote: Dict[str, str] = Field(default_factory=dict)
     prepTimeMinutes: int = Field(default=10, ge=1, le=240)
     pairings: List[MenuPairing] = Field(default_factory=list, max_length=10)
+    sizeVariants: List[SizeVariant] = Field(default_factory=list, max_length=6)
 
     @field_validator("name", "desc")
     @classmethod
@@ -562,6 +578,7 @@ def menu_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "allergyNote": row.get("allergy_note") or {},
         "prepTimeMinutes": row.get("prep_time_minutes") or 10,
         "pairings": row.get("pairings") or [],
+        "sizeVariants": row.get("size_variants") or [],
     }
 
 
@@ -1217,6 +1234,7 @@ def menu_payload_to_row(payload: MenuPayload, include_image: bool) -> Dict[str, 
         "allergy_note": allergy_note,
         "prep_time_minutes": payload.prepTimeMinutes,
         "pairings": [pairing.model_dump() for pairing in payload.pairings],
+        "size_variants": [variant.model_dump() for variant in payload.sizeVariants],
     }
     if include_image:
         row["image_data"] = payload.img or None
@@ -1353,6 +1371,9 @@ def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "bank_qr_image": row.get("bank_qr_image") or "",
         "opening_time": row.get("opening_time") or "09:00",
         "closing_time": row.get("closing_time") or "22:00",
+        "phone": row.get("phone") or "",
+        "wifi_name": row.get("wifi_name") or "",
+        "wifi_password": row.get("wifi_password") or "",
     }
 
 
@@ -1487,6 +1508,9 @@ def update_store(
             "bank_qr_image": payload.bank_qr_image or None,
             "opening_time": payload.opening_time,
             "closing_time": payload.closing_time,
+            "phone": payload.phone,
+            "wifi_name": payload.wifi_name,
+            "wifi_password": payload.wifi_password,
         }
     )
     return {

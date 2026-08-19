@@ -5,6 +5,7 @@ import { ReviewSection } from "./ReviewSection";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { getDishName, getDishDescription, getPairingReason } from "../data/menu";
+import type { SizeVariant } from "../data/menu";
 import { OrderModeNotice } from "./OrderModeNotice";
 import { formatPrice } from "../lib/currency";
 
@@ -36,13 +37,17 @@ function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
         <button
           onClick={(e) => {
             e.stopPropagation();
+            if (paired.sizeVariants?.length) {
+              setSelectedDishId(paired.id);
+              return;
+            }
             addToCart(paired.id, 1);
             setAdded(true);
           }}
           disabled={added}
           className="shrink-0 flex items-center gap-1 bg-[#2D5A3D] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
         >
-          {added ? t("dish_added") : t("dish_add")}
+          {paired.sizeVariants?.length ? t("dish_choose_size") : added ? t("dish_added") : t("dish_add")}
         </button>
       )}
     </div>
@@ -55,18 +60,26 @@ export function DishSheet() {
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
   const [added, setAdded] = useState(false);
+  const [variantId, setVariantId] = useState<string | undefined>(undefined);
 
   if (!selectedDishId) return null;
   const dish = findDish(selectedDishId);
   if (!dish) return null;
   const dishName = getDishName(dish, lang);
   const canOrder = mode === "store" || webOrderIntent === "pickup";
+  const variants = dish.sizeVariants;
+  const selectedVariant: SizeVariant | undefined = variants?.length
+    ? variants.find((v) => v.id === variantId) ?? variants[0]
+    : undefined;
+  const unitPrice = selectedVariant?.price ?? dish.price;
+  const displayCalories = selectedVariant?.calories ?? dish.calories;
 
   const close = () => {
     setSelectedDishId(null);
     setQty(1);
     setNote("");
     setAdded(false);
+    setVariantId(undefined);
   };
 
   return (
@@ -90,7 +103,7 @@ export function DishSheet() {
         <div className="p-5 pb-8">
           <div className="flex items-start justify-between gap-3">
             <h2 className="text-[19px] font-bold text-[#22201B] leading-tight">{dishName}</h2>
-            <span className="text-[18px] font-bold text-[#2D5A3D] shrink-0">{formatPrice(dish.price, dish.currency)}</span>
+            <span className="text-[18px] font-bold text-[#2D5A3D] shrink-0">{formatPrice(unitPrice, dish.currency)}</span>
           </div>
 
           {dish.soldOut && (
@@ -105,13 +118,34 @@ export function DishSheet() {
             ))}
           </div>
 
+          {variants && variants.length > 0 && (
+            <div className="flex gap-1.5 mt-3">
+              {variants.map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => setVariantId(v.id)}
+                  className={`flex-1 flex flex-col items-center py-2 rounded-xl border text-[12.5px] font-semibold transition-colors ${
+                    selectedVariant?.id === v.id
+                      ? "bg-[#2D5A3D] text-white border-[#2D5A3D]"
+                      : "bg-white text-[#5C5240] border-black/10"
+                  }`}
+                >
+                  {v.label}
+                  <span className={`text-[10.5px] font-normal mt-0.5 ${selectedVariant?.id === v.id ? "text-white/80" : "text-[#8A8272]"}`}>
+                    {formatPrice(v.price, dish.currency)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
           <p className="text-[13.5px] text-[#5C5240] leading-relaxed mt-3">{getDishDescription(dish, lang)}</p>
 
-          {dish.calories !== undefined && (
+          {displayCalories !== undefined && (
             <div className="mt-3 bg-[#F3E9D2] rounded-xl px-3 py-2.5">
               <div className="flex items-center gap-1.5 text-[12.5px] text-[#8A6B3F] font-semibold mb-2">
                 <Flame size={14} />
-                {dish.calories} kcal
+                {displayCalories} kcal
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
@@ -193,14 +227,14 @@ export function DishSheet() {
                 </div>
                 <button
                   onClick={() => {
-                    addToCart(dish.id, qty, note.trim() || undefined);
+                    addToCart(dish.id, qty, note.trim() || undefined, selectedVariant?.id);
                     setAdded(true);
                     setTimeout(close, 700);
                   }}
                   className="flex-1 bg-[#2D5A3D] text-white font-semibold text-[14px] py-3 rounded-full active:scale-[0.98] transition-transform disabled:opacity-50"
                   disabled={added || dish.soldOut}
                 >
-                  {dish.soldOut ? t("dish_sold_out") : added ? t("dish_added") : `${t("dish_add_to_cart")} · ${formatPrice(dish.price * qty, dish.currency)}`}
+                  {dish.soldOut ? t("dish_sold_out") : added ? t("dish_added") : `${t("dish_add_to_cart")} · ${formatPrice(unitPrice * qty, dish.currency)}`}
                 </button>
               </div>
             </>

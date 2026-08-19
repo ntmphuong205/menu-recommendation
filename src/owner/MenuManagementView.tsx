@@ -5,7 +5,7 @@ import { TagPill } from "../components/TagPill";
 import { DishFormModal } from "./DishFormModal";
 import { useI18n } from "../i18n/I18nContext";
 import { getDishName, getDishDescription, type Dish } from "../data/menu";
-import { formatPrice } from "../lib/currency";
+import { formatPrice, formatPriceRange } from "../lib/currency";
 
 export function MenuManagementView() {
   const { menu, addDish, updateDish, deleteDish, store } = useApp();
@@ -101,7 +101,9 @@ export function MenuManagementView() {
                   </td>
                   <td className="px-4 py-3 align-top font-semibold text-[#22201B] whitespace-nowrap">{getDishName(dish, lang)}</td>
                   <td className="px-4 py-3 align-top font-semibold text-[#2D5A3D] whitespace-nowrap">
-                    {formatPrice(dish.price, dish.currency)}
+                    {dish.sizeVariants?.length
+                      ? formatPriceRange(dish.sizeVariants.map((v) => v.price), dish.currency)
+                      : formatPrice(dish.price, dish.currency)}
                   </td>
                   <td className="px-4 py-3 align-top text-[#5C5240] max-w-[220px]">{getDishDescription(dish, lang)}</td>
                   <td className="px-4 py-3 align-top">

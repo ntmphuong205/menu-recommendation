@@ -71,6 +71,7 @@ export interface ApiMenu {
   allergyNote: Record<string, string>;
   prepTimeMinutes: number;
   pairings: { menu_id: string; reason: Record<string, string> }[];
+  sizeVariants: { id: string; label: string; price: number; calories?: number | null }[];
 }
 
 export interface ApiTable {
@@ -189,6 +190,10 @@ export interface ApiStore {
   // Daily "HH:MM" window remote pickup orders may be scheduled into.
   opening_time: string;
   closing_time: string;
+  // Shown on the customer app's Info tab.
+  phone: string;
+  wifi_name: string;
+  wifi_password: string;
 }
 
 export interface ChatResponse {
@@ -246,6 +251,9 @@ export const apiClient = {
     bank_qr_image?: string | null;
     opening_time?: string;
     closing_time?: string;
+    phone?: string;
+    wifi_name?: string;
+    wifi_password?: string;
   }) => request<{ success: boolean; store: ApiStore }>("PUT", "/store", payload),
 
   getKeywords: () => request<{ keywords: string[] }>("GET", "/keywords"),

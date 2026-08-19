@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { apiClient, type ApiMenu } from "../lib/apiClient";
 import { usePollingData } from "./usePollingData";
-import type { Dish, Pairing, TagKey } from "../data/menu";
+import type { Dish, Pairing, SizeVariant, TagKey } from "../data/menu";
 
 function fromApi(row: ApiMenu): Dish {
   return {
@@ -39,6 +39,16 @@ function fromApi(row: ApiMenu): Dish {
           })
         )
       : undefined,
+    sizeVariants: row.sizeVariants?.length
+      ? row.sizeVariants.map(
+          (v): SizeVariant => ({
+            id: v.id,
+            label: v.label,
+            price: Number(v.price),
+            calories: v.calories ?? undefined,
+          })
+        )
+      : undefined,
   };
 }
 
@@ -63,6 +73,7 @@ function toPayload(dish: Dish) {
       menu_id: p.dishId,
       reason: { en: p.reason, ko: p.reasons?.ko ?? "", vi: p.reasons?.vi ?? "" },
     })),
+    sizeVariants: dish.sizeVariants ?? [],
   };
 }
 

@@ -43,6 +43,15 @@ export interface Pairing {
   reasons?: Partial<Record<"vi" | "ko", string>>;
 }
 
+/** One size option on a dish that offers a size choice (e.g. M/L) — the
+ *  dish stays a single menu item; picking a variant changes price/calories. */
+export interface SizeVariant {
+  id: string;
+  label: string;
+  price: number;
+  calories?: number;
+}
+
 export interface Dish {
   id: string;
   /** English fallback name — proper-noun dish names (e.g. "Phở Bò") are
@@ -75,6 +84,10 @@ export interface Dish {
   prepTimeMinutes?: number;
   /** Dishes that go especially well with this one — shown as an upsell prompt. */
   pairings?: Pairing[];
+  /** Size choices sharing this one dish (e.g. M/L) — when set, `price`/
+   *  `calories` above mirror the first variant as a fallback for any code
+   *  that doesn't know about variants. */
+  sizeVariants?: SizeVariant[];
 }
 
 // Real menu ids from db/seed.sql (Phở Bò, Cơm Tấm Sườn, Bánh Mì Thịt Nướng) —
@@ -97,4 +110,12 @@ export function getDishDescription(dish: Dish, lang: "vi" | "en" | "ko"): string
 export function getPairingReason(pairing: Pairing, lang: "vi" | "en" | "ko"): string {
   if (lang === "en") return pairing.reason;
   return pairing.reasons?.[lang] ?? pairing.reason;
+}
+
+export function getVariant(dish: Dish, variantId?: string): SizeVariant | undefined {
+  return variantId ? dish.sizeVariants?.find((v) => v.id === variantId) : undefined;
+}
+
+export function getVariantPrice(dish: Dish, variantId?: string): number {
+  return getVariant(dish, variantId)?.price ?? dish.price;
 }

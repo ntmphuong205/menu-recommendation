@@ -5,10 +5,10 @@ import type { QueueInfo } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL_KEY, orderTotal, type Order, type OrderStatus } from "../data/orders";
-import { getDishName, getPairingReason, type Dish } from "../data/menu";
+import { getDishName, getPairingReason, getVariant, getVariantPrice, type Dish } from "../data/menu";
 import { getCustomerSessionId } from "../lib/apiClient";
 import { getStoreSlug } from "../lib/storeSlug";
-import { formatPrice } from "../lib/currency";
+import { formatPrice, formatPriceRange } from "../lib/currency";
 
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
@@ -120,7 +120,7 @@ function MyOrdersSection() {
 }
 
 function PairingSuggestions() {
-  const { cart, menu, findDish, addToCart } = useApp();
+  const { cart, menu, findDish, addToCart, setSelectedDishId } = useApp();
   const { t, lang } = useI18n();
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
@@ -161,19 +161,27 @@ function PairingSuggestions() {
               </div>
               <div className="min-w-0">
                 <p className="text-[12px] font-semibold text-[#22201B] leading-tight line-clamp-1">{getDishName(dish, lang)}</p>
-                <p className="text-[11px] text-[#2D5A3D] font-bold">{formatPrice(dish.price, dish.currency)}</p>
+                <p className="text-[11px] text-[#2D5A3D] font-bold">
+                  {dish.sizeVariants?.length
+                    ? formatPriceRange(dish.sizeVariants.map((v) => v.price), dish.currency)
+                    : formatPrice(dish.price, dish.currency)}
+                </p>
               </div>
             </div>
             <p className="text-[10.5px] text-[#8A8272] leading-snug line-clamp-2">{reason}</p>
             <button
               onClick={() => {
+                if (dish.sizeVariants?.length) {
+                  setSelectedDishId(dish.id);
+                  return;
+                }
                 addToCart(dish.id, 1);
                 setAddedIds((prev) => new Set(prev).add(dish.id));
               }}
               disabled={addedIds.has(dish.id)}
               className="flex items-center justify-center gap-1 bg-[#2D5A3D] text-white text-[11px] font-semibold py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
             >
-              {addedIds.has(dish.id) ? t("dish_added") : t("dish_add")}
+              {dish.sizeVariants?.length ? t("dish_choose_size") : addedIds.has(dish.id) ? t("dish_added") : t("dish_add")}
             </button>
           </div>
         ))}
@@ -331,9 +339,12 @@ function PickupInvoiceScreen({
               <div key={item.id} className="flex items-center justify-between gap-2 text-[13px]">
                 <span className="text-[#22201B]">
                   {item.qty}× {getDishName(dish, lang)}
+                  {getVariant(dish, item.variantId) && ` (${getVariant(dish, item.variantId)!.label})`}
                   {item.note && <span className="text-[#B0553C]"> ({item.note})</span>}
                 </span>
-                <span className="font-semibold text-[#5C5240] shrink-0">{formatPrice(dish.price * item.qty, currency)}</span>
+                <span className="font-semibold text-[#5C5240] shrink-0">
+                  {formatPrice(getVariantPrice(dish, item.variantId) * item.qty, currency)}
+                </span>
               </div>
             );
           })}
@@ -563,7 +574,12 @@ export function CartScreen() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-[13.5px] font-semibold text-[#22201B] leading-tight">{getDishName(dish, lang)}</p>
+                    <p className="text-[13.5px] font-semibold text-[#22201B] leading-tight">
+                      {getDishName(dish, lang)}
+                      {getVariant(dish, item.variantId) && (
+                        <span className="text-[#8A8272] font-normal"> ({getVariant(dish, item.variantId)!.label})</span>
+                      )}
+                    </p>
                     <button onClick={() => removeItem(item.id)} className="text-[#B0A794] shrink-0">
                       <Trash2 size={14} />
                     </button>
@@ -586,7 +602,7 @@ export function CartScreen() {
                       </button>
                     </div>
                     <span className="text-[13px] font-bold text-[#2D5A3D]">
-                      {formatPrice(dish.price * item.qty, currency)}
+                      {formatPrice(getVariantPrice(dish, item.variantId) * item.qty, currency)}
                     </span>
                   </div>
                 </div>

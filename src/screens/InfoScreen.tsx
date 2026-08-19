@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, MapPin, Star, ChevronDown, MessageCircle, Bell } from "lucide-react";
+import { Clock, MapPin, Star, ChevronDown, MessageCircle, Bell, Phone, Wifi } from "lucide-react";
 import { RESTAURANT, FAQ, getRestaurantText, getHoursLabel, getFaqText } from "../data/restaurant";
 import { BEST_SELLERS } from "../data/menu";
 import { DishCard } from "../components/DishCard";
@@ -68,6 +68,36 @@ export function InfoScreen() {
               <p className="text-[12.5px] text-[#5C5240]">{restaurantText.address}</p>
             </div>
           </div>
+
+          {(store?.phone || store?.wifi_name) && (
+            <div className="bg-white rounded-2xl p-3.5 border border-black/5 shadow-sm flex flex-col gap-2.5">
+              {store.phone && (
+                <div className="flex items-start gap-2.5">
+                  <Phone size={16} className="text-[#2D5A3D] mt-0.5 shrink-0" />
+                  <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                    {store.phone
+                      .split(",")
+                      .map((p) => p.trim())
+                      .filter(Boolean)
+                      .map((p) => (
+                        <a key={p} href={`tel:${p.replace(/[^\d+]/g, "")}`} className="text-[12.5px] font-medium text-[#22201B]">
+                          {p}
+                        </a>
+                      ))}
+                  </div>
+                </div>
+              )}
+              {store.wifi_name && (
+                <div className="flex items-start gap-2.5">
+                  <Wifi size={16} className="text-[#2D5A3D] mt-0.5 shrink-0" />
+                  <div className="text-[12.5px] text-[#5C5240]">
+                    <p className="font-medium text-[#22201B]">{store.wifi_name}</p>
+                    {store.wifi_password && <p className="font-mono text-[12px] mt-0.5">{store.wifi_password}</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <h2 className="text-[13px] font-bold text-[#8A8272] uppercase tracking-wide mb-2">{t("info_best_sellers")}</h2>

@@ -44,6 +44,11 @@ create table if not exists public.stores (
     -- validates orders.pickup_time against.
     opening_time text not null default '09:00',
     closing_time text not null default '22:00',
+    -- Shown on the customer app's Info tab — free text, not translated
+    -- (a phone number and a wifi password read the same in every language).
+    phone text default '',
+    wifi_name text default '',
+    wifi_password text default '',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -80,6 +85,11 @@ create table if not exists public.menus (
     allergy_note jsonb not null default '{}'::jsonb,
     prep_time_minutes integer default 10 check (prep_time_minutes is null or prep_time_minutes > 0),
     pairings jsonb not null default '[]'::jsonb,
+    -- Optional size options (e.g. M/L) sharing one dish — [{id,label,price,
+    -- calories}]. When present, `price`/`calories` above mirror the first
+    -- entry so anything that only reads those two columns still shows a
+    -- sane value; the customer app's size picker reads this list instead.
+    size_variants jsonb not null default '[]'::jsonb,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -364,7 +374,13 @@ alter table public.stores
     add column if not exists bank_account_holder text,
     add column if not exists bank_qr_image text,
     add column if not exists opening_time text not null default '09:00',
-    add column if not exists closing_time text not null default '22:00';
+    add column if not exists closing_time text not null default '22:00',
+    add column if not exists phone text default '',
+    add column if not exists wifi_name text default '',
+    add column if not exists wifi_password text default '';
+
+alter table public.menus
+    add column if not exists size_variants jsonb not null default '[]'::jsonb;
 
 create table if not exists public.chat_messages (
     id uuid primary key default gen_random_uuid(),

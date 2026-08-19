@@ -63,6 +63,9 @@ export function StoreSettingsView() {
   const [bankQrImage, setBankQrImage] = useState("");
   const [openingTime, setOpeningTime] = useState("09:00");
   const [closingTime, setClosingTime] = useState("22:00");
+  const [phone, setPhone] = useState("");
+  const [wifiName, setWifiName] = useState("");
+  const [wifiPassword, setWifiPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -84,6 +87,9 @@ export function StoreSettingsView() {
     setBankQrImage(store.bank_qr_image ?? "");
     setOpeningTime(store.opening_time || "09:00");
     setClosingTime(store.closing_time || "22:00");
+    setPhone(store.phone ?? "");
+    setWifiName(store.wifi_name ?? "");
+    setWifiPassword(store.wifi_password ?? "");
   }, [store]);
 
   const handleQrUpload = (file: File | undefined) => {
@@ -128,6 +134,9 @@ export function StoreSettingsView() {
           bank_qr_image: bankQrImage || null,
           opening_time: openingTime,
           closing_time: closingTime,
+          phone,
+          wifi_name: wifiName,
+          wifi_password: wifiPassword,
         }),
         updateKeywords(localKeywords),
       ]);
@@ -189,6 +198,24 @@ export function StoreSettingsView() {
             <p className="text-[11px] text-[#8A8272] mb-1.5 -mt-1">{t("store_settings_field_keywords_desc")}</p>
             <TagInput values={localKeywords} onChange={setLocalKeywords} placeholder={t("store_settings_field_keywords_placeholder")} />
           </Field>
+
+          <div className="border-t border-black/5 pt-3.5 mt-1 flex flex-col gap-3.5">
+            <div>
+              <p className="text-[13px] font-bold text-[#22201B]">{t("store_settings_contact_title")}</p>
+              <p className="text-[11px] text-[#8A8272] mt-0.5">{t("store_settings_contact_desc")}</p>
+            </div>
+            <Field label={t("store_settings_phone")}>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="0983.014.221, 0868.141.181" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("store_settings_wifi_name")}>
+                <input value={wifiName} onChange={(e) => setWifiName(e.target.value)} className={inputCls} />
+              </Field>
+              <Field label={t("store_settings_wifi_password")}>
+                <input value={wifiPassword} onChange={(e) => setWifiPassword(e.target.value)} className={inputCls} />
+              </Field>
+            </div>
+          </div>
 
           <div className="border-t border-black/5 pt-3.5 mt-1 flex flex-col gap-3.5">
             <div>

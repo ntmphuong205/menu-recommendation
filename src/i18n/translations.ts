@@ -71,6 +71,7 @@ const dict = {
   menu_category_side: { vi: "Món phụ", en: "Side", ko: "사이드" },
 
   dish_add: { vi: "Thêm", en: "Add", ko: "담기" },
+  dish_choose_size: { vi: "Chọn size", en: "Choose size", ko: "사이즈 선택" },
   dish_sold_out: { vi: "Hết hàng", en: "Sold out", ko: "품절" },
 
   // Dish sheet
@@ -524,6 +525,15 @@ const dict = {
   },
   store_settings_field_keywords_placeholder: { vi: "vd. #món-ấm-lòng", en: "e.g. #comfort-food", ko: "예: #든든한메뉴" },
   store_settings_error: { vi: "Không lưu được cài đặt quán.", en: "Failed to save store settings.", ko: "매장 설정을 저장하지 못했습니다." },
+  store_settings_contact_title: { vi: "Liên hệ & Wifi", en: "Contact & Wifi", ko: "연락처 & 와이파이" },
+  store_settings_contact_desc: {
+    vi: "Hiện cho khách ở tab Thông tin trong app.",
+    en: "Shown to customers on the app's Info tab.",
+    ko: "고객에게 앱의 정보 탭에서 표시됩니다.",
+  },
+  store_settings_phone: { vi: "Số điện thoại / Hotline", en: "Phone / Hotline", ko: "전화번호 / 핫라인" },
+  store_settings_wifi_name: { vi: "Tên wifi", en: "Wifi name", ko: "와이파이 이름" },
+  store_settings_wifi_password: { vi: "Mật khẩu wifi", en: "Wifi password", ko: "와이파이 비밀번호" },
   store_settings_bank_title: { vi: "Tài khoản ngân hàng (VietQR)", en: "Bank account (VietQR)", ko: "은행 계좌 (VietQR)" },
   store_settings_bank_desc: {
     vi: "Dùng để hiện mã QR chuyển khoản cho khách đặt trước — bỏ trống nếu chỉ dùng VNPay.",
@@ -563,7 +573,20 @@ const dict = {
   dishform_add_title: { vi: "Thêm món", en: "Add Dish", ko: "메뉴 추가" },
   dishform_name: { vi: "Tên món", en: "Name", ko: "메뉴명" },
   dishform_name_placeholder: { vi: "vd. Hamburger nhà làm", en: "e.g. Handmade Hamburger", ko: "예: 수제 햄버거" },
-  dishform_price: { vi: "Giá ($)", en: "Price ($)", ko: "가격 ($)" },
+  dishform_price: { vi: "Giá", en: "Price", ko: "가격" },
+  dishform_price_from_variants: {
+    vi: "Lấy theo size đầu tiên bên dưới",
+    en: "Taken from the first size below",
+    ko: "아래 첫 번째 사이즈 기준",
+  },
+  dishform_sizes_title: { vi: "Các size (tuỳ chọn)", en: "Sizes (optional)", ko: "사이즈 (선택)" },
+  dishform_sizes_desc: {
+    vi: "Thêm để khách chọn size (vd. M/L) với giá khác nhau cho cùng 1 món — bỏ trống nếu món chỉ có 1 giá.",
+    en: "Add these to let customers pick a size (e.g. M/L) at different prices on one dish — leave empty for a single-price dish.",
+    ko: "고객이 한 메뉴에서 다른 가격의 사이즈(예: M/L)를 선택하게 하려면 추가하세요 — 단일 가격이면 비워두세요.",
+  },
+  dishform_size_label_placeholder: { vi: "vd. M", en: "e.g. M", ko: "예: M" },
+  dishform_add_size: { vi: "Thêm size", en: "Add size", ko: "사이즈 추가" },
   dishform_category: { vi: "Danh mục", en: "Category", ko: "카테고리" },
   dishform_description: { vi: "Mô tả", en: "Description", ko: "설명" },
   dishform_description_placeholder: { vi: "Mô tả ngắn, hấp dẫn", en: "Short, appetizing description", ko: "짧고 먹음직스러운 설명" },

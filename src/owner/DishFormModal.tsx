@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { X, Upload, Plus, Trash2 } from "lucide-react";
-import { TAGS, type Dish, type TagKey } from "../data/menu";
+import { TAGS, type Dish, type SizeVariant, type TagKey } from "../data/menu";
 import { INGREDIENT_NAMES, findIngredientByName, computeNutrition, type IngredientLine } from "../data/ingredients";
 import { useI18n } from "../i18n/I18nContext";
 
@@ -28,6 +28,32 @@ interface LineState {
 }
 
 let lineIdCounter = 0;
+
+interface VariantRowState {
+  id: number;
+  label: string;
+  price: string;
+  calories: string;
+}
+
+let variantIdCounter = 0;
+
+function toVariantRowState(v: SizeVariant): VariantRowState {
+  return {
+    id: variantIdCounter++,
+    label: v.label,
+    price: v.price.toString(),
+    calories: v.calories !== undefined ? String(v.calories) : "",
+  };
+}
+
+function toSizeVariant(row: VariantRowState): SizeVariant | null {
+  const label = row.label.trim();
+  const price = parseFloat(row.price);
+  if (!label || !(price >= 0)) return null;
+  const calories = row.calories.trim() ? parseInt(row.calories, 10) : undefined;
+  return { id: slugify(label) || `v${row.id}`, label, price, calories };
+}
 
 function toLineState(line: IngredientLine): LineState {
   return {
@@ -84,6 +110,7 @@ export function DishFormModal({
   const [lines, setLines] = useState<LineState[]>(initial?.ingredientLines?.map(toLineState) ?? []);
   const [allergyNote, setAllergyNote] = useState(initial?.allergyNote ?? "");
   const [tags, setTags] = useState<Set<TagKey>>(new Set(initial?.tags ?? []));
+  const [variantRows, setVariantRows] = useState<VariantRowState[]>(initial?.sizeVariants?.map(toVariantRowState) ?? []);
 
   const handlePhotoUpload = (file: File | undefined) => {
     if (!file) return;
@@ -115,20 +142,35 @@ export function DishFormModal({
     .filter((l): l is IngredientLine => l !== null);
   const nutrition = computeNutrition(ingredientLines);
 
-  const canSave = name.trim().length > 0 && price.trim().length > 0;
+  const addVariantRow = () =>
+    setVariantRows((prev) => [...prev, { id: variantIdCounter++, label: "", price: "", calories: "" }]);
+  const removeVariantRow = (id: number) => setVariantRows((prev) => prev.filter((r) => r.id !== id));
+  const updateVariantRow = (id: number, patch: Partial<VariantRowState>) =>
+    setVariantRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+
+  const sizeVariants: SizeVariant[] = variantRows
+    .map(toSizeVariant)
+    .filter((v): v is SizeVariant => v !== null);
+
+  const canSave = name.trim().length > 0 && (sizeVariants.length > 0 || price.trim().length > 0);
 
   const handleSave = () => {
     if (!canSave) return;
     const dish: Dish = {
       id: initial?.id ?? (slugify(name) || `dish-${Date.now()}`),
       name: name.trim(),
-      price: parseFloat(price) || 0,
+      price: sizeVariants.length > 0 ? sizeVariants[0].price : parseFloat(price) || 0,
       currency: initial?.currency ?? "USD",
       description: description.trim(),
       image: image.trim() || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80",
       tags: Array.from(tags),
       ingredientLines: ingredientLines.length > 0 ? ingredientLines : undefined,
-      calories: ingredientLines.length > 0 ? Math.round(nutrition.calories) : undefined,
+      calories:
+        ingredientLines.length > 0
+          ? Math.round(nutrition.calories)
+          : sizeVariants.length > 0
+            ? sizeVariants[0].calories
+            : undefined,
       protein: ingredientLines.length > 0 ? Math.round(nutrition.protein) : undefined,
       carbs: ingredientLines.length > 0 ? Math.round(nutrition.carbs) : undefined,
       fat: ingredientLines.length > 0 ? Math.round(nutrition.fat) : undefined,
@@ -137,6 +179,7 @@ export function DishFormModal({
       category,
       prepTimeMinutes: prepTime.trim() ? parseInt(prepTime, 10) : undefined,
       pairings: initial?.pairings,
+      sizeVariants: sizeVariants.length > 0 ? sizeVariants : undefined,
     };
     onSave(dish);
   };
@@ -158,7 +201,16 @@ export function DishFormModal({
 
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("dishform_price")}>
-              <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" step="0.01" className={inputCls} placeholder="8.00" />
+              <input
+                value={sizeVariants.length > 0 ? sizeVariants[0].price.toString() : price}
+                onChange={(e) => setPrice(e.target.value)}
+                type="number"
+                step="0.01"
+                className={inputCls}
+                placeholder="8.00"
+                disabled={variantRows.length > 0}
+              />
+              {variantRows.length > 0 && <p className="text-[10.5px] text-[#8A8272] mt-1">{t("dishform_price_from_variants")}</p>}
             </Field>
             <Field label={t("dishform_category")}>
               <input
@@ -174,6 +226,53 @@ export function DishFormModal({
                 ))}
               </datalist>
             </Field>
+          </div>
+
+          <div>
+            <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("dishform_sizes_title")}</p>
+            <p className="text-[11px] text-[#8A8272] mb-2">{t("dishform_sizes_desc")}</p>
+            <div className="flex flex-col gap-2">
+              {variantRows.map((row) => (
+                <div key={row.id} className="bg-[#FBF7EF] rounded-lg p-2 flex items-center gap-2">
+                  <input
+                    value={row.label}
+                    onChange={(e) => updateVariantRow(row.id, { label: e.target.value })}
+                    className={`${fieldCls} bg-white flex-1 min-w-0`}
+                    placeholder={t("dishform_size_label_placeholder")}
+                  />
+                  <input
+                    value={row.price}
+                    onChange={(e) => updateVariantRow(row.id, { price: e.target.value })}
+                    type="number"
+                    step="0.01"
+                    className={`${fieldCls} bg-white w-24 shrink-0`}
+                    placeholder="8.00"
+                  />
+                  <input
+                    value={row.calories}
+                    onChange={(e) => updateVariantRow(row.id, { calories: e.target.value })}
+                    type="number"
+                    className={`${fieldCls} bg-white w-20 shrink-0`}
+                    placeholder="kcal"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeVariantRow(row.id)}
+                    className="w-7 h-7 rounded-full bg-[#F7E9E2] text-[#B0553C] flex items-center justify-center shrink-0"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addVariantRow}
+                className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-3 py-1.5 rounded-full self-start"
+              >
+                <Plus size={13} />
+                {t("dishform_add_size")}
+              </button>
+            </div>
           </div>
 
           <Field label={t("dishform_description")}>

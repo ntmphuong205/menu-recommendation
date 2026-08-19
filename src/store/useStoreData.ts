@@ -13,6 +13,9 @@ export interface StoreUpdatePayload {
   bank_qr_image?: string | null;
   opening_time?: string;
   closing_time?: string;
+  phone?: string;
+  wifi_name?: string;
+  wifi_password?: string;
 }
 
 export interface StoreData {
