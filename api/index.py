@@ -256,8 +256,8 @@ class MenuPairing(BaseModel):
 
 
 class SizeVariant(BaseModel):
-    id: str = Field(min_length=1, max_length=32)
-    label: str = Field(min_length=1, max_length=20)
+    id: str = Field(min_length=1, max_length=64)
+    label: str = Field(min_length=1, max_length=60)
     labels: Dict[str, str] = Field(default_factory=dict)
     price: float = Field(ge=0)
     calories: Optional[int] = Field(default=None, ge=0)

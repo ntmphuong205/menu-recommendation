@@ -75,7 +75,7 @@ function toPayload(dish: Dish) {
     carbs: dish.carbs ?? null,
     fat: dish.fat ?? null,
     ingredientLines: dish.ingredientLines ?? [],
-    allergyNote: { en: dish.allergyNote, ko: "", vi: "" },
+    allergyNote: { en: dish.allergyNote, ko: dish.allergyNotes?.ko ?? "", vi: dish.allergyNotes?.vi ?? "" },
     prepTimeMinutes: dish.prepTimeMinutes ?? 10,
     pairings: (dish.pairings ?? []).map((p) => ({
       menu_id: p.dishId,
