@@ -78,6 +78,9 @@ interface AppContextValue {
 
   // store info (read side only — StoreSettingsView writes via useStoreData() directly)
   store: ApiStore | null;
+  /** False only once real store data confirms it — never while store is
+   *  still loading, so ordering isn't wrongly blocked on first paint. */
+  isStoreOpen: boolean;
 
   // per-dish ratings & reviews
   reviews: Review[];
@@ -177,6 +180,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { tables } = useTablesData();
   const { reservations, createReservation, updateReservationStatus } = useReservationsData(isOwnerRoute);
   const { store } = useStoreData();
+  const isStoreOpen = store?.is_open !== false;
   const [cart, setCart] = useState<CartItem[]>([]);
   // Defaults to "chat" — DiningChoiceScreen (web mode only) sets this
   // explicitly once the customer picks dine-in vs. pickup — but a link back
@@ -305,6 +309,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         requestReservation,
         updateReservationStatus,
         store,
+        isStoreOpen,
         reviews,
         addReview,
         replyToReview,

@@ -10,13 +10,13 @@ import { OrderModeNotice } from "./OrderModeNotice";
 import { formatPrice } from "../lib/currency";
 
 function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
-  const { findDish, addToCart, setSelectedDishId, mode, webOrderIntent } = useApp();
+  const { findDish, addToCart, setSelectedDishId, mode, webOrderIntent, isStoreOpen } = useApp();
   const { t, lang } = useI18n();
   const [added, setAdded] = useState(false);
   const paired = findDish(dishId);
   if (!paired || paired.soldOut) return null;
   const pairedName = getDishName(paired, lang);
-  const canOrder = mode === "store" || webOrderIntent === "pickup";
+  const canOrder = (mode === "store" || webOrderIntent === "pickup") && isStoreOpen;
 
   return (
     <div
@@ -55,7 +55,7 @@ function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
 }
 
 export function DishSheet() {
-  const { selectedDishId, setSelectedDishId, addToCart, findDish, mode, webOrderIntent } = useApp();
+  const { selectedDishId, setSelectedDishId, addToCart, findDish, mode, webOrderIntent, isStoreOpen } = useApp();
   const { t, lang } = useI18n();
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
@@ -68,7 +68,7 @@ export function DishSheet() {
   const dish = findDish(selectedDishId);
   if (!dish) return null;
   const dishName = getDishName(dish, lang);
-  const canOrder = mode === "store" || webOrderIntent === "pickup";
+  const canOrder = (mode === "store" || webOrderIntent === "pickup") && isStoreOpen;
   const variants = dish.sizeVariants;
   const selectedVariant: SizeVariant | undefined = variants?.length
     ? variants.find((v) => v.id === variantId) ?? variants[0]

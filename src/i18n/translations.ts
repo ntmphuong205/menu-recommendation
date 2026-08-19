@@ -374,6 +374,16 @@ const dict = {
 
   // Orders (admin)
   orders_title: { vi: "Đơn hàng", en: "Orders", ko: "주문" },
+  store_status_open: { vi: "Đang mở cửa", en: "Open", ko: "영업 중" },
+  store_status_closed: { vi: "Đang đóng cửa", en: "Closed", ko: "영업 종료" },
+  store_status_tap_to_close: { vi: "· Bấm để đóng cửa", en: "· Tap to close", ko: "· 탭하여 영업 종료" },
+  store_status_tap_to_open: { vi: "· Bấm để mở cửa lại", en: "· Tap to reopen", ko: "· 탭하여 다시 열기" },
+  store_status_error: { vi: "Không đổi được trạng thái quán.", en: "Failed to change store status.", ko: "매장 상태를 변경하지 못했습니다." },
+  store_status_closed_banner: {
+    vi: "Quán hiện đang đóng cửa, tạm thời không nhận đơn mới. Vui lòng quay lại sau.",
+    en: "The store is currently closed and not accepting new orders. Please check back later.",
+    ko: "매장이 현재 영업을 종료하여 새 주문을 받지 않습니다. 나중에 다시 확인해 주세요.",
+  },
   orders_subtitle: {
     vi: "Đơn hàng trực tiếp từ các bàn khách.",
     en: "Live orders coming in from customer tables.",

@@ -201,6 +201,9 @@ export interface ApiStore {
   address: string;
   cover_image: string;
   filter_tags: string[];
+  /** Manual "closed today" switch — independent of opening_time/
+   *  closing_time, which only bound what pickup slot can be scheduled. */
+  is_open: boolean;
 }
 
 export interface ChatResponse {
@@ -265,6 +268,8 @@ export const apiClient = {
     cover_image?: string | null;
     filter_tags?: string[];
   }) => request<{ success: boolean; store: ApiStore }>("PUT", "/store", payload),
+  updateStoreStatus: (isOpen: boolean) =>
+    request<{ success: boolean; store: ApiStore }>("PUT", "/store/status", { is_open: isOpen }),
 
   getKeywords: () => request<{ keywords: string[] }>("GET", "/keywords"),
   updateKeywords: (keywords: string[]) =>

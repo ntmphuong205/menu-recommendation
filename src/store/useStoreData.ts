@@ -29,6 +29,7 @@ export interface StoreData {
   keywords: string[] | null;
   updateStore: (payload: StoreUpdatePayload) => Promise<ApiStore>;
   updateKeywords: (keywords: string[]) => Promise<string[]>;
+  updateStoreStatus: (isOpen: boolean) => Promise<ApiStore>;
 }
 
 // Store info and AI recommendation keywords change rarely — poll slower
@@ -52,5 +53,10 @@ export function useStoreData(): StoreData {
     return res.keywords;
   };
 
-  return { store, keywords, updateStore, updateKeywords };
+  const updateStoreStatus = async (isOpen: boolean) => {
+    const res = await apiClient.updateStoreStatus(isOpen);
+    return res.store;
+  };
+
+  return { store, keywords, updateStore, updateKeywords, updateStoreStatus };
 }

@@ -6,6 +6,7 @@ import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
 import { RESERVATIONS_ENABLED } from "../data/featureFlags";
 import { formatPrice } from "../lib/currency";
+import { StoreStatusToggle } from "./StoreStatusToggle";
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
@@ -83,8 +84,13 @@ export function OrdersView() {
 
   return (
     <div className="p-4 md:p-8 max-w-5xl">
-      <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("orders_title")}</h1>
-      <p className="text-[13px] text-[#8A8272] mb-6">{t("orders_subtitle")}</p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("orders_title")}</h1>
+          <p className="text-[13px] text-[#8A8272]">{t("orders_subtitle")}</p>
+        </div>
+        <StoreStatusToggle />
+      </div>
 
       {pendingRequests.length > 0 && (
         <div className="mb-6 bg-[#FDECC8] border border-[#E0A83C]/30 rounded-2xl p-4">

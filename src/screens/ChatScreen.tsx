@@ -10,9 +10,9 @@ import { LangSwitcher } from "../components/LangSwitcher";
 import { OrderModeNotice } from "../components/OrderModeNotice";
 
 export function ChatScreen() {
-  const { addToCart, menu, tableId, mode, webOrderIntent } = useApp();
+  const { addToCart, menu, tableId, mode, webOrderIntent, isStoreOpen } = useApp();
   const { t, lang } = useI18n();
-  const canOrder = mode === "store" || webOrderIntent === "pickup";
+  const canOrder = (mode === "store" || webOrderIntent === "pickup") && isStoreOpen;
   const [messages, setMessages] = useState<ChatMessage[]>(() => initialMessages(lang));
   const [state, setState] = useState<ConversationState>({ stage: "idle" });
   const [input, setInput] = useState("");

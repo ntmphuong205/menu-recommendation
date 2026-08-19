@@ -411,6 +411,7 @@ export function CartScreen() {
     webOrderIntent,
     resetWebOrderIntent,
     store,
+    isStoreOpen,
   } = useApp();
   const { t, lang } = useI18n();
   // Holds the exact order_group_id just placed — not just a boolean —
@@ -619,7 +620,11 @@ export function CartScreen() {
           <span className="text-[13px] text-[#8A8272]">{t("cart_total")}</span>
           <span className="text-[18px] font-bold text-[#22201B]">{formatPrice(totalPrice, currency)}</span>
         </div>
-        {mode === "web" && webOrderIntent !== "pickup" ? (
+        {!isStoreOpen ? (
+          <p className="text-center text-[12px] text-[#B0553C] bg-[#F7E9E2] rounded-full py-3 px-4">
+            {t("store_status_closed_banner")}
+          </p>
+        ) : mode === "web" && webOrderIntent !== "pickup" ? (
           <button
             onClick={resetWebOrderIntent}
             className="w-full text-center text-[12px] text-[#8A6B1F] bg-[#FDECC8] rounded-2xl py-3 px-4 flex flex-col gap-0.5"

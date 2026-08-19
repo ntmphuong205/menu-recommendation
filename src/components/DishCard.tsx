@@ -7,14 +7,14 @@ import { useI18n } from "../i18n/I18nContext";
 import { formatPrice, formatPriceRange } from "../lib/currency";
 
 export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "chat" | "grid" }) {
-  const { setSelectedDishId, addToCart, getDishRating, mode, webOrderIntent } = useApp();
+  const { setSelectedDishId, addToCart, getDishRating, mode, webOrderIntent, isStoreOpen } = useApp();
   const { t, lang } = useI18n();
   const [added, setAdded] = useState(false);
   const [qty, setQty] = useState(1);
   const soldOut = !!dish.soldOut;
   const rating = getDishRating(dish.id);
   const name = getDishName(dish, lang);
-  const canOrder = mode === "store" || webOrderIntent === "pickup";
+  const canOrder = (mode === "store" || webOrderIntent === "pickup") && isStoreOpen;
   const needsSheet = hasChoices(dish);
   const priceLabel = dish.sizeVariants?.length
     ? formatPriceRange(dish.sizeVariants.map((v) => v.price), dish.currency)

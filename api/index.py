@@ -237,6 +237,13 @@ class StoreUpdate(BaseModel):
         return self
 
 
+class StoreStatusUpdate(BaseModel):
+    # A separate, single-field endpoint on purpose — staff need to flip
+    # this the moment they know they're closing early/unexpectedly, not
+    # dig through the full Store Settings form and hit Save.
+    is_open: bool
+
+
 class IngredientLine(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     grams: float = Field(ge=0, le=5000)
@@ -1410,6 +1417,7 @@ def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "address": row.get("address") or "",
         "cover_image": row.get("cover_image") or "",
         "filter_tags": row.get("filter_tags") or [],
+        "is_open": row.get("is_open") if row.get("is_open") is not None else True,
     }
 
 
@@ -1559,6 +1567,18 @@ def update_store(
     }
 
 
+@app.put("/api/store/status")
+def update_store_status(
+    payload: StoreStatusUpdate, _staff: Dict[str, Any] = Depends(require_staff)
+) -> Dict[str, Any]:
+    row = get_repository().update_store({"is_open": payload.is_open})
+    return {
+        "success": True,
+        "message": "Store status saved.",
+        "store": store_to_public(row),
+    }
+
+
 @app.get("/api/menus")
 def get_menus() -> List[Dict[str, Any]]:
     return [menu_to_public(row) for row in get_repository().get_menus()]
@@ -1664,8 +1684,17 @@ def create_order(payload: OrderCreate) -> Dict[str, Any]:
             detail="Ordering isn't available in web browsing mode.",
         )
     repo = get_repository()
+    store = repo.get_store()
+    # Manual "closed today" switch — independent of opening_time/
+    # closing_time, which only bound what pickup slot can be *scheduled*.
+    # Checked for dine_in too: a stale table QR could still be scanned
+    # while the store is shut.
+    if store.get("is_open") is False:
+        raise HTTPException(
+            status_code=403,
+            detail="This store isn't accepting orders right now.",
+        )
     if payload.fulfillment_type == "pickup":
-        store = repo.get_store()
         opening_time = store.get("opening_time") or "09:00"
         closing_time = store.get("closing_time") or "22:00"
         # Plain string comparison works here since both sides are always

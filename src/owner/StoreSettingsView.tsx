@@ -6,6 +6,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { VIETNAM_BANKS } from "../data/banks";
 import { TAGS, type TagKey } from "../data/menu";
 import type { TranslationKey } from "../i18n/translations";
+import { StoreStatusToggle } from "./StoreStatusToggle";
 
 const ALL_FILTER_TAGS = Object.keys(TAGS) as TagKey[];
 
@@ -184,14 +185,17 @@ export function StoreSettingsView() {
           <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("store_settings_title")}</h1>
           <p className="text-[13px] text-[#8A8272]">{t("store_settings_subtitle")}</p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving || !store}
-          className="flex items-center gap-1.5 text-[12.5px] font-semibold text-white bg-[#2D5A3D] px-3.5 py-2 rounded-full disabled:opacity-50 active:scale-95 transition-transform shrink-0"
-        >
-          <Save size={14} />
-          {saving ? t("store_settings_saving") : t("store_settings_save")}
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <StoreStatusToggle />
+          <button
+            onClick={handleSave}
+            disabled={saving || !store}
+            className="flex items-center gap-1.5 text-[12.5px] font-semibold text-white bg-[#2D5A3D] px-3.5 py-2 rounded-full disabled:opacity-50 active:scale-95 transition-transform"
+          >
+            <Save size={14} />
+            {saving ? t("store_settings_saving") : t("store_settings_save")}
+          </button>
+        </div>
       </div>
 
       {!store ? (

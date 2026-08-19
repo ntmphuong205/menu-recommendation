@@ -59,6 +59,11 @@ create table if not exists public.stores (
     -- customer app's Info tab (data URL or hosted URL, same convention
     -- as menus.image_url/image_data). Null falls back to a plain color.
     cover_image text,
+    -- Manual "closed today" switch, independent of opening_time/
+    -- closing_time (which only bound what pickup time a customer can
+    -- *schedule*) — new orders are rejected outright while this is false,
+    -- so a customer can't pay for a pickup on a day the store didn't open.
+    is_open boolean not null default true,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -399,7 +404,8 @@ alter table public.stores
     add column if not exists wifi_password text default '',
     add column if not exists address text default '',
     add column if not exists cover_image text,
-    add column if not exists filter_tags jsonb not null default '[]'::jsonb;
+    add column if not exists filter_tags jsonb not null default '[]'::jsonb,
+    add column if not exists is_open boolean not null default true;
 
 alter table public.menus
     add column if not exists size_variants jsonb not null default '[]'::jsonb,
