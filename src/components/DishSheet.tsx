@@ -7,6 +7,7 @@ import { useI18n } from "../i18n/I18nContext";
 import { getDishName, getDishDescription, getDishAllergyNote, getPairingReason, getVariantLabel, hasChoices } from "../data/menu";
 import type { SizeVariant } from "../data/menu";
 import { OrderModeNotice } from "./OrderModeNotice";
+import { StoreClosedBanner } from "./StoreClosedBanner";
 import { formatPrice } from "../lib/currency";
 
 function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
@@ -140,6 +141,11 @@ export function DishSheet() {
           {dish.soldOut && (
             <span className="inline-block mt-2 text-[11px] font-bold uppercase tracking-wide text-white bg-[#B0553C] px-2.5 py-1 rounded-full">
               {t("dish_sold_out")}
+            </span>
+          )}
+          {!dish.soldOut && !isStoreOpen && (
+            <span className="inline-block mt-2 text-[11px] font-bold uppercase tracking-wide text-white bg-[#B0553C] px-2.5 py-1 rounded-full">
+              {t("store_status_closed")}
             </span>
           )}
 
@@ -342,6 +348,10 @@ export function DishSheet() {
                 </button>
               </div>
             </>
+          ) : !isStoreOpen ? (
+            <div className="mt-4">
+              <StoreClosedBanner />
+            </div>
           ) : (
             <div className="mt-4">
               <OrderModeNotice />

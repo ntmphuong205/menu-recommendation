@@ -8,6 +8,7 @@ import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { OrderModeNotice } from "../components/OrderModeNotice";
+import { StoreClosedBanner } from "../components/StoreClosedBanner";
 
 export function ChatScreen() {
   const { addToCart, menu, tableId, mode, webOrderIntent, isStoreOpen } = useApp();
@@ -114,6 +115,7 @@ export function ChatScreen() {
       </div>
 
       <OrderModeNotice />
+      <StoreClosedBanner />
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-3">

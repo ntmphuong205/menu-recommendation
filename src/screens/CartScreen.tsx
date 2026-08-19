@@ -120,7 +120,7 @@ function MyOrdersSection() {
 }
 
 function PairingSuggestions() {
-  const { cart, menu, findDish, addToCart, setSelectedDishId } = useApp();
+  const { cart, menu, findDish, addToCart, setSelectedDishId, isStoreOpen } = useApp();
   const { t, lang } = useI18n();
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
@@ -141,7 +141,7 @@ function PairingSuggestions() {
     return result.slice(0, 3);
   }, [cart, menu, lang]);
 
-  if (suggestions.length === 0) return null;
+  if (suggestions.length === 0 || !isStoreOpen) return null;
 
   return (
     <div className="px-4 pt-1 pb-2 flex flex-col gap-2">

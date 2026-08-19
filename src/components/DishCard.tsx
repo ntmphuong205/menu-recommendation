@@ -12,6 +12,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
   const [added, setAdded] = useState(false);
   const [qty, setQty] = useState(1);
   const soldOut = !!dish.soldOut;
+  const dimmed = soldOut || !isStoreOpen;
   const rating = getDishRating(dish.id);
   const name = getDishName(dish, lang);
   const canOrder = (mode === "store" || webOrderIntent === "pickup") && isStoreOpen;
@@ -24,7 +25,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
     return (
       <button
         onClick={() => setSelectedDishId(dish.id)}
-        className={`text-left bg-white rounded-2xl overflow-hidden shadow-sm border border-black/5 active:scale-[0.98] transition-transform relative ${soldOut ? "opacity-60" : ""}`}
+        className={`text-left bg-white rounded-2xl overflow-hidden shadow-sm border border-black/5 active:scale-[0.98] transition-transform relative ${dimmed ? "opacity-60" : ""}`}
       >
         <div className="h-24 w-full overflow-hidden bg-[#EFE9D8] relative">
           <img src={dish.image} alt={name} className="w-full h-full object-cover" loading="lazy" />
@@ -56,7 +57,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
   }
 
   return (
-    <div className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-black/5 w-[230px] shrink-0 ${soldOut ? "opacity-60" : ""}`}>
+    <div className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-black/5 w-[230px] shrink-0 ${dimmed ? "opacity-60" : ""}`}>
       <button onClick={() => setSelectedDishId(dish.id)} className="block w-full h-32 overflow-hidden bg-[#EFE9D8] relative">
         <img src={dish.image} alt={name} className="w-full h-full object-cover" loading="lazy" />
         {soldOut && (

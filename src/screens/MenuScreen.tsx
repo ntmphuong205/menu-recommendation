@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import { getDishName, TAGS, type Dish, type TagKey } from "../data/menu";
 import { DishCard } from "../components/DishCard";
 import { OrderModeNotice } from "../components/OrderModeNotice";
+import { StoreClosedBanner } from "../components/StoreClosedBanner";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
@@ -19,7 +20,7 @@ const CATEGORY_KEY: Partial<Record<string, TranslationKey>> = {
 };
 
 export function MenuScreen() {
-  const { menu, store } = useApp();
+  const { menu, store, isStoreOpen } = useApp();
   const { t, lang } = useI18n();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<TagKey | "all">("all");
@@ -81,8 +82,9 @@ export function MenuScreen() {
       </div>
 
       <OrderModeNotice />
+      <StoreClosedBanner />
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+      <div className={`flex-1 min-h-0 overflow-y-auto px-4 py-4 ${!isStoreOpen ? "opacity-60 grayscale-[0.4]" : ""}`}>
         {grouped.length === 0 && (
           <p className="text-center text-[13px] text-[#B0A794] mt-10">{t("menu_no_results")}</p>
         )}
