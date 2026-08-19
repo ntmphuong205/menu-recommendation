@@ -1963,7 +1963,21 @@ def get_reviews() -> List[Dict[str, Any]]:
 
 @app.post("/api/reviews", status_code=201)
 def create_review(payload: ReviewCreate) -> Dict[str, Any]:
-    row = get_repository().create_review(
+    repo = get_repository()
+    if payload.menu_id is not None:
+        # Reviews are only open to someone who actually ordered this dish
+        # and was served it — not anyone just browsing the menu.
+        orders = repo.get_orders(str(payload.customer_session_id))
+        has_served_order = any(
+            o.get("menu_id") == str(payload.menu_id) and o.get("status") == "served"
+            for o in orders
+        )
+        if not has_served_order:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only review a dish after ordering it and having it served.",
+            )
+    row = repo.create_review(
         {
             "rating": payload.rating,
             "review_text": payload.review_text,

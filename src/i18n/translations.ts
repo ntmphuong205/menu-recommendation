@@ -83,6 +83,11 @@ const dict = {
   nutrition_fat: { vi: "Chất béo", en: "Fat", ko: "지방" },
   nutrition_prep_time: { vi: "Thời gian chế biến", en: "Prep time", ko: "조리 시간" },
   nutrition_minutes: { vi: "phút", en: "min", ko: "분" },
+  dish_nutrition_disclaimer: {
+    vi: "Calo và cảnh báo dị ứng chỉ mang tính ước tính/tham khảo — hỏi nhân viên quán để biết chính xác nếu bạn có dị ứng hoặc yêu cầu đặc biệt.",
+    en: "Calories and allergy info are estimates for reference only — ask staff for exact details if you have allergies or special requirements.",
+    ko: "칼로리 및 알레르기 정보는 참고용 추정치입니다 — 알레르기나 특별한 요청이 있으시면 직원에게 정확히 문의해 주세요.",
+  },
   dish_add_to_cart: { vi: "Thêm vào giỏ", en: "Add to cart", ko: "장바구니에 담기" },
   dish_added: { vi: "Đã thêm ✓", en: "Added to cart ✓", ko: "담았어요 ✓" },
   dish_note_label: { vi: "Yêu cầu thêm (không bắt buộc)", en: "Special request (optional)", ko: "요청사항 (선택)" },
@@ -333,6 +338,11 @@ const dict = {
   review_title: { vi: "Đánh giá", en: "Reviews", ko: "리뷰" },
   review_none: { vi: "Chưa có đánh giá nào", en: "No reviews yet", ko: "아직 리뷰가 없어요" },
   review_write: { vi: "Viết đánh giá", en: "Write a review", ko: "리뷰 작성" },
+  review_eligibility_note: {
+    vi: "Chỉ khách đã đặt và nhận món này mới có thể đánh giá.",
+    en: "Only customers who ordered and received this dish can leave a review.",
+    ko: "이 메뉴를 주문하고 받은 고객만 리뷰를 남길 수 있습니다.",
+  },
   review_placeholder: {
     vi: "Bạn thấy món này thế nào?",
     en: "How was this dish?",
@@ -386,7 +396,6 @@ const dict = {
     ko: "{table} 테이블의 전체 주문을 취소할까요?",
   },
   orders_cancel_item_title: { vi: "Huỷ món này", en: "Cancel this item", ko: "이 항목 취소" },
-  orders_mark_next_title: { vi: "Đánh dấu {status}", en: "Mark {status}", ko: "{status}(으)로 표시" },
   orders_served_heading: { vi: "Đã phục vụ", en: "Served", ko: "서빙 완료" },
   orders_cancelled_heading: { vi: "Đã huỷ", en: "Cancelled", ko: "취소됨" },
   order_status_new: { vi: "Mới", en: "New", ko: "신규" },

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { Clock3, ArrowRight, PackageCheck, XCircle, Ban, BellRing, Check, X, CalendarClock, Users, Wallet, Loader2 } from "lucide-react";
+import { Clock3, PackageCheck, XCircle, Ban, BellRing, Check, X, CalendarClock, Users, Wallet, Loader2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import { NEXT_STATUS, ORDER_STATUS_LABEL_KEY, ACTIVE_STATUSES, orderTotal, type Order, type OrderStatus } from "../data/orders";
+import { ORDER_STATUS_LABEL_KEY, ACTIVE_STATUSES, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
 import { RESERVATIONS_ENABLED } from "../data/featureFlags";
@@ -14,6 +14,10 @@ const STATUS_STYLE: Record<OrderStatus, string> = {
   served: "bg-[#E5F3EA] text-[#2D5A3D]",
   cancelled: "bg-[#F7E9E2] text-[#B0553C]",
 };
+
+// Click any of these directly instead of only moving forward one step at a
+// time — a misclick can be corrected by clicking the right one back.
+const ITEM_STATUS_STEPS: OrderStatus[] = ["new", "preparing", "served"];
 
 /** "Table T3" for dine-in, "Pickup #A1B2C3 · 19:30" for remote pre-orders —
  *  pickup orders aren't tied to a physical table at all. */
@@ -252,17 +256,26 @@ export function OrdersView() {
                           <span className="text-[#5C5240] font-medium ml-2">{formatPrice(item.price * item.qty, currency)}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[item.status]}`}>
-                            {t(ORDER_STATUS_LABEL_KEY[item.status])}
-                          </span>
-                          {NEXT_STATUS[item.status] && (
-                            <button
-                              onClick={() => updateItemStatus(item.id, NEXT_STATUS[item.status]!)}
-                              title={t("orders_mark_next_title", { status: t(ORDER_STATUS_LABEL_KEY[NEXT_STATUS[item.status]!]) })}
-                              className="flex items-center gap-0.5 text-[10.5px] font-semibold text-white bg-[#2D5A3D] px-2 py-1 rounded-full active:scale-95 transition-transform whitespace-nowrap"
-                            >
-                              <ArrowRight size={10} />
-                            </button>
+                          {item.status === "cancelled" ? (
+                            <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[item.status]}`}>
+                              {t(ORDER_STATUS_LABEL_KEY[item.status])}
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-0.5 bg-black/5 rounded-full p-0.5">
+                              {ITEM_STATUS_STEPS.map((s) => (
+                                <button
+                                  key={s}
+                                  onClick={() => updateItemStatus(item.id, s)}
+                                  disabled={item.status === s}
+                                  title={t(ORDER_STATUS_LABEL_KEY[s])}
+                                  className={`px-2 py-1 rounded-full text-[10.5px] font-semibold whitespace-nowrap transition-colors ${
+                                    item.status === s ? STATUS_STYLE[s] : "text-[#B0A794] active:scale-95"
+                                  }`}
+                                >
+                                  {t(ORDER_STATUS_LABEL_KEY[s])}
+                                </button>
+                              ))}
+                            </div>
                           )}
                           {ACTIVE_STATUSES.includes(item.status) && (
                             <button

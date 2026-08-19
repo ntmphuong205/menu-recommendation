@@ -56,14 +56,6 @@ export const ORDER_STATUS_LABEL_KEY: Record<OrderStatus, TranslationKey> = {
   cancelled: "order_status_cancelled",
 };
 
-export const NEXT_STATUS: Record<OrderStatus, OrderStatus | null> = {
-  awaiting_payment: null,
-  new: "preparing",
-  preparing: "served",
-  served: null,
-  cancelled: null,
-};
-
 /** Only orders/items in these statuses count toward the kitchen queue —
  *  awaiting_payment orders haven't been paid for yet, so the kitchen
  *  shouldn't see them at all. */

@@ -192,10 +192,16 @@ export function DishSheet() {
             <p className="text-[13px] text-[#5C5240]">{dish.ingredients.join(", ")}</p>
           </div>
 
-          <div className="flex items-start gap-1.5 mt-3 text-[12px] text-[#8A5A3F] bg-[#F7E9E2] px-3 py-2 rounded-xl">
-            <TriangleAlert size={14} className="mt-0.5 shrink-0" />
-            <span>{getDishAllergyNote(dish, lang)}</span>
-          </div>
+          {getDishAllergyNote(dish, lang) && (
+            <div className="flex items-start gap-1.5 mt-3 text-[12px] text-[#8A5A3F] bg-[#F7E9E2] px-3 py-2 rounded-xl">
+              <TriangleAlert size={14} className="mt-0.5 shrink-0" />
+              <span>{getDishAllergyNote(dish, lang)}</span>
+            </div>
+          )}
+
+          {(displayCalories !== undefined || getDishAllergyNote(dish, lang)) && (
+            <p className="text-[10.5px] text-[#B0A794] leading-snug mt-2">{t("dish_nutrition_disclaimer")}</p>
+          )}
 
           {dish.pairings && dish.pairings.length > 0 && (
             <div className="mt-4">

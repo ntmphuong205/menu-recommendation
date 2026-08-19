@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Star } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
+import { getCustomerSessionId } from "../lib/apiClient";
 
 function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
@@ -18,7 +19,7 @@ function Stars({ value, size = 14 }: { value: number; size?: number }) {
 }
 
 export function ReviewSection({ dishId }: { dishId: string }) {
-  const { reviews, addReview, getDishRating } = useApp();
+  const { reviews, addReview, getDishRating, orders } = useApp();
   const { t } = useI18n();
   const [writing, setWriting] = useState(false);
   const [rating, setRating] = useState(5);
@@ -27,6 +28,12 @@ export function ReviewSection({ dishId }: { dishId: string }) {
 
   const summary = getDishRating(dishId);
   const dishReviews = reviews.filter((r) => r.dishId === dishId).slice(0, 3);
+  // Only someone who actually ordered this dish and was served it can
+  // review it — keeps reviews from being open to anyone just browsing.
+  const sessionId = getCustomerSessionId();
+  const eligible = orders.some(
+    (o) => o.customerSessionId === sessionId && o.items.some((i) => i.dishId === dishId && i.status === "served")
+  );
 
   const submit = () => {
     addReview(dishId, rating, comment.trim());
@@ -72,12 +79,16 @@ export function ReviewSection({ dishId }: { dishId: string }) {
       </div>
 
       {!writing ? (
-        <button
-          onClick={() => setWriting(true)}
-          className="text-[12px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-3 py-1.5 rounded-full"
-        >
-          {t("review_write")}
-        </button>
+        eligible ? (
+          <button
+            onClick={() => setWriting(true)}
+            className="text-[12px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-3 py-1.5 rounded-full"
+          >
+            {t("review_write")}
+          </button>
+        ) : (
+          !submitted && <p className="text-[11px] text-[#B0A794]">{t("review_eligibility_note")}</p>
+        )
       ) : (
         <div className="bg-white rounded-xl border border-black/5 p-3 flex flex-col gap-2">
           <div className="flex items-center gap-1">
