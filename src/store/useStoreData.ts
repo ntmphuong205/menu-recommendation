@@ -16,6 +16,7 @@ export interface StoreUpdatePayload {
   phone?: string;
   wifi_name?: string;
   wifi_password?: string;
+  address?: string;
 }
 
 export interface StoreData {

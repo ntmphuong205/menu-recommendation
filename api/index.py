@@ -195,10 +195,11 @@ class StoreUpdate(BaseModel):
     phone: str = Field(default="", max_length=100)
     wifi_name: str = Field(default="", max_length=100)
     wifi_password: str = Field(default="", max_length=100)
+    address: str = Field(default="", max_length=300)
 
     @field_validator(
         "name", "hours", "description", "bank_bin", "bank_account_number",
-        "bank_account_holder", "phone", "wifi_name", "wifi_password",
+        "bank_account_holder", "phone", "wifi_name", "wifi_password", "address",
     )
     @classmethod
     def strip_text(cls, value: str) -> str:
@@ -1374,6 +1375,7 @@ def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "phone": row.get("phone") or "",
         "wifi_name": row.get("wifi_name") or "",
         "wifi_password": row.get("wifi_password") or "",
+        "address": row.get("address") or "",
     }
 
 
@@ -1511,6 +1513,7 @@ def update_store(
             "phone": payload.phone,
             "wifi_name": payload.wifi_name,
             "wifi_password": payload.wifi_password,
+            "address": payload.address,
         }
     )
     return {

@@ -66,6 +66,7 @@ export function StoreSettingsView() {
   const [phone, setPhone] = useState("");
   const [wifiName, setWifiName] = useState("");
   const [wifiPassword, setWifiPassword] = useState("");
+  const [address, setAddress] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -90,6 +91,7 @@ export function StoreSettingsView() {
     setPhone(store.phone ?? "");
     setWifiName(store.wifi_name ?? "");
     setWifiPassword(store.wifi_password ?? "");
+    setAddress(store.address ?? "");
   }, [store]);
 
   const handleQrUpload = (file: File | undefined) => {
@@ -137,6 +139,7 @@ export function StoreSettingsView() {
           phone,
           wifi_name: wifiName,
           wifi_password: wifiPassword,
+          address,
         }),
         updateKeywords(localKeywords),
       ]);
@@ -204,6 +207,9 @@ export function StoreSettingsView() {
               <p className="text-[13px] font-bold text-[#22201B]">{t("store_settings_contact_title")}</p>
               <p className="text-[11px] text-[#8A8272] mt-0.5">{t("store_settings_contact_desc")}</p>
             </div>
+            <Field label={t("store_settings_address")}>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} />
+            </Field>
             <Field label={t("store_settings_phone")}>
               <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="0983.014.221, 0868.141.181" />
             </Field>

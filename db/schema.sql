@@ -49,6 +49,7 @@ create table if not exists public.stores (
     phone text default '',
     wifi_name text default '',
     wifi_password text default '',
+    address text default '',
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -377,7 +378,8 @@ alter table public.stores
     add column if not exists closing_time text not null default '22:00',
     add column if not exists phone text default '',
     add column if not exists wifi_name text default '',
-    add column if not exists wifi_password text default '';
+    add column if not exists wifi_password text default '',
+    add column if not exists address text default '';
 
 alter table public.menus
     add column if not exists size_variants jsonb not null default '[]'::jsonb;

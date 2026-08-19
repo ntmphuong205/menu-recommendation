@@ -15,12 +15,13 @@ export function InfoScreen() {
   const [showCallStaff, setShowCallStaff] = useState(false);
   const bestSellers = menu.filter((d) => BEST_SELLERS.includes(d.id));
   const restaurantText = getRestaurantText(lang);
-  // Live store name/hours/description come from the backend once loaded;
-  // rating/cuisine/address aren't modeled server-side yet, so those still
+  // Live store name/hours/description/address come from the backend once
+  // loaded; rating/cuisine aren't modeled server-side yet, so those still
   // come from the static RESTAURANT object either way.
   const storeName = store ? store.name_i18n[lang] || store.name : RESTAURANT.name;
   const storeHours = store ? store.hours_i18n[lang] || store.hours : "";
   const storeDescription = store ? store.description_i18n[lang] || store.description : restaurantText.tagline;
+  const storeAddress = store?.address || restaurantText.address;
 
   return (
     <div className="flex flex-col h-full">
@@ -65,7 +66,7 @@ export function InfoScreen() {
             </div>
             <div className="flex items-start gap-2.5">
               <MapPin size={16} className="text-[#2D5A3D] mt-0.5 shrink-0" />
-              <p className="text-[12.5px] text-[#5C5240]">{restaurantText.address}</p>
+              <p className="text-[12.5px] text-[#5C5240]">{storeAddress}</p>
             </div>
           </div>
 
