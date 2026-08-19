@@ -532,6 +532,12 @@ const dict = {
     ko: "고객에게 앱의 정보 탭에서 표시됩니다.",
   },
   store_settings_address: { vi: "Địa chỉ", en: "Address", ko: "주소" },
+  store_settings_cover_image: { vi: "Ảnh bìa quán", en: "Cover photo", ko: "커버 사진" },
+  store_settings_cover_image_desc: {
+    vi: "Hiện phía sau tên quán ở tab Thông tin.",
+    en: "Shown behind the store name on the Info tab.",
+    ko: "정보 탭의 매장 이름 뒤에 표시됩니다.",
+  },
   store_settings_phone: { vi: "Số điện thoại / Hotline", en: "Phone / Hotline", ko: "전화번호 / 핫라인" },
   store_settings_wifi_name: { vi: "Tên wifi", en: "Wifi name", ko: "와이파이 이름" },
   store_settings_wifi_password: { vi: "Mật khẩu wifi", en: "Wifi password", ko: "와이파이 비밀번호" },

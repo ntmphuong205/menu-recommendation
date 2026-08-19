@@ -67,6 +67,7 @@ export function StoreSettingsView() {
   const [wifiName, setWifiName] = useState("");
   const [wifiPassword, setWifiPassword] = useState("");
   const [address, setAddress] = useState("");
+  const [coverImage, setCoverImage] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -92,12 +93,20 @@ export function StoreSettingsView() {
     setWifiName(store.wifi_name ?? "");
     setWifiPassword(store.wifi_password ?? "");
     setAddress(store.address ?? "");
+    setCoverImage(store.cover_image ?? "");
   }, [store]);
 
   const handleQrUpload = (file: File | undefined) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => setBankQrImage(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleCoverUpload = (file: File | undefined) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setCoverImage(reader.result as string);
     reader.readAsDataURL(file);
   };
 
@@ -140,6 +149,7 @@ export function StoreSettingsView() {
           wifi_name: wifiName,
           wifi_password: wifiPassword,
           address,
+          cover_image: coverImage || null,
         }),
         updateKeywords(localKeywords),
       ]);
@@ -209,6 +219,35 @@ export function StoreSettingsView() {
             </div>
             <Field label={t("store_settings_address")}>
               <input value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} />
+            </Field>
+            <Field label={t("store_settings_cover_image")}>
+              <p className="text-[11px] text-[#8A8272] mb-1.5 -mt-0.5">{t("store_settings_cover_image_desc")}</p>
+              <div className="flex items-center gap-3">
+                {coverImage && (
+                  <div className="w-20 h-14 rounded-lg overflow-hidden bg-[#EFE9D8] shrink-0 border border-black/10">
+                    <img src={coverImage} alt="Cover preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <label className={`${inputCls} flex items-center gap-2 cursor-pointer text-[#5C5240] w-auto`}>
+                  <Upload size={14} />
+                  {t("store_settings_bank_qr_choose_file")}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleCoverUpload(e.target.files?.[0])}
+                  />
+                </label>
+                {coverImage && (
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage("")}
+                    className="text-[11.5px] font-medium text-[#B0553C]"
+                  >
+                    {t("store_settings_bank_qr_remove")}
+                  </button>
+                )}
+              </div>
             </Field>
             <Field label={t("store_settings_phone")}>
               <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputCls} placeholder="0983.014.221, 0868.141.181" />

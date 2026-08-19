@@ -26,11 +26,15 @@ export function InfoScreen() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div className="relative h-28 bg-gradient-to-br from-[#2D5A3D] to-[#1F3D2B] flex items-end px-4 pb-4">
+        <div
+          className="relative h-36 flex items-end px-4 pb-4 bg-gradient-to-br from-[#2D5A3D] to-[#1F3D2B] bg-cover bg-center"
+          style={store?.cover_image ? { backgroundImage: `url(${store.cover_image})` } : undefined}
+        >
+          {store?.cover_image && <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />}
           <div className="absolute top-4 right-4">
             <LangSwitcher dark />
           </div>
-          <div>
+          <div className="relative">
             <h1 className="text-[20px] font-bold text-white">{storeName}</h1>
             <p className="text-[12px] text-white/80 line-clamp-1">{storeDescription}</p>
           </div>

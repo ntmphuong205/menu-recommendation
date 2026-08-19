@@ -196,6 +196,9 @@ class StoreUpdate(BaseModel):
     wifi_name: str = Field(default="", max_length=100)
     wifi_password: str = Field(default="", max_length=100)
     address: str = Field(default="", max_length=300)
+    # Cover photo behind the store name/description on the customer app's
+    # Info tab — same data-URL/hosted-URL convention as bank_qr_image.
+    cover_image: Optional[str] = None
 
     @field_validator(
         "name", "hours", "description", "bank_bin", "bank_account_number",
@@ -210,9 +213,9 @@ class StoreUpdate(BaseModel):
     def strip_categories(cls, values: List[str]) -> List[str]:
         return [str(item).strip() for item in values if str(item).strip()]
 
-    @field_validator("bank_qr_image")
+    @field_validator("bank_qr_image", "cover_image")
     @classmethod
-    def validate_bank_qr_image(cls, value: Optional[str]) -> Optional[str]:
+    def validate_image_fields(cls, value: Optional[str]) -> Optional[str]:
         return validate_image_value(value)
 
     @field_validator("opening_time", "closing_time")
@@ -1377,6 +1380,7 @@ def store_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "wifi_name": row.get("wifi_name") or "",
         "wifi_password": row.get("wifi_password") or "",
         "address": row.get("address") or "",
+        "cover_image": row.get("cover_image") or "",
     }
 
 
@@ -1515,6 +1519,7 @@ def update_store(
             "wifi_name": payload.wifi_name,
             "wifi_password": payload.wifi_password,
             "address": payload.address,
+            "cover_image": payload.cover_image or None,
         }
     )
     return {

@@ -50,6 +50,10 @@ create table if not exists public.stores (
     wifi_name text default '',
     wifi_password text default '',
     address text default '',
+    -- Cover photo shown behind the store's name/description on the
+    -- customer app's Info tab (data URL or hosted URL, same convention
+    -- as menus.image_url/image_data). Null falls back to a plain color.
+    cover_image text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -379,7 +383,8 @@ alter table public.stores
     add column if not exists phone text default '',
     add column if not exists wifi_name text default '',
     add column if not exists wifi_password text default '',
-    add column if not exists address text default '';
+    add column if not exists address text default '',
+    add column if not exists cover_image text;
 
 alter table public.menus
     add column if not exists size_variants jsonb not null default '[]'::jsonb;
