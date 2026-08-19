@@ -75,11 +75,17 @@ export function ChatScreen() {
       if (result.cartOp) {
         // Chat only ever adds to the customer's cart — placing the real order
         // happens explicitly from the Cart tab's confirm button. It can't
-        // ask which size, so a dish with size choices defaults to the
-        // first (cheapest) one — remove it from the cart and re-add via
-        // Menu to get a different size.
+        // ask which size/flavor, so a dish with those choices defaults to
+        // the first one of each (toppings default to none) — remove it
+        // from the cart and re-add via Menu to change any of that.
         const dish = menu.find((d) => d.id === result.cartOp!.dishId);
-        addToCart(result.cartOp.dishId, result.cartOp.qty, result.cartOp.note, dish?.sizeVariants?.[0]?.id);
+        addToCart(
+          result.cartOp.dishId,
+          result.cartOp.qty,
+          result.cartOp.note,
+          dish?.sizeVariants?.[0]?.id,
+          dish?.flavorVariants?.[0]?.id
+        );
       }
       setTyping(false);
     }, 500 + Math.random() * 350);

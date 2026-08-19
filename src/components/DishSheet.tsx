@@ -4,7 +4,7 @@ import { TagPill } from "./TagPill";
 import { ReviewSection } from "./ReviewSection";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
-import { getDishName, getDishDescription, getDishAllergyNote, getPairingReason, getVariantLabel } from "../data/menu";
+import { getDishName, getDishDescription, getDishAllergyNote, getPairingReason, getVariantLabel, hasChoices } from "../data/menu";
 import type { SizeVariant } from "../data/menu";
 import { OrderModeNotice } from "./OrderModeNotice";
 import { formatPrice } from "../lib/currency";
@@ -37,7 +37,7 @@ function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (paired.sizeVariants?.length) {
+            if (hasChoices(paired)) {
               setSelectedDishId(paired.id);
               return;
             }
@@ -47,7 +47,7 @@ function PairingRow({ dishId, reason }: { dishId: string; reason: string }) {
           disabled={added}
           className="shrink-0 flex items-center gap-1 bg-[#2D5A3D] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
         >
-          {paired.sizeVariants?.length ? t("dish_choose_size") : added ? t("dish_added") : t("dish_add")}
+          {hasChoices(paired) ? t("dish_choose_size") : added ? t("dish_added") : t("dish_add")}
         </button>
       )}
     </div>
@@ -61,6 +61,8 @@ export function DishSheet() {
   const [note, setNote] = useState("");
   const [added, setAdded] = useState(false);
   const [variantId, setVariantId] = useState<string | undefined>(undefined);
+  const [flavorId, setFlavorId] = useState<string | undefined>(undefined);
+  const [toppingIds, setToppingIds] = useState<Set<string>>(new Set());
 
   if (!selectedDishId) return null;
   const dish = findDish(selectedDishId);
@@ -71,8 +73,18 @@ export function DishSheet() {
   const selectedVariant: SizeVariant | undefined = variants?.length
     ? variants.find((v) => v.id === variantId) ?? variants[0]
     : undefined;
-  const unitPrice = selectedVariant?.price ?? dish.price;
-  const displayCalories = selectedVariant?.calories ?? dish.calories;
+  const flavors = dish.flavorVariants;
+  const selectedFlavor: SizeVariant | undefined = flavors?.length
+    ? flavors.find((v) => v.id === flavorId) ?? flavors[0]
+    : undefined;
+  const toppings = dish.toppings;
+  const selectedToppings = toppings?.filter((t) => toppingIds.has(t.id)) ?? [];
+  const toppingsPrice = selectedToppings.reduce((sum, t) => sum + t.price, 0);
+  const unitPrice = (selectedVariant?.price ?? dish.price) + toppingsPrice;
+  const displayCalories =
+    (selectedVariant?.calories ?? dish.calories) !== undefined
+      ? (selectedVariant?.calories ?? dish.calories ?? 0) + selectedToppings.reduce((sum, t) => sum + (t.calories ?? 0), 0)
+      : undefined;
   // Only ever estimated together from ingredientLines — showing "0g" when
   // none of these were ever estimated would claim a fat-free/carb-free
   // drink instead of "we don't know".
@@ -82,12 +94,23 @@ export function DishSheet() {
   // so keep the per-pill price for those.
   const showVariantPrices = !!variants?.length && variants.some((v) => v.price !== variants[0].price);
 
+  const toggleTopping = (id: string) => {
+    setToppingIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const close = () => {
     setSelectedDishId(null);
     setQty(1);
     setNote("");
     setAdded(false);
     setVariantId(undefined);
+    setFlavorId(undefined);
+    setToppingIds(new Set());
   };
 
   return (
@@ -127,25 +150,77 @@ export function DishSheet() {
           </div>
 
           {variants && variants.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              {variants.map((v) => (
-                <button
-                  key={v.id}
-                  onClick={() => setVariantId(v.id)}
-                  className={`flex flex-col items-center px-3.5 py-2 rounded-xl border text-[12.5px] font-semibold transition-colors ${
-                    selectedVariant?.id === v.id
-                      ? "bg-[#2D5A3D] text-white border-[#2D5A3D]"
-                      : "bg-white text-[#5C5240] border-black/10"
-                  }`}
-                >
-                  {getVariantLabel(v, lang)}
-                  {showVariantPrices && (
-                    <span className={`text-[10.5px] font-normal mt-0.5 ${selectedVariant?.id === v.id ? "text-white/80" : "text-[#8A8272]"}`}>
-                      {formatPrice(v.price, dish.currency)}
+            <div className="mt-3">
+              {flavors && flavors.length > 0 && (
+                <p className="text-[11px] font-semibold text-[#8A8272] uppercase tracking-wide mb-1">{t("dish_group_size")}</p>
+              )}
+              <div className="flex flex-wrap gap-1.5">
+                {variants.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setVariantId(v.id)}
+                    className={`flex flex-col items-center px-3.5 py-2 rounded-xl border text-[12.5px] font-semibold transition-colors ${
+                      selectedVariant?.id === v.id
+                        ? "bg-[#2D5A3D] text-white border-[#2D5A3D]"
+                        : "bg-white text-[#5C5240] border-black/10"
+                    }`}
+                  >
+                    {getVariantLabel(v, lang)}
+                    {showVariantPrices && (
+                      <span className={`text-[10.5px] font-normal mt-0.5 ${selectedVariant?.id === v.id ? "text-white/80" : "text-[#8A8272]"}`}>
+                        {formatPrice(v.price, dish.currency)}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {flavors && flavors.length > 0 && (
+            <div className="mt-3">
+              {variants && variants.length > 0 && (
+                <p className="text-[11px] font-semibold text-[#8A8272] uppercase tracking-wide mb-1">{t("dish_group_flavor")}</p>
+              )}
+              <div className="flex flex-wrap gap-1.5">
+                {flavors.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFlavorId(f.id)}
+                    className={`px-3.5 py-2 rounded-xl border text-[12.5px] font-semibold transition-colors ${
+                      selectedFlavor?.id === f.id
+                        ? "bg-[#2D5A3D] text-white border-[#2D5A3D]"
+                        : "bg-white text-[#5C5240] border-black/10"
+                    }`}
+                  >
+                    {getVariantLabel(f, lang)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {toppings && toppings.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[11px] font-semibold text-[#8A8272] uppercase tracking-wide mb-1">{t("dish_group_toppings")}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {toppings.map((tp) => (
+                  <button
+                    key={tp.id}
+                    onClick={() => toggleTopping(tp.id)}
+                    className={`px-3.5 py-2 rounded-xl border text-[12.5px] font-semibold transition-colors ${
+                      toppingIds.has(tp.id)
+                        ? "bg-[#2D5A3D] text-white border-[#2D5A3D]"
+                        : "bg-white text-[#5C5240] border-black/10"
+                    }`}
+                  >
+                    {getVariantLabel(tp, lang)}
+                    <span className={`ml-1 font-normal ${toppingIds.has(tp.id) ? "text-white/80" : "text-[#8A8272]"}`}>
+                      +{formatPrice(tp.price, dish.currency)}
                     </span>
-                  )}
-                </button>
-              ))}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -249,7 +324,14 @@ export function DishSheet() {
                 </div>
                 <button
                   onClick={() => {
-                    addToCart(dish.id, qty, note.trim() || undefined, selectedVariant?.id);
+                    addToCart(
+                      dish.id,
+                      qty,
+                      note.trim() || undefined,
+                      selectedVariant?.id,
+                      selectedFlavor?.id,
+                      selectedToppings.length ? selectedToppings.map((t) => t.id) : undefined
+                    );
                     setAdded(true);
                     setTimeout(close, 700);
                   }}

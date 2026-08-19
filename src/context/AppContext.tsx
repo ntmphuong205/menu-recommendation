@@ -9,7 +9,7 @@ import { useReservationsData } from "../store/useReservationsData";
 import { useStoreData } from "../store/useStoreData";
 import type { ApiTable, ApiReservation, ApiStore } from "../lib/apiClient";
 import type { Dish } from "../data/menu";
-import { getVariantPrice } from "../data/menu";
+import { getUnitPrice } from "../data/menu";
 import { useI18n } from "../i18n/I18nContext";
 import type { Order, OrderStatus } from "../data/orders";
 import { ACTIVE_STATUSES } from "../data/orders";
@@ -25,6 +25,10 @@ export interface CartItem {
   note?: string;
   /** Which of the dish's sizeVariants was picked — undefined for dishes with no size choice. */
   variantId?: string;
+  /** Which of the dish's flavorVariants was picked — undefined for dishes with no flavor choice. */
+  flavorId?: string;
+  /** Which of the dish's toppings were picked — any number, undefined/empty for none. */
+  toppingIds?: string[];
 }
 
 export interface QueueInfo {
@@ -44,7 +48,7 @@ interface AppContextValue {
 
   // customer cart
   cart: CartItem[];
-  addToCart: (dishId: string, qty?: number, note?: string, variantId?: string) => void;
+  addToCart: (dishId: string, qty?: number, note?: string, variantId?: string, flavorId?: string, toppingIds?: string[]) => void;
   updateQty: (id: string, qty: number) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
@@ -193,8 +197,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const findDish = (id: string) => menu.find((d) => d.id === id);
 
-  const addToCart = (dishId: string, qty = 1, note?: string, variantId?: string) => {
-    setCart((prev) => [...prev, { id: `c${Date.now()}_${itemCounter++}`, dishId, qty, note, variantId }]);
+  const addToCart = (
+    dishId: string,
+    qty = 1,
+    note?: string,
+    variantId?: string,
+    flavorId?: string,
+    toppingIds?: string[]
+  ) => {
+    setCart((prev) => [
+      ...prev,
+      { id: `c${Date.now()}_${itemCounter++}`, dishId, qty, note, variantId, flavorId, toppingIds },
+    ]);
   };
 
   const updateQty = (id: string, qty: number) => {
@@ -211,7 +225,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () =>
       cart.reduce((sum, i) => {
         const dish = findDish(i.dishId);
-        return sum + (dish ? getVariantPrice(dish, i.variantId) : 0) * i.qty;
+        return sum + (dish ? getUnitPrice(dish, i.variantId, i.toppingIds) : 0) * i.qty;
       }, 0),
     [cart, menu]
   );
@@ -222,7 +236,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // never trusted directly from the client, so a tampered price can't
   // undercharge and a stale client can't send a wrong dish name.
   const cartToOrderItems = () =>
-    cart.map((i) => ({ dishId: i.dishId, variantId: i.variantId, qty: i.qty, note: i.note }));
+    cart.map((i) => ({
+      dishId: i.dishId,
+      variantId: i.variantId,
+      flavorId: i.flavorId,
+      toppingIds: i.toppingIds,
+      qty: i.qty,
+      note: i.note,
+    }));
 
   const placeOrder = (tableIdToUse: string) => {
     return placeOrderRaw(tableIdToUse, cartToOrderItems(), mode, lang);

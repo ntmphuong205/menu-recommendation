@@ -5,7 +5,7 @@ import type { QueueInfo } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL_KEY, orderTotal, type Order, type OrderStatus } from "../data/orders";
-import { getDishName, getPairingReason, getVariant, getVariantPrice, getVariantLabel, type Dish } from "../data/menu";
+import { getDishName, getPairingReason, getUnitPrice, formatChoices, hasChoices, type Dish } from "../data/menu";
 import { getCustomerSessionId } from "../lib/apiClient";
 import { getStoreSlug } from "../lib/storeSlug";
 import { formatPrice, formatPriceRange } from "../lib/currency";
@@ -171,7 +171,7 @@ function PairingSuggestions() {
             <p className="text-[10.5px] text-[#8A8272] leading-snug line-clamp-2">{reason}</p>
             <button
               onClick={() => {
-                if (dish.sizeVariants?.length) {
+                if (hasChoices(dish)) {
                   setSelectedDishId(dish.id);
                   return;
                 }
@@ -181,7 +181,7 @@ function PairingSuggestions() {
               disabled={addedIds.has(dish.id)}
               className="flex items-center justify-center gap-1 bg-[#2D5A3D] text-white text-[11px] font-semibold py-1.5 rounded-full active:scale-95 transition-transform disabled:opacity-50"
             >
-              {dish.sizeVariants?.length ? t("dish_choose_size") : addedIds.has(dish.id) ? t("dish_added") : t("dish_add")}
+              {hasChoices(dish) ? t("dish_choose_size") : addedIds.has(dish.id) ? t("dish_added") : t("dish_add")}
             </button>
           </div>
         ))}
@@ -339,11 +339,11 @@ function PickupInvoiceScreen({
               <div key={item.id} className="flex items-center justify-between gap-2 text-[13px]">
                 <span className="text-[#22201B]">
                   {item.qty}× {getDishName(dish, lang)}
-                  {getVariant(dish, item.variantId) && ` (${getVariantLabel(getVariant(dish, item.variantId)!, lang)})`}
+                  {formatChoices(dish, item.variantId, item.flavorId, item.toppingIds, lang)}
                   {item.note && <span className="text-[#B0553C]"> ({item.note})</span>}
                 </span>
                 <span className="font-semibold text-[#5C5240] shrink-0">
-                  {formatPrice(getVariantPrice(dish, item.variantId) * item.qty, currency)}
+                  {formatPrice(getUnitPrice(dish, item.variantId, item.toppingIds) * item.qty, currency)}
                 </span>
               </div>
             );
@@ -576,9 +576,9 @@ export function CartScreen() {
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-[13.5px] font-semibold text-[#22201B] leading-tight">
                       {getDishName(dish, lang)}
-                      {getVariant(dish, item.variantId) && (
-                        <span className="text-[#8A8272] font-normal"> ({getVariantLabel(getVariant(dish, item.variantId)!, lang)})</span>
-                      )}
+                      <span className="text-[#8A8272] font-normal">
+                        {formatChoices(dish, item.variantId, item.flavorId, item.toppingIds, lang)}
+                      </span>
                     </p>
                     <button onClick={() => removeItem(item.id)} className="text-[#B0A794] shrink-0">
                       <Trash2 size={14} />
@@ -602,7 +602,7 @@ export function CartScreen() {
                       </button>
                     </div>
                     <span className="text-[13px] font-bold text-[#2D5A3D]">
-                      {formatPrice(getVariantPrice(dish, item.variantId) * item.qty, currency)}
+                      {formatPrice(getUnitPrice(dish, item.variantId, item.toppingIds) * item.qty, currency)}
                     </span>
                   </div>
                 </div>

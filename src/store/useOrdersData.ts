@@ -48,6 +48,10 @@ export interface NewOrderItem {
   /** Which size_variant (if any) was picked — the backend derives the
    *  actual price and kitchen-facing name from this, never from the client. */
   variantId?: string;
+  /** Which flavor_variant (if any) was picked — no price effect. */
+  flavorId?: string;
+  /** Which toppings (if any) were picked — each adds its own price. */
+  toppingIds?: string[];
 }
 
 export interface OrdersData {
@@ -93,6 +97,8 @@ export function useOrdersData(): OrdersData {
           mode,
           order_group_id: groupId,
           variant_id: item.variantId,
+          flavor_id: item.flavorId,
+          topping_ids: item.toppingIds ?? [],
           lang,
         })
       )
@@ -121,6 +127,8 @@ export function useOrdersData(): OrdersData {
           pickup_time: pickupTime,
           order_group_id: groupId,
           variant_id: item.variantId,
+          flavor_id: item.flavorId,
+          topping_ids: item.toppingIds ?? [],
           lang,
         })
       )

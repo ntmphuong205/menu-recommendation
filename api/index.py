@@ -280,6 +280,11 @@ class MenuPayload(BaseModel):
     prepTimeMinutes: int = Field(default=10, ge=1, le=240)
     pairings: List[MenuPairing] = Field(default_factory=list, max_length=10)
     sizeVariants: List[SizeVariant] = Field(default_factory=list, max_length=6)
+    # Second independent single-pick choice, no price effect (e.g. Oolong /
+    # Black tea / Jasmine milk tea as one dish) — see SizeVariant's shape.
+    flavorVariants: List[SizeVariant] = Field(default_factory=list, max_length=10)
+    # Optional add-ons, any number pickable — each adds its own price on top.
+    toppings: List[SizeVariant] = Field(default_factory=list, max_length=15)
 
     @field_validator("name", "desc")
     @classmethod
@@ -383,6 +388,12 @@ class OrderCreate(BaseModel):
     # kitchen-facing name are derived server-side from this, never trusted
     # directly from the client (see create_order).
     variant_id: Optional[str] = Field(default=None, max_length=32)
+    # Which of the dish's flavor_variants (if any) was picked — no price
+    # effect, just recorded in the kitchen-facing name.
+    flavor_id: Optional[str] = Field(default=None, max_length=32)
+    # Which of the dish's toppings (if any) were picked — any number; each
+    # one's price is added on top, resolved server-side same as variant_id.
+    topping_ids: List[str] = Field(default_factory=list, max_length=15)
     # The customer's selected language when they placed the order — baked
     # into menu_name once and frozen from then on (order history isn't
     # re-translated later). Falls back to English if omitted.
@@ -597,6 +608,8 @@ def menu_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "prepTimeMinutes": row.get("prep_time_minutes") or 10,
         "pairings": row.get("pairings") or [],
         "sizeVariants": row.get("size_variants") or [],
+        "flavorVariants": row.get("flavor_variants") or [],
+        "toppings": row.get("toppings") or [],
     }
 
 
@@ -1253,6 +1266,8 @@ def menu_payload_to_row(payload: MenuPayload, include_image: bool) -> Dict[str, 
         "prep_time_minutes": payload.prepTimeMinutes,
         "pairings": [pairing.model_dump() for pairing in payload.pairings],
         "size_variants": [variant.model_dump() for variant in payload.sizeVariants],
+        "flavor_variants": [variant.model_dump() for variant in payload.flavorVariants],
+        "toppings": [variant.model_dump() for variant in payload.toppings],
     }
     if include_image:
         row["image_data"] = payload.img or None
@@ -1667,8 +1682,9 @@ def create_order(payload: OrderCreate) -> Dict[str, Any]:
         raise HTTPException(status_code=409, detail="This item is sold out and can't be ordered.")
 
     # The price actually charged always comes from the menu item itself
-    # (base price, or a matched size_variant's price) — never trusted
-    # directly from the client, so a tampered request can't undercharge.
+    # (base price, a matched size_variant's price, plus each matched
+    # topping's price) — never trusted directly from the client, so a
+    # tampered request can't undercharge.
     variant = None
     if payload.variant_id is not None:
         variant = next(
@@ -1679,6 +1695,24 @@ def create_order(payload: OrderCreate) -> Dict[str, Any]:
             raise HTTPException(status_code=400, detail="Invalid size/option selected.")
     unit_price = variant["price"] if variant else menu["price"]
 
+    flavor = None
+    if payload.flavor_id is not None:
+        flavor = next(
+            (v for v in (menu.get("flavor_variants") or []) if v.get("id") == payload.flavor_id),
+            None,
+        )
+        if not flavor:
+            raise HTTPException(status_code=400, detail="Invalid flavor selected.")
+
+    selected_toppings = []
+    known_toppings = {t.get("id"): t for t in (menu.get("toppings") or [])}
+    for topping_id in payload.topping_ids:
+        topping = known_toppings.get(topping_id)
+        if not topping:
+            raise HTTPException(status_code=400, detail="Invalid topping selected.")
+        selected_toppings.append(topping)
+    unit_price = float(unit_price) + sum(float(t["price"]) for t in selected_toppings)
+
     lang = payload.lang or "en"
     name_dict = menu.get("name") or {}
     menu_name = name_dict.get(lang) or name_dict.get("en") or ""
@@ -1686,6 +1720,15 @@ def create_order(payload: OrderCreate) -> Dict[str, Any]:
         variant_label = (variant.get("labels") or {}).get(lang) or variant.get("label") or ""
         if variant_label:
             menu_name = f"{menu_name} ({variant_label})"
+    if flavor:
+        flavor_label = (flavor.get("labels") or {}).get(lang) or flavor.get("label") or ""
+        if flavor_label:
+            menu_name = f"{menu_name} - {flavor_label}"
+    if selected_toppings:
+        topping_labels = [
+            (t.get("labels") or {}).get(lang) or t.get("label") or "" for t in selected_toppings
+        ]
+        menu_name = f"{menu_name} +{', +'.join(l for l in topping_labels if l)}"
 
     order_row: Dict[str, Any] = {
         "menu_id": str(payload.menu_id),

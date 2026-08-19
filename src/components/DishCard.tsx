@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Plus, Minus, Check, Star } from "lucide-react";
-import { getDishName, type Dish } from "../data/menu";
+import { getDishName, hasChoices, type Dish } from "../data/menu";
 import { TagPill } from "./TagPill";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
@@ -15,9 +15,9 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
   const rating = getDishRating(dish.id);
   const name = getDishName(dish, lang);
   const canOrder = mode === "store" || webOrderIntent === "pickup";
-  const hasVariants = !!dish.sizeVariants?.length;
-  const priceLabel = hasVariants
-    ? formatPriceRange(dish.sizeVariants!.map((v) => v.price), dish.currency)
+  const needsSheet = hasChoices(dish);
+  const priceLabel = dish.sizeVariants?.length
+    ? formatPriceRange(dish.sizeVariants.map((v) => v.price), dish.currency)
     : formatPrice(dish.price, dish.currency);
 
   if (variant === "grid") {
@@ -74,7 +74,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
         </div>
         <div className="flex items-center justify-between mt-2.5">
           <span className="text-[15px] font-bold text-[#2D5A3D]">{priceLabel}</span>
-          {canOrder && !soldOut && !added && !hasVariants && (
+          {canOrder && !soldOut && !added && !needsSheet && (
             <div className="flex items-center gap-2 bg-[#F5F1E6] rounded-full px-2 py-1">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -92,7 +92,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
             </div>
           )}
         </div>
-        {canOrder && hasVariants && !soldOut && (
+        {canOrder && needsSheet && !soldOut && (
           <button
             onClick={() => setSelectedDishId(dish.id)}
             className="w-full mt-2 flex items-center justify-center gap-1 bg-[#2D5A3D] text-white text-[12px] font-semibold py-1.5 rounded-full active:scale-95 transition-transform"
@@ -100,7 +100,7 @@ export function DishCard({ dish, variant = "chat" }: { dish: Dish; variant?: "ch
             {t("dish_choose_size")}
           </button>
         )}
-        {canOrder && !hasVariants && (
+        {canOrder && !needsSheet && (
           <button
             onClick={() => {
               addToCart(dish.id, qty);

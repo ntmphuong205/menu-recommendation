@@ -100,6 +100,15 @@ create table if not exists public.menus (
     -- entry so anything that only reads those two columns still shows a
     -- sane value; the customer app's size picker reads this list instead.
     size_variants jsonb not null default '[]'::jsonb,
+    -- A second, independent single-pick choice with no price effect (e.g.
+    -- Oolong / Black tea / Jasmine milk tea as one dish) — same
+    -- [{id,label,price,calories}] shape as size_variants, but price/calories
+    -- are only ever equal to the dish's own, never actually varied.
+    flavor_variants jsonb not null default '[]'::jsonb,
+    -- Optional add-ons a customer can pick any number of (e.g. boba,
+    -- coconut jelly) — each one's price is added on top of the drink's own
+    -- price at order time. Same [{id,label,price,calories}] shape.
+    toppings jsonb not null default '[]'::jsonb,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -393,7 +402,9 @@ alter table public.stores
     add column if not exists filter_tags jsonb not null default '[]'::jsonb;
 
 alter table public.menus
-    add column if not exists size_variants jsonb not null default '[]'::jsonb;
+    add column if not exists size_variants jsonb not null default '[]'::jsonb,
+    add column if not exists flavor_variants jsonb not null default '[]'::jsonb,
+    add column if not exists toppings jsonb not null default '[]'::jsonb;
 
 create table if not exists public.chat_messages (
     id uuid primary key default gen_random_uuid(),

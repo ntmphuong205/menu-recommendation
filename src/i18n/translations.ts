@@ -72,6 +72,9 @@ const dict = {
 
   dish_add: { vi: "Thêm", en: "Add", ko: "담기" },
   dish_choose_size: { vi: "Chọn loại", en: "Choose option", ko: "옵션 선택" },
+  dish_group_size: { vi: "Size", en: "Size", ko: "사이즈" },
+  dish_group_flavor: { vi: "Vị", en: "Flavor", ko: "맛" },
+  dish_group_toppings: { vi: "Topping", en: "Toppings", ko: "토핑" },
   dish_sold_out: { vi: "Hết hàng", en: "Sold out", ko: "품절" },
 
   // Dish sheet
@@ -609,6 +612,22 @@ const dict = {
   },
   dishform_size_label_placeholder: { vi: "vd. M hoặc Xoài", en: "e.g. M or Mango", ko: "예: M 또는 망고" },
   dishform_add_size: { vi: "Thêm lựa chọn", en: "Add option", ko: "옵션 추가" },
+  dishform_flavors_title: { vi: "Các vị (tuỳ chọn)", en: "Flavors (optional)", ko: "맛 (선택)" },
+  dishform_flavors_desc: {
+    vi: "Thêm nếu món này thực ra là nhiều món khác nhau gộp chung (vd. Oolong / Hồng trà / Nhài sữa) — khách chọn 1 vị, giá không đổi.",
+    en: "Add if this dish is really several different drinks bundled together (e.g. Oolong / Black tea / Jasmine milk tea) — customer picks one, price stays the same.",
+    ko: "이 메뉴가 실제로는 여러 다른 음료를 묶은 것이라면 추가하세요(예: 우롱차 / 홍차 / 자스민 밀크티) — 고객이 하나를 선택하며 가격은 동일합니다.",
+  },
+  dishform_add_flavor: { vi: "Thêm vị", en: "Add flavor", ko: "맛 추가" },
+  dishform_flavor_label_placeholder: { vi: "vd. Oolong", en: "e.g. Oolong", ko: "예: 우롱차" },
+  dishform_toppings_title: { vi: "Topping (tuỳ chọn)", en: "Toppings (optional)", ko: "토핑 (선택)" },
+  dishform_toppings_desc: {
+    vi: "Thêm để khách chọn thêm (chọn được nhiều topping) — mỗi topping cộng thêm giá riêng vào tổng tiền món.",
+    en: "Add these to let customers pick any number of add-ons — each one's price is added on top of the drink's price.",
+    ko: "고객이 여러 개를 선택할 수 있는 추가 옵션입니다 — 각 토핑 가격이 음료 가격에 더해집니다.",
+  },
+  dishform_add_topping: { vi: "Thêm topping", en: "Add topping", ko: "토핑 추가" },
+  dishform_topping_label_placeholder: { vi: "vd. Trân châu", en: "e.g. Boba", ko: "예: 타피오카 펄" },
   dishform_category: { vi: "Danh mục", en: "Category", ko: "카테고리" },
   dishform_description: { vi: "Mô tả", en: "Description", ko: "설명" },
   dishform_description_placeholder: { vi: "Mô tả ngắn, hấp dẫn", en: "Short, appetizing description", ko: "짧고 먹음직스러운 설명" },

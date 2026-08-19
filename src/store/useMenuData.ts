@@ -3,6 +3,20 @@ import { apiClient, type ApiMenu } from "../lib/apiClient";
 import { usePollingData } from "./usePollingData";
 import type { Dish, Pairing, SizeVariant, TagKey } from "../data/menu";
 
+function mapVariant(v: ApiMenu["sizeVariants"][number]): SizeVariant {
+  return {
+    id: v.id,
+    label: v.label,
+    labels: {
+      vi: v.labels?.vi || undefined,
+      en: v.labels?.en || undefined,
+      ko: v.labels?.ko || undefined,
+    },
+    price: Number(v.price),
+    calories: v.calories ?? undefined,
+  };
+}
+
 function fromApi(row: ApiMenu): Dish {
   return {
     id: row.id,
@@ -40,21 +54,9 @@ function fromApi(row: ApiMenu): Dish {
           })
         )
       : undefined,
-    sizeVariants: row.sizeVariants?.length
-      ? row.sizeVariants.map(
-          (v): SizeVariant => ({
-            id: v.id,
-            label: v.label,
-            labels: {
-              vi: v.labels?.vi || undefined,
-              en: v.labels?.en || undefined,
-              ko: v.labels?.ko || undefined,
-            },
-            price: Number(v.price),
-            calories: v.calories ?? undefined,
-          })
-        )
-      : undefined,
+    sizeVariants: row.sizeVariants?.length ? row.sizeVariants.map(mapVariant) : undefined,
+    flavorVariants: row.flavorVariants?.length ? row.flavorVariants.map(mapVariant) : undefined,
+    toppings: row.toppings?.length ? row.toppings.map(mapVariant) : undefined,
   };
 }
 
@@ -80,6 +82,8 @@ function toPayload(dish: Dish) {
       reason: { en: p.reason, ko: p.reasons?.ko ?? "", vi: p.reasons?.vi ?? "" },
     })),
     sizeVariants: dish.sizeVariants ?? [],
+    flavorVariants: dish.flavorVariants ?? [],
+    toppings: dish.toppings ?? [],
   };
 }
 

@@ -71,8 +71,12 @@ export interface ApiMenu {
   allergyNote: Record<string, string>;
   prepTimeMinutes: number;
   pairings: { menu_id: string; reason: Record<string, string> }[];
-  sizeVariants: { id: string; label: string; labels?: Record<string, string>; price: number; calories?: number | null }[];
+  sizeVariants: ApiVariant[];
+  flavorVariants: ApiVariant[];
+  toppings: ApiVariant[];
 }
+
+type ApiVariant = { id: string; label: string; labels?: Record<string, string>; price: number; calories?: number | null };
 
 export interface ApiTable {
   id: string; // table_code, e.g. "T1"

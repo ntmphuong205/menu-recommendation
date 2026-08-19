@@ -55,6 +55,15 @@ function toSizeVariant(row: VariantRowState): SizeVariant | null {
   return { id: slugify(label) || `v${row.id}`, label, price, calories };
 }
 
+// Flavor options never carry their own price (see Dish.flavorVariants) —
+// they always mirror whatever the dish's own price resolves to.
+function toFlavorVariant(row: VariantRowState, dishPrice: number): SizeVariant | null {
+  const label = row.label.trim();
+  if (!label) return null;
+  const calories = row.calories.trim() ? parseInt(row.calories, 10) : undefined;
+  return { id: slugify(label) || `v${row.id}`, label, price: dishPrice, calories };
+}
+
 function toLineState(line: IngredientLine): LineState {
   return {
     id: lineIdCounter++,
@@ -111,6 +120,8 @@ export function DishFormModal({
   const [allergyNote, setAllergyNote] = useState(initial?.allergyNote ?? "");
   const [tags, setTags] = useState<Set<TagKey>>(new Set(initial?.tags ?? []));
   const [variantRows, setVariantRows] = useState<VariantRowState[]>(initial?.sizeVariants?.map(toVariantRowState) ?? []);
+  const [flavorRows, setFlavorRows] = useState<VariantRowState[]>(initial?.flavorVariants?.map(toVariantRowState) ?? []);
+  const [toppingRows, setToppingRows] = useState<VariantRowState[]>(initial?.toppings?.map(toVariantRowState) ?? []);
 
   const handlePhotoUpload = (file: File | undefined) => {
     if (!file) return;
@@ -148,7 +159,26 @@ export function DishFormModal({
   const updateVariantRow = (id: number, patch: Partial<VariantRowState>) =>
     setVariantRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
 
+  const addFlavorRow = () =>
+    setFlavorRows((prev) => [...prev, { id: variantIdCounter++, label: "", price: "", calories: "" }]);
+  const removeFlavorRow = (id: number) => setFlavorRows((prev) => prev.filter((r) => r.id !== id));
+  const updateFlavorRow = (id: number, patch: Partial<VariantRowState>) =>
+    setFlavorRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+
+  const addToppingRow = () =>
+    setToppingRows((prev) => [...prev, { id: variantIdCounter++, label: "", price: "", calories: "" }]);
+  const removeToppingRow = (id: number) => setToppingRows((prev) => prev.filter((r) => r.id !== id));
+  const updateToppingRow = (id: number, patch: Partial<VariantRowState>) =>
+    setToppingRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+
   const sizeVariants: SizeVariant[] = variantRows
+    .map(toSizeVariant)
+    .filter((v): v is SizeVariant => v !== null);
+  const dishPrice = sizeVariants.length > 0 ? sizeVariants[0].price : parseFloat(price) || 0;
+  const flavorVariants: SizeVariant[] = flavorRows
+    .map((row) => toFlavorVariant(row, dishPrice))
+    .filter((v): v is SizeVariant => v !== null);
+  const toppings: SizeVariant[] = toppingRows
     .map(toSizeVariant)
     .filter((v): v is SizeVariant => v !== null);
 
@@ -180,6 +210,8 @@ export function DishFormModal({
       prepTimeMinutes: prepTime.trim() ? parseInt(prepTime, 10) : undefined,
       pairings: initial?.pairings,
       sizeVariants: sizeVariants.length > 0 ? sizeVariants : undefined,
+      flavorVariants: flavorVariants.length > 0 ? flavorVariants : undefined,
+      toppings: toppings.length > 0 ? toppings : undefined,
     };
     onSave(dish);
   };
@@ -228,52 +260,39 @@ export function DishFormModal({
             </Field>
           </div>
 
-          <div>
-            <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{t("dishform_sizes_title")}</p>
-            <p className="text-[11px] text-[#8A8272] mb-2">{t("dishform_sizes_desc")}</p>
-            <div className="flex flex-col gap-2">
-              {variantRows.map((row) => (
-                <div key={row.id} className="bg-[#FBF7EF] rounded-lg p-2 flex items-center gap-2">
-                  <input
-                    value={row.label}
-                    onChange={(e) => updateVariantRow(row.id, { label: e.target.value })}
-                    className={`${fieldCls} bg-white flex-1 min-w-0`}
-                    placeholder={t("dishform_size_label_placeholder")}
-                  />
-                  <input
-                    value={row.price}
-                    onChange={(e) => updateVariantRow(row.id, { price: e.target.value })}
-                    type="number"
-                    step="0.01"
-                    className={`${fieldCls} bg-white w-24 shrink-0`}
-                    placeholder="8.00"
-                  />
-                  <input
-                    value={row.calories}
-                    onChange={(e) => updateVariantRow(row.id, { calories: e.target.value })}
-                    type="number"
-                    className={`${fieldCls} bg-white w-20 shrink-0`}
-                    placeholder="kcal"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeVariantRow(row.id)}
-                    className="w-7 h-7 rounded-full bg-[#F7E9E2] text-[#B0553C] flex items-center justify-center shrink-0"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={addVariantRow}
-                className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-3 py-1.5 rounded-full self-start"
-              >
-                <Plus size={13} />
-                {t("dishform_add_size")}
-              </button>
-            </div>
-          </div>
+          <VariantGroupEditor
+            rows={variantRows}
+            onAdd={addVariantRow}
+            onRemove={removeVariantRow}
+            onUpdate={updateVariantRow}
+            title={t("dishform_sizes_title")}
+            desc={t("dishform_sizes_desc")}
+            addLabel={t("dishform_add_size")}
+            labelPlaceholder={t("dishform_size_label_placeholder")}
+          />
+
+          <VariantGroupEditor
+            rows={flavorRows}
+            onAdd={addFlavorRow}
+            onRemove={removeFlavorRow}
+            onUpdate={updateFlavorRow}
+            title={t("dishform_flavors_title")}
+            desc={t("dishform_flavors_desc")}
+            addLabel={t("dishform_add_flavor")}
+            labelPlaceholder={t("dishform_flavor_label_placeholder")}
+            showPrice={false}
+          />
+
+          <VariantGroupEditor
+            rows={toppingRows}
+            onAdd={addToppingRow}
+            onRemove={removeToppingRow}
+            onUpdate={updateToppingRow}
+            title={t("dishform_toppings_title")}
+            desc={t("dishform_toppings_desc")}
+            addLabel={t("dishform_add_topping")}
+            labelPlaceholder={t("dishform_topping_label_placeholder")}
+          />
 
           <Field label={t("dishform_description")}>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={`${inputCls} h-16 resize-none`} placeholder={t("dishform_description_placeholder")} />
@@ -446,6 +465,79 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{label}</p>
       {children}
     </label>
+  );
+}
+
+function VariantGroupEditor({
+  rows,
+  onAdd,
+  onRemove,
+  onUpdate,
+  title,
+  desc,
+  addLabel,
+  labelPlaceholder,
+  showPrice = true,
+}: {
+  rows: VariantRowState[];
+  onAdd: () => void;
+  onRemove: (id: number) => void;
+  onUpdate: (id: number, patch: Partial<VariantRowState>) => void;
+  title: string;
+  desc: string;
+  addLabel: string;
+  labelPlaceholder: string;
+  showPrice?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[12px] font-semibold text-[#5C5240] mb-1">{title}</p>
+      <p className="text-[11px] text-[#8A8272] mb-2">{desc}</p>
+      <div className="flex flex-col gap-2">
+        {rows.map((row) => (
+          <div key={row.id} className="bg-[#FBF7EF] rounded-lg p-2 flex items-center gap-2">
+            <input
+              value={row.label}
+              onChange={(e) => onUpdate(row.id, { label: e.target.value })}
+              className={`${fieldCls} bg-white flex-1 min-w-0`}
+              placeholder={labelPlaceholder}
+            />
+            {showPrice && (
+              <input
+                value={row.price}
+                onChange={(e) => onUpdate(row.id, { price: e.target.value })}
+                type="number"
+                step="0.01"
+                className={`${fieldCls} bg-white w-24 shrink-0`}
+                placeholder="8.00"
+              />
+            )}
+            <input
+              value={row.calories}
+              onChange={(e) => onUpdate(row.id, { calories: e.target.value })}
+              type="number"
+              className={`${fieldCls} bg-white w-20 shrink-0`}
+              placeholder="kcal"
+            />
+            <button
+              type="button"
+              onClick={() => onRemove(row.id)}
+              className="w-7 h-7 rounded-full bg-[#F7E9E2] text-[#B0553C] flex items-center justify-center shrink-0"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={onAdd}
+          className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2D5A3D] bg-[#E5F3EA] px-3 py-1.5 rounded-full self-start"
+        >
+          <Plus size={13} />
+          {addLabel}
+        </button>
+      </div>
+    </div>
   );
 }
 

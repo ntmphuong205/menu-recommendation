@@ -90,8 +90,15 @@ export interface Dish {
   pairings?: Pairing[];
   /** Size choices sharing this one dish (e.g. M/L) — when set, `price`/
    *  `calories` above mirror the first variant as a fallback for any code
-   *  that doesn't know about variants. */
+   *  that doesn't know about variants. Picking one replaces the price. */
   sizeVariants?: SizeVariant[];
+  /** A second, independent single-pick choice (e.g. Oolong / Black tea /
+   *  Jasmine milk tea as one dish) — no price effect, purely which one the
+   *  kitchen makes. */
+  flavorVariants?: SizeVariant[];
+  /** Optional add-ons a customer can pick any number of (e.g. boba, coconut
+   *  jelly) — each one's price is added on top at order time. */
+  toppings?: SizeVariant[];
 }
 
 // Real menu ids from db/seed.sql (Phở Bò, Cơm Tấm Sườn, Bánh Mì Thịt Nướng) —
@@ -130,4 +137,49 @@ export function getVariantPrice(dish: Dish, variantId?: string): number {
 
 export function getVariantLabel(variant: SizeVariant, lang: "vi" | "en" | "ko"): string {
   return variant.labels?.[lang] ?? variant.label;
+}
+
+export function getFlavor(dish: Dish, flavorId?: string): SizeVariant | undefined {
+  return flavorId ? dish.flavorVariants?.find((v) => v.id === flavorId) : undefined;
+}
+
+export function getSelectedToppings(dish: Dish, toppingIds?: string[]): SizeVariant[] {
+  if (!toppingIds?.length || !dish.toppings?.length) return [];
+  return dish.toppings.filter((t) => toppingIds.includes(t.id));
+}
+
+export function getToppingsPrice(dish: Dish, toppingIds?: string[]): number {
+  return getSelectedToppings(dish, toppingIds).reduce((sum, t) => sum + t.price, 0);
+}
+
+/** The actual per-unit price for a cart line: the picked size (or base
+ *  price) plus every picked topping's price. Flavor never affects price. */
+export function getUnitPrice(dish: Dish, variantId?: string, toppingIds?: string[]): number {
+  return getVariantPrice(dish, variantId) + getToppingsPrice(dish, toppingIds);
+}
+
+/** Whether this dish needs the detail sheet to configure at all (a size,
+ *  a flavor, or optional toppings) — quick-add controls elsewhere have
+ *  nowhere to offer these, so they route to the sheet instead. */
+export function hasChoices(dish: Dish): boolean {
+  return !!(dish.sizeVariants?.length || dish.flavorVariants?.length || dish.toppings?.length);
+}
+
+/** " (L) - Oolong +Boba, +Coconut jelly" — a cart line's picked size/
+ *  flavor/toppings, formatted for display next to the dish name. Empty
+ *  string when nothing was picked. */
+export function formatChoices(
+  dish: Dish,
+  variantId: string | undefined,
+  flavorId: string | undefined,
+  toppingIds: string[] | undefined,
+  lang: "vi" | "en" | "ko"
+): string {
+  const variant = getVariant(dish, variantId);
+  const flavor = getFlavor(dish, flavorId);
+  const toppings = getSelectedToppings(dish, toppingIds);
+  let text = variant ? ` (${getVariantLabel(variant, lang)})` : "";
+  if (flavor) text += ` - ${getVariantLabel(flavor, lang)}`;
+  if (toppings.length) text += ` +${toppings.map((t) => getVariantLabel(t, lang)).join(", +")}`;
+  return text;
 }
