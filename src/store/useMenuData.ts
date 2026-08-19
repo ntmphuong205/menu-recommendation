@@ -27,6 +27,7 @@ function fromApi(row: ApiMenu): Dish {
       : undefined,
     ingredients: (row.ingredientLines ?? []).map((l) => l.name),
     allergyNote: row.allergyNote.en || row.allergyNote.ko || row.allergyNote.vi || "",
+    allergyNotes: { vi: row.allergyNote.vi || undefined, en: row.allergyNote.en || undefined, ko: row.allergyNote.ko || undefined },
     category: (row.category || "Main") as Dish["category"],
     soldOut: row.isSoldOut,
     prepTimeMinutes: row.prepTimeMinutes,

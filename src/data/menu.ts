@@ -77,6 +77,7 @@ export interface Dish {
   ingredientLines?: IngredientLine[];
   ingredients: string[];
   allergyNote: string;
+  allergyNotes?: Partial<Record<"vi" | "en" | "ko", string>>;
   /** Free-text grouping label — each store keeps its own list in
    *  stores.menu_categories. "Main"/"Starter"/"Beverage"/"Side" are the
    *  legacy defaults and stay translated in MenuScreen's CATEGORY_KEY;
@@ -108,6 +109,10 @@ export function getDishName(dish: Dish, lang: "vi" | "en" | "ko"): string {
 
 export function getDishDescription(dish: Dish, lang: "vi" | "en" | "ko"): string {
   return dish.descriptions?.[lang] ?? dish.description;
+}
+
+export function getDishAllergyNote(dish: Dish, lang: "vi" | "en" | "ko"): string {
+  return dish.allergyNotes?.[lang] ?? dish.allergyNote;
 }
 
 export function getPairingReason(pairing: Pairing, lang: "vi" | "en" | "ko"): string {

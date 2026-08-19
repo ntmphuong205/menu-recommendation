@@ -4,7 +4,7 @@ import { TagPill } from "./TagPill";
 import { ReviewSection } from "./ReviewSection";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
-import { getDishName, getDishDescription, getPairingReason, getVariantLabel } from "../data/menu";
+import { getDishName, getDishDescription, getDishAllergyNote, getPairingReason, getVariantLabel } from "../data/menu";
 import type { SizeVariant } from "../data/menu";
 import { OrderModeNotice } from "./OrderModeNotice";
 import { formatPrice } from "../lib/currency";
@@ -73,6 +73,10 @@ export function DishSheet() {
     : undefined;
   const unitPrice = selectedVariant?.price ?? dish.price;
   const displayCalories = selectedVariant?.calories ?? dish.calories;
+  // Only ever estimated together from ingredientLines — showing "0g" when
+  // none of these were ever estimated would claim a fat-free/carb-free
+  // drink instead of "we don't know".
+  const hasMacros = dish.protein !== undefined || dish.carbs !== undefined || dish.fat !== undefined;
   // Flavor-only options (e.g. Mango/Strawberry) share one price — showing
   // it under every pill is just noise there. Size options (M/L) do differ,
   // so keep the per-pill price for those.
@@ -149,24 +153,30 @@ export function DishSheet() {
 
           {displayCalories !== undefined && (
             <div className="mt-3 bg-[#F3E9D2] rounded-xl px-3 py-2.5">
-              <div className="flex items-center gap-1.5 text-[12.5px] text-[#8A6B3F] font-semibold mb-2">
+              <div
+                className={`flex items-center gap-1.5 text-[12.5px] text-[#8A6B3F] font-semibold ${
+                  hasMacros ? "mb-2" : ""
+                }`}
+              >
                 <Flame size={14} />
                 {displayCalories} kcal
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <p className="text-[13px] font-bold text-[#22201B]">{dish.protein ?? 0}g</p>
-                  <p className="text-[10px] text-[#8A6B3F]">{t("nutrition_protein")}</p>
+              {hasMacros && (
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-[13px] font-bold text-[#22201B]">{dish.protein ?? 0}g</p>
+                    <p className="text-[10px] text-[#8A6B3F]">{t("nutrition_protein")}</p>
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-[#22201B]">{dish.carbs ?? 0}g</p>
+                    <p className="text-[10px] text-[#8A6B3F]">{t("nutrition_carbs")}</p>
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-bold text-[#22201B]">{dish.fat ?? 0}g</p>
+                    <p className="text-[10px] text-[#8A6B3F]">{t("nutrition_fat")}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[13px] font-bold text-[#22201B]">{dish.carbs ?? 0}g</p>
-                  <p className="text-[10px] text-[#8A6B3F]">{t("nutrition_carbs")}</p>
-                </div>
-                <div>
-                  <p className="text-[13px] font-bold text-[#22201B]">{dish.fat ?? 0}g</p>
-                  <p className="text-[10px] text-[#8A6B3F]">{t("nutrition_fat")}</p>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -184,7 +194,7 @@ export function DishSheet() {
 
           <div className="flex items-start gap-1.5 mt-3 text-[12px] text-[#8A5A3F] bg-[#F7E9E2] px-3 py-2 rounded-xl">
             <TriangleAlert size={14} className="mt-0.5 shrink-0" />
-            <span>{dish.allergyNote}</span>
+            <span>{getDishAllergyNote(dish, lang)}</span>
           </div>
 
           {dish.pairings && dish.pairings.length > 0 && (

@@ -1,5 +1,5 @@
 import type { Dish, TagKey } from "../data/menu";
-import { getDishDescription } from "../data/menu";
+import { getDishDescription, getDishAllergyNote } from "../data/menu";
 import { RESTAURANT, FAQ, getHoursLabel, getFaqText } from "../data/restaurant";
 import { t as translate, type Lang } from "../i18n/translations";
 
@@ -267,7 +267,7 @@ export function respond(input: string, state: ConversationState, menu: Dish[], l
           tr("bot_allergy", {
             dish: namedDish.name,
             ingredients: namedDish.ingredients.join(", "),
-            allergyNote: namedDish.allergyNote,
+            allergyNote: getDishAllergyNote(namedDish, lang),
           }),
           [namedDish]
         ),
