@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { X, Upload, Plus, Trash2 } from "lucide-react";
-import { TAGS, type Dish, type SizeVariant, type TagKey } from "../data/menu";
+import { TAGS, getDishName, getDishDescription, getDishAllergyNote, type Dish, type SizeVariant, type TagKey } from "../data/menu";
 import { INGREDIENT_NAMES, findIngredientByName, computeNutrition, type IngredientLine } from "../data/ingredients";
 import { useI18n } from "../i18n/I18nContext";
+import { LANGUAGES } from "../i18n/translations";
 
 const LEGACY_CATEGORIES = ["Main", "Starter", "Beverage", "Side"];
 const ALL_TAGS = Object.keys(TAGS) as TagKey[];
@@ -108,16 +109,21 @@ export function DishFormModal({
   onClose: () => void;
   onSave: (dish: Dish) => void;
 }) {
-  const { t } = useI18n();
-  const [name, setName] = useState(initial?.name ?? "");
+  const { t, lang } = useI18n();
+  const currentLangLabel = LANGUAGES.find((l) => l.code === lang)?.label ?? lang;
+  // Name/description/allergy note are stored per-language (Dish.names etc.)
+  // — edit and save in whichever language the admin dashboard is currently
+  // showing, not always the English fallback, and merge back onto the
+  // other two languages' existing text on save instead of overwriting it.
+  const [name, setName] = useState(initial ? getDishName(initial, lang) : "");
   const [price, setPrice] = useState(initial?.price?.toString() ?? "");
   const [category, setCategory] = useState(initial?.category ?? "Main");
   const categoryOptions = Array.from(new Set([...menuCategories, ...LEGACY_CATEGORIES]));
-  const [description, setDescription] = useState(initial?.description ?? "");
+  const [description, setDescription] = useState(initial ? getDishDescription(initial, lang) : "");
   const [image, setImage] = useState(initial?.image ?? "");
   const [prepTime, setPrepTime] = useState(initial?.prepTimeMinutes?.toString() ?? "");
   const [lines, setLines] = useState<LineState[]>(initial?.ingredientLines?.map(toLineState) ?? []);
-  const [allergyNote, setAllergyNote] = useState(initial?.allergyNote ?? "");
+  const [allergyNote, setAllergyNote] = useState(initial ? getDishAllergyNote(initial, lang) : "");
   const [tags, setTags] = useState<Set<TagKey>>(new Set(initial?.tags ?? []));
   const [variantRows, setVariantRows] = useState<VariantRowState[]>(initial?.sizeVariants?.map(toVariantRowState) ?? []);
   const [flavorRows, setFlavorRows] = useState<VariantRowState[]>(initial?.flavorVariants?.map(toVariantRowState) ?? []);
@@ -186,12 +192,26 @@ export function DishFormModal({
 
   const handleSave = () => {
     if (!canSave) return;
+    const trimmedName = name.trim();
+    const trimmedDescription = description.trim();
+    const trimmedAllergyNote = allergyNote.trim();
+    // Merge the edited language onto whatever the other two already had —
+    // never let editing the Vietnamese view blank out the English/Korean
+    // text (or vice versa). The flat name/description/allergyNote fields
+    // are the English fallback by convention; only actually replace them
+    // when English is the language being edited (or there's no prior
+    // English value yet, i.e. a brand-new dish).
+    const names = { ...initial?.names, [lang]: trimmedName };
+    const descriptions = { ...initial?.descriptions, [lang]: trimmedDescription };
+    const allergyNotes = { ...initial?.allergyNotes, [lang]: trimmedAllergyNote };
     const dish: Dish = {
       id: initial?.id ?? (slugify(name) || `dish-${Date.now()}`),
-      name: name.trim(),
+      name: lang === "en" || !initial?.name ? trimmedName : initial.name,
+      names,
       price: sizeVariants.length > 0 ? sizeVariants[0].price : parseFloat(price) || 0,
       currency: initial?.currency ?? "USD",
-      description: description.trim(),
+      description: lang === "en" || !initial?.description ? trimmedDescription : initial.description,
+      descriptions,
       image: image.trim() || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80",
       tags: Array.from(tags),
       ingredientLines: ingredientLines.length > 0 ? ingredientLines : undefined,
@@ -205,7 +225,8 @@ export function DishFormModal({
       carbs: ingredientLines.length > 0 ? Math.round(nutrition.carbs) : undefined,
       fat: ingredientLines.length > 0 ? Math.round(nutrition.fat) : undefined,
       ingredients: ingredientLines.map((l) => l.name),
-      allergyNote: allergyNote.trim(),
+      allergyNote: lang === "en" || !initial?.allergyNote ? trimmedAllergyNote : initial.allergyNote,
+      allergyNotes,
       category,
       prepTimeMinutes: prepTime.trim() ? parseInt(prepTime, 10) : undefined,
       pairings: initial?.pairings,
@@ -227,7 +248,7 @@ export function DishFormModal({
         </div>
 
         <div className="p-5 flex flex-col gap-3.5">
-          <Field label={t("dishform_name")}>
+          <Field label={`${t("dishform_name")} (${currentLangLabel})`}>
             <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder={t("dishform_name_placeholder")} />
           </Field>
 
@@ -294,7 +315,7 @@ export function DishFormModal({
             labelPlaceholder={t("dishform_topping_label_placeholder")}
           />
 
-          <Field label={t("dishform_description")}>
+          <Field label={`${t("dishform_description")} (${currentLangLabel})`}>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={`${inputCls} h-16 resize-none`} placeholder={t("dishform_description_placeholder")} />
           </Field>
 
@@ -410,7 +431,7 @@ export function DishFormModal({
             )}
           </div>
 
-          <Field label={t("dishform_allergy_note")}>
+          <Field label={`${t("dishform_allergy_note")} (${currentLangLabel})`}>
             <input value={allergyNote} onChange={(e) => setAllergyNote(e.target.value)} className={inputCls} placeholder={t("dishform_allergy_placeholder")} />
           </Field>
 
