@@ -17,16 +17,22 @@ export function useChatThreads(): ChatThreadsData {
   const threads = usePollingData(fetcher) ?? [];
   const [sending, setSending] = useState(false);
 
-  const loadThread = (customerSessionId: string) => apiClient.getChatMessages(customerSessionId);
+  // Stable identity across renders — StaffChatView's polling effect depends
+  // on loadThread, and AppContext re-renders every consumer on every one of
+  // its several unrelated 5s pollers (orders, tables, reviews, ...). An
+  // unstable function here made that effect tear down and restart before
+  // most in-flight requests could resolve, so `cancelled` was almost always
+  // true by the time a response came back — messages just never appeared.
+  const loadThread = useCallback((customerSessionId: string) => apiClient.getChatMessages(customerSessionId), []);
 
-  const reply = async (customerSessionId: string, message: string) => {
+  const reply = useCallback(async (customerSessionId: string, message: string) => {
     setSending(true);
     try {
       await apiClient.replyToChatThread(customerSessionId, message);
     } finally {
       setSending(false);
     }
-  };
+  }, []);
 
   return { threads, loadThread, reply, sending };
 }
