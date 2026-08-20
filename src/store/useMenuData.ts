@@ -94,9 +94,14 @@ export interface MenuData {
   deleteDish: (id: string) => void;
 }
 
+// The menu payload carries every dish's embedded photo (megabytes), and
+// dishes rarely change — polling it as often as live order/table data would
+// multiply Vercel's origin-transfer bill for no real freshness benefit.
+const MENU_POLL_MS = 20000;
+
 export function useMenuData(): MenuData {
   const fetcher = useCallback(() => apiClient.getMenus(), []);
-  const rows = usePollingData(fetcher);
+  const rows = usePollingData(fetcher, MENU_POLL_MS);
   const menu = (rows ?? []).map(fromApi);
 
   const addDish = (dish: Dish) => {
