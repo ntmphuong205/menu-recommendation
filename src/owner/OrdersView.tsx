@@ -8,7 +8,7 @@ import { RESERVATIONS_ENABLED } from "../data/featureFlags";
 import { formatPrice } from "../lib/currency";
 import { StoreStatusToggle } from "./StoreStatusToggle";
 
-const STATUS_STYLE: Record<OrderStatus, string> = {
+export const STATUS_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
   new: "bg-[#FDECC8] text-[#8A6B1F]",
   preparing: "bg-[#DCEBFB] text-[#2A5C8A]",
@@ -22,7 +22,7 @@ const ITEM_STATUS_STEPS: OrderStatus[] = ["new", "preparing", "served"];
 
 /** "Table T3" for dine-in, "Pickup #A1B2C3 · 19:30" for remote pre-orders —
  *  pickup orders aren't tied to a physical table at all. */
-function orderLabel(order: Order, t: (key: TranslationKey, vars?: Record<string, string | number>) => string): string {
+export function orderLabel(order: Order, t: (key: TranslationKey, vars?: Record<string, string | number>) => string): string {
   if (order.fulfillmentType === "pickup") {
     const badge = t("orders_pickup_badge", { code: order.pickupCode ?? "" });
     return order.pickupTime ? `${badge} · ${order.pickupTime}` : badge;

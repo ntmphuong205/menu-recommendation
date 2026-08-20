@@ -359,6 +359,7 @@ const dict = {
   // Owner dashboard
   owner_dashboard: { vi: "Trang quản lý", en: "Owner Dashboard", ko: "사장님 대시보드" },
   owner_nav_orders: { vi: "Đơn hàng", en: "Orders", ko: "주문" },
+  owner_nav_history: { vi: "Lịch sử đơn hàng", en: "Order History", ko: "주문 내역" },
   owner_nav_chat: { vi: "Tin nhắn", en: "Messages", ko: "메시지" },
   owner_nav_menu: { vi: "Quản lý thực đơn", en: "Menu Management", ko: "메뉴 관리" },
   owner_nav_analytics: { vi: "Thống kê", en: "Analytics", ko: "분석" },
@@ -420,6 +421,29 @@ const dict = {
   orders_time_just_now: { vi: "vừa xong", en: "just now", ko: "방금 전" },
   orders_time_min_ago: { vi: "{n} phút trước", en: "{n} min ago", ko: "{n}분 전" },
   orders_time_hr_ago: { vi: "{n} giờ trước", en: "{n} hr ago", ko: "{n}시간 전" },
+
+  // Order history (admin)
+  history_title: { vi: "Lịch sử đơn hàng", en: "Order History", ko: "주문 내역" },
+  history_subtitle: {
+    vi: "Toàn bộ đơn hàng đã đặt tại quán, kể cả đã phục vụ hoặc đã huỷ.",
+    en: "Every order ever placed here, including served and cancelled ones.",
+    ko: "서빙 완료 및 취소된 주문을 포함한 모든 주문 내역입니다.",
+  },
+  history_search_placeholder: { vi: "Tìm theo bàn, mã đơn, hoặc tên món...", en: "Search by table, order code, or dish name...", ko: "테이블, 주문 코드 또는 메뉴명으로 검색..." },
+  history_filter_status_all: { vi: "Tất cả trạng thái", en: "All statuses", ko: "모든 상태" },
+  history_filter_fulfillment_all: { vi: "Tại quán & mang về", en: "Dine-in & pickup", ko: "매장 및 포장" },
+  history_filter_fulfillment_dine_in: { vi: "Tại quán", en: "Dine-in", ko: "매장" },
+  history_filter_fulfillment_pickup: { vi: "Mang về", en: "Pickup", ko: "포장" },
+  history_date_from: { vi: "Từ ngày", en: "From date", ko: "시작일" },
+  history_date_to: { vi: "Đến ngày", en: "To date", ko: "종료일" },
+  history_column_time: { vi: "Thời gian", en: "Time", ko: "시간" },
+  history_column_order: { vi: "Đơn / Bàn", en: "Order / Table", ko: "주문/테이블" },
+  history_column_items: { vi: "Món đã đặt", en: "Items", ko: "주문 항목" },
+  history_column_status: { vi: "Trạng thái", en: "Status", ko: "상태" },
+  history_column_total: { vi: "Tổng tiền", en: "Total", ko: "총액" },
+  history_order_code: { vi: "Mã đơn", en: "Order", ko: "주문번호" },
+  history_no_results: { vi: "Không tìm thấy đơn hàng phù hợp.", en: "No orders match your filters.", ko: "조건에 맞는 주문이 없습니다." },
+  history_count_label: { vi: "{count} đơn", en: "{count} order(s)", ko: "주문 {count}건" },
 
   // Menu management (admin)
   menu_mgmt_subtitle: {
