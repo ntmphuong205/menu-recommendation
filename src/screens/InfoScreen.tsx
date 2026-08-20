@@ -5,6 +5,7 @@ import { BEST_SELLERS } from "../data/menu";
 import { DishCard } from "../components/DishCard";
 import { CallStaffModal } from "../components/CallStaffModal";
 import { LangSwitcher } from "../components/LangSwitcher";
+import { HomeButton } from "../components/HomeButton";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 
@@ -30,7 +31,8 @@ export function InfoScreen() {
           style={store?.cover_image ? { backgroundImage: `url(${store.cover_image})` } : undefined}
         >
           {store?.cover_image && <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/10" />}
-          <div className="absolute top-4 right-4">
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            <HomeButton dark />
             <LangSwitcher dark />
           </div>
           <div className="relative">

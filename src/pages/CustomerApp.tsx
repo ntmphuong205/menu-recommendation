@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { PhoneFrame } from "../components/PhoneFrame";
 import { TabBar } from "../components/TabBar";
@@ -29,8 +28,7 @@ function Screens() {
 }
 
 export function CustomerApp() {
-  const { mode, webOrderIntent, setWebOrderIntent, setActiveTab } = useApp();
-  const [showWelcome, setShowWelcome] = useState(true);
+  const { mode, webOrderIntent, setWebOrderIntent, setActiveTab, showWelcome, dismissWelcome } = useApp();
 
   const handleChoice = (choice: "dine_in" | "pickup") => {
     if (choice === "pickup") setActiveTab("menu");
@@ -43,7 +41,7 @@ export function CustomerApp() {
         <Screens />
         <TabBar />
         {!showWelcome && mode === "web" && webOrderIntent === null && <DiningChoiceScreen onChoose={handleChoice} />}
-        {showWelcome && <WelcomeScreen onStart={() => setShowWelcome(false)} />}
+        {showWelcome && <WelcomeScreen onStart={dismissWelcome} />}
       </div>
     </PhoneFrame>
   );

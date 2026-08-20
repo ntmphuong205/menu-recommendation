@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Ban, RotateCcw } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Plus, Pencil, Trash2, Ban, RotateCcw, Search } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { TagPill } from "../components/TagPill";
 import { DishFormModal } from "./DishFormModal";
@@ -13,6 +13,16 @@ export function MenuManagementView() {
   const [editing, setEditing] = useState<Dish | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
+
+  const filteredMenu = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return menu;
+    return menu.filter((d) => {
+      const names = [d.name, d.names?.vi, d.names?.en, d.names?.ko].filter(Boolean) as string[];
+      return names.some((n) => n.toLowerCase().includes(q)) || d.category.toLowerCase().includes(q);
+    });
+  }, [menu, query]);
 
   const toggleSelected = (id: string) => {
     setSelected((prev) => {
@@ -24,7 +34,9 @@ export function MenuManagementView() {
   };
 
   const toggleSelectAll = () => {
-    setSelected((prev) => (prev.size === menu.length ? new Set() : new Set(menu.map((d) => d.id))));
+    setSelected((prev) =>
+      prev.size === filteredMenu.length && filteredMenu.length > 0 ? new Set() : new Set(filteredMenu.map((d) => d.id))
+    );
   };
 
   const handleDeleteSelected = () => {
@@ -62,7 +74,20 @@ export function MenuManagementView() {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 bg-white rounded-full px-3.5 py-2 border border-black/10 mb-4 max-w-sm">
+        <Search size={15} className="text-[#B0A794]" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("menu_mgmt_search_placeholder")}
+          className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-[#B0A794] text-[#22201B]"
+        />
+      </div>
+
       <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
+        {filteredMenu.length === 0 ? (
+          <p className="text-center text-[13px] text-[#B0A794] py-10">{t("menu_mgmt_search_no_results")}</p>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
             <thead className="bg-[#F5F1E6] text-[#8A8272] text-left">
@@ -70,7 +95,7 @@ export function MenuManagementView() {
                 <th className="px-4 py-3 w-8">
                   <input
                     type="checkbox"
-                    checked={selected.size === menu.length && menu.length > 0}
+                    checked={selected.size === filteredMenu.length && filteredMenu.length > 0}
                     onChange={toggleSelectAll}
                     className="w-4 h-4 accent-[#2D5A3D]"
                   />
@@ -84,7 +109,7 @@ export function MenuManagementView() {
               </tr>
             </thead>
             <tbody>
-              {menu.map((dish) => (
+              {filteredMenu.map((dish) => (
                 <tr key={dish.id} className={`border-t border-black/5 ${dish.soldOut ? "opacity-50" : ""}`}>
                   <td className="px-4 py-3 align-top">
                     <input
@@ -138,6 +163,7 @@ export function MenuManagementView() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
       {showAdd && (

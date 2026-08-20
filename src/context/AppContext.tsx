@@ -112,6 +112,12 @@ interface AppContextValue {
   /** Sends the customer back to DiningChoiceScreen — e.g. they picked
    *  "dine_in" by mistake and actually want the pickup/pre-pay flow. */
   resetWebOrderIntent: () => void;
+  /** Whether the full-screen welcome greeting is showing. Starts true;
+   *  dismissed once by WelcomeScreen's own CTA, or re-shown any time via
+   *  returnHome() (e.g. a "back to home" button on the ordering screens). */
+  showWelcome: boolean;
+  dismissWelcome: () => void;
+  returnHome: () => void;
 }
 
 export type TabKey = "chat" | "staff_chat" | "menu" | "cart" | "info" | "reserve";
@@ -198,6 +204,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(webOrderIntentStorageKey());
     setWebOrderIntentState(null);
   };
+
+  const [showWelcome, setShowWelcome] = useState(true);
+  const dismissWelcome = () => setShowWelcome(false);
+  const returnHome = () => setShowWelcome(true);
 
   const findDish = (id: string) => menu.find((d) => d.id === id);
 
@@ -326,6 +336,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         webOrderIntent,
         setWebOrderIntent,
         resetWebOrderIntent,
+        showWelcome,
+        dismissWelcome,
+        returnHome,
       }}
     >
       {children}

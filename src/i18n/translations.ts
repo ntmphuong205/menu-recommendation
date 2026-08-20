@@ -16,6 +16,7 @@ const dict = {
   tab_cart: { vi: "Giỏ hàng", en: "Cart", ko: "장바구니" },
   tab_info: { vi: "Thông tin", en: "Info", ko: "정보" },
   tab_reserve: { vi: "Đặt bàn", en: "Reserve", ko: "예약" },
+  nav_back_home: { vi: "Về trang chủ", en: "Back to home", ko: "홈으로 돌아가기" },
 
   // Welcome screen (shown once when the customer app first loads)
   welcome_greeting: {
@@ -427,6 +428,8 @@ const dict = {
     ko: "여기서의 변경 사항은 Menu AI의 추천을 포함해 고객 앱에 즉시 반영됩니다.",
   },
   menu_mgmt_add_dish: { vi: "Thêm món", en: "Add Dish", ko: "메뉴 추가" },
+  menu_mgmt_search_placeholder: { vi: "Tìm món theo tên hoặc danh mục...", en: "Search by name or category...", ko: "이름 또는 카테고리로 검색..." },
+  menu_mgmt_search_no_results: { vi: "Không tìm thấy món phù hợp.", en: "No matching dishes found.", ko: "일치하는 메뉴가 없습니다." },
   menu_mgmt_delete_confirm: {
     vi: "Xoá {count} món khỏi thực đơn?",
     en: "Remove {count} dish(es) from the menu?",

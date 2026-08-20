@@ -4,6 +4,7 @@ import { useApp } from "../context/AppContext";
 import type { QueueInfo } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
+import { HomeButton } from "../components/HomeButton";
 import { ACTIVE_STATUSES, ORDER_STATUS_LABEL_KEY, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { getDishName, getPairingReason, getUnitPrice, formatChoices, hasChoices, type Dish } from "../data/menu";
 import { getCustomerSessionId } from "../lib/apiClient";
@@ -516,7 +517,10 @@ export function CartScreen() {
       <div className="flex flex-col h-full">
         <div className="shrink-0 px-4 pt-2 pb-3 border-b border-black/5 bg-[#FBF7EF] flex items-center justify-between">
           <h1 className="text-[19px] font-bold text-[#22201B]">{t("cart_title")}</h1>
-          <LangSwitcher />
+          <div className="flex items-center gap-2">
+            <HomeButton />
+            <LangSwitcher />
+          </div>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
           <div className="flex flex-col items-center justify-center px-8 py-10 text-center gap-3">
@@ -560,7 +564,10 @@ export function CartScreen() {
             </p>
           )}
         </div>
-        <LangSwitcher />
+        <div className="flex items-center gap-2">
+          <HomeButton />
+          <LangSwitcher />
+        </div>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">

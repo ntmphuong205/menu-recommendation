@@ -7,6 +7,7 @@ import { RESTAURANT } from "../data/restaurant";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
+import { HomeButton } from "../components/HomeButton";
 import { OrderModeNotice } from "../components/OrderModeNotice";
 import { StoreClosedBanner } from "../components/StoreClosedBanner";
 
@@ -111,6 +112,7 @@ export function ChatScreen() {
             {t("chat_table")} {tableId}
           </span>
         )}
+        <HomeButton />
         <LangSwitcher />
       </div>
 

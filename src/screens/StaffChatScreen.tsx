@@ -3,6 +3,7 @@ import { Send, Store } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
+import { HomeButton } from "../components/HomeButton";
 import { getCustomerSessionId } from "../lib/apiClient";
 import { useChatMessages } from "../store/useChatMessages";
 import { RESTAURANT } from "../data/restaurant";
@@ -39,6 +40,7 @@ export function StaffChatScreen() {
           <p className="text-[14px] font-bold text-[#22201B] leading-tight">{RESTAURANT.name}</p>
           <p className="text-[11px] text-[#8A8272]">{t("staffchat_subtitle")}</p>
         </div>
+        <HomeButton />
         <LangSwitcher />
       </div>
 
