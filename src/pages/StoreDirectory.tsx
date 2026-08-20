@@ -3,6 +3,7 @@ import { ChefHat, ArrowRight, KeyRound, Clock3, UtensilsCrossed, MapPin, Leaf, S
 import { apiClient, type ApiStoreDirectoryEntry } from "../lib/apiClient";
 import { useI18n } from "../i18n/I18nContext";
 import { LangSwitcher } from "../components/LangSwitcher";
+import { clearAllWebOrderIntents } from "../context/AppContext";
 
 /** Rotating gradient treatments for each restaurant's card header — there
  *  are no cover photos in the data model yet, so this stands in as visual
@@ -31,6 +32,10 @@ export function StoreDirectory() {
   const { t, lang } = useI18n();
   const [stores, setStores] = useState<ApiStoreDirectoryEntry[] | null>(null);
   const [error, setError] = useState(false);
+
+  useEffect(() => {
+    clearAllWebOrderIntents();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

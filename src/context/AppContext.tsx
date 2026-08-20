@@ -150,8 +150,9 @@ function getInitialTabFromUrl(): TabKey {
 // Keyed per store slug so switching restaurants in the same tab (e.g. from
 // the homepage directory) doesn't carry over a stale choice from whichever
 // store was visited previously.
+const WEB_ORDER_INTENT_PREFIX = "mp_web_order_intent:";
 function webOrderIntentStorageKey(): string {
-  return `mp_web_order_intent:${getStoreSlug() || "default"}`;
+  return `${WEB_ORDER_INTENT_PREFIX}${getStoreSlug() || "default"}`;
 }
 
 /** DiningChoiceScreen's pick would otherwise live only in React state — a
@@ -162,6 +163,20 @@ function webOrderIntentStorageKey(): string {
 function getStoredWebOrderIntent(): "dine_in" | "pickup" | null {
   const value = sessionStorage.getItem(webOrderIntentStorageKey());
   return value === "dine_in" || value === "pickup" ? value : null;
+}
+
+/** Called once when StoreDirectory (the multi-restaurant homepage) mounts.
+ *  Revisiting a store within the same tab is meant to remember its
+ *  dine-in/pickup choice (see getStoredWebOrderIntent) — but landing back
+ *  on the homepage means the customer is deliberately reconsidering, so
+ *  every store's remembered choice is cleared here. Otherwise clicking a
+ *  restaurant they'd already picked "pickup" (or "dine_in") for earlier in
+ *  this tab session skips DiningChoiceScreen entirely and drops them
+ *  straight into the menu, which reads as broken rather than remembered. */
+export function clearAllWebOrderIntents(): void {
+  for (const key of Object.keys(sessionStorage)) {
+    if (key.startsWith(WEB_ORDER_INTENT_PREFIX)) sessionStorage.removeItem(key);
+  }
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
