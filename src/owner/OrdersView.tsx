@@ -248,59 +248,61 @@ export function OrdersView() {
                       {t("orders_cancel_order")}
                     </button>
                   </div>
-                  <div className="flex flex-col gap-2 mb-2">
+                  <div className="flex flex-col gap-3 mb-3">
                     {order.items.map((item, i) => (
-                      <div
-                        key={i}
-                        className={`flex items-center justify-between gap-2 text-[13px] ${item.status === "cancelled" ? "opacity-50" : ""}`}
-                      >
-                        <div className="min-w-0">
-                          <span className="text-[#22201B]">
-                            {item.qty}× {item.dishName}
-                            {item.note && <span className="text-[#B0553C]"> ({item.note})</span>}
+                      <div key={i} className={`flex flex-col gap-1.5 ${item.status === "cancelled" ? "opacity-50" : ""}`}>
+                        <span className="text-[13px] text-[#22201B] leading-snug">
+                          {item.qty}× {item.dishName}
+                          {item.note && <span className="text-[#B0553C]"> ({item.note})</span>}
+                        </span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[12.5px] font-semibold text-[#5C5240]">
+                            {formatPrice(item.price * item.qty, currency)}
                           </span>
-                          <span className="text-[#5C5240] font-medium ml-2">{formatPrice(item.price * item.qty, currency)}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {item.status === "cancelled" ? (
-                            <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[item.status]}`}>
-                              {t(ORDER_STATUS_LABEL_KEY[item.status])}
-                            </span>
-                          ) : (
-                            <div className="flex items-center gap-0.5 bg-black/5 rounded-full p-0.5">
-                              {ITEM_STATUS_STEPS.map((s) => (
-                                <button
-                                  key={s}
-                                  onClick={() => updateItemStatus(item.id, s)}
-                                  disabled={item.status === s}
-                                  title={t(ORDER_STATUS_LABEL_KEY[s])}
-                                  className={`px-2 py-1 rounded-full text-[10.5px] font-semibold whitespace-nowrap transition-colors ${
-                                    item.status === s ? STATUS_STYLE[s] : "text-[#B0A794] active:scale-95"
-                                  }`}
-                                >
-                                  {t(ORDER_STATUS_LABEL_KEY[s])}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          {ACTIVE_STATUSES.includes(item.status) && (
-                            <button
-                              onClick={() => updateItemStatus(item.id, "cancelled")}
-                              title={t("orders_cancel_item_title")}
-                              className="flex items-center justify-center w-6 h-6 rounded-full text-[#B0553C] bg-[#F7E9E2] active:scale-95 transition-transform shrink-0"
-                            >
-                              <X size={11} />
-                            </button>
-                          )}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {item.status === "cancelled" ? (
+                              <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[item.status]}`}>
+                                {t(ORDER_STATUS_LABEL_KEY[item.status])}
+                              </span>
+                            ) : (
+                              <div className="flex items-center gap-0.5 bg-black/5 rounded-full p-0.5">
+                                {ITEM_STATUS_STEPS.map((s) => (
+                                  <button
+                                    key={s}
+                                    onClick={() => updateItemStatus(item.id, s)}
+                                    disabled={item.status === s}
+                                    title={t(ORDER_STATUS_LABEL_KEY[s])}
+                                    className={`px-2 py-1 rounded-full text-[10.5px] font-semibold whitespace-nowrap transition-colors ${
+                                      item.status === s ? STATUS_STYLE[s] : "text-[#B0A794] active:scale-95"
+                                    }`}
+                                  >
+                                    {t(ORDER_STATUS_LABEL_KEY[s])}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {ACTIVE_STATUSES.includes(item.status) && (
+                              <button
+                                onClick={() => updateItemStatus(item.id, "cancelled")}
+                                title={t("orders_cancel_item_title")}
+                                className="flex items-center justify-center w-6 h-6 rounded-full text-[#B0553C] bg-[#F7E9E2] active:scale-95 transition-transform shrink-0"
+                              >
+                                <X size={11} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between pt-2.5 border-t border-black/5">
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[order.status]}`}>
                       {t(ORDER_STATUS_LABEL_KEY[order.status])}
                     </span>
-                    <span className="text-[12px] font-bold text-[#2D5A3D]">{formatPrice(orderTotal(order), currency)}</span>
+                    <span className="flex items-baseline gap-1.5">
+                      <span className="text-[11px] text-[#8A8272]">{t("orders_order_total_label")}</span>
+                      <span className="text-[13px] font-bold text-[#2D5A3D]">{formatPrice(orderTotal(order), currency)}</span>
+                    </span>
                   </div>
                 </div>
               ))}

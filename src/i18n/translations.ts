@@ -6,7 +6,11 @@ export const LANGUAGES: { code: Lang; label: string; flag: string }[] = [
   { code: "ko", label: "한국어", flag: "🇰🇷" },
 ];
 
-export const DEFAULT_LANG: Lang = "en";
+// Freddo (this deployment's only real store) serves Vietnamese customers
+// first — default fresh sessions (customer app and admin dashboard alike)
+// to Vietnamese rather than English; anyone can still switch via the
+// language flag, and the choice is remembered per browser after that.
+export const DEFAULT_LANG: Lang = "vi";
 
 const dict = {
   // Tab bar
@@ -411,6 +415,7 @@ const dict = {
     ko: "{table} 테이블의 전체 주문을 취소할까요?",
   },
   orders_cancel_item_title: { vi: "Huỷ món này", en: "Cancel this item", ko: "이 항목 취소" },
+  orders_order_total_label: { vi: "Tổng đơn:", en: "Order total:", ko: "주문 합계:" },
   orders_served_heading: { vi: "Đã phục vụ", en: "Served", ko: "서빙 완료" },
   orders_cancelled_heading: { vi: "Đã huỷ", en: "Cancelled", ko: "취소됨" },
   order_status_new: { vi: "Mới", en: "New", ko: "신규" },
