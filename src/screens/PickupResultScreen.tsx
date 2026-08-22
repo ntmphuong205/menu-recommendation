@@ -38,38 +38,12 @@ export function PickupResultScreen() {
   const { t } = useI18n();
   const { store } = useApp();
   const [state, setState] = useState<ResultState>({ kind: "loading" });
-  // Backend-driven, not a client toggle — stays false (button never
-  // renders) unless the deployment's ALLOW_TEST_PAYMENT_CONFIRM is set.
-  const [testPaymentEnabled, setTestPaymentEnabled] = useState(false);
-  const [testPaymentPending, setTestPaymentPending] = useState(false);
-
-  useEffect(() => {
-    apiClient
-      .health()
-      .then((res) => setTestPaymentEnabled(res.test_payment_enabled))
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const groupId = params.get("order_group_id") || hexToOrderGroupId(params.get("vnp_TxnRef") ?? "");
     setState(groupId ? { kind: "waiting", groupId, snapshot: null } : { kind: "invalid" });
   }, []);
-
-  const handleTestMarkPaid = async () => {
-    if (state.kind !== "waiting") return;
-    setTestPaymentPending(true);
-    try {
-      await apiClient.markTestPaymentPaid(state.groupId);
-      const res = await apiClient.getPaymentStatus(state.groupId);
-      setState({ kind: "success", pickupCode: res.pickup_code ?? "", pickupTime: res.pickup_time });
-    } catch {
-      // Leave it waiting — the regular poll loop will pick up the real
-      // state on its next tick either way.
-    } finally {
-      setTestPaymentPending(false);
-    }
-  };
 
   useEffect(() => {
     if (state.kind !== "waiting") return;
@@ -190,16 +164,6 @@ export function PickupResultScreen() {
               {t("pickup_bank_transfer_waiting")}
             </p>
           </>
-        )}
-
-        {state.kind === "waiting" && testPaymentEnabled && (
-          <button
-            onClick={handleTestMarkPaid}
-            disabled={testPaymentPending}
-            className="w-full border border-dashed border-[#8A6B1F]/50 bg-[#FDECC8] text-[#8A6B1F] text-[12px] font-semibold py-2.5 rounded-xl disabled:opacity-60"
-          >
-            {testPaymentPending ? t("pickup_pay_loading") : t("test_mark_paid_button")}
-          </button>
         )}
 
         {state.kind === "success" && (
