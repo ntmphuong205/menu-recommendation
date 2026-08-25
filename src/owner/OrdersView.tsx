@@ -83,17 +83,17 @@ export function OrdersView() {
   }, [active]);
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+    <div className="p-4 md:p-8 short:p-3! max-w-5xl">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6 short:mb-3!">
         <div>
-          <h1 className="text-[24px] font-bold text-[#22201B] mb-1">{t("orders_title")}</h1>
-          <p className="text-[13px] text-[#8A8272]">{t("orders_subtitle")}</p>
+          <h1 className="text-[24px] short:text-[18px]! font-bold text-[#22201B] mb-1">{t("orders_title")}</h1>
+          <p className="text-[13px] text-[#8A8272] short:hidden">{t("orders_subtitle")}</p>
         </div>
         <StoreStatusToggle />
       </div>
 
       {pendingRequests.length > 0 && (
-        <div className="mb-6 bg-[#FDECC8] border border-[#E0A83C]/30 rounded-2xl p-4">
+        <div className="mb-6 short:mb-3! bg-[#FDECC8] border border-[#E0A83C]/30 rounded-2xl p-4 short:p-3!">
           <h2 className="flex items-center gap-1.5 text-[13px] font-bold text-[#8A6B1F] mb-2.5">
             <BellRing size={14} />
             {t("owner_table_requests")} ({pendingRequests.length})
@@ -121,7 +121,7 @@ export function OrdersView() {
       )}
 
       {RESERVATIONS_ENABLED && pendingReservations.length > 0 && (
-        <div className="mb-6 bg-[#DCEBFB] border border-[#2A5C8A]/20 rounded-2xl p-4">
+        <div className="mb-6 short:mb-3! bg-[#DCEBFB] border border-[#2A5C8A]/20 rounded-2xl p-4 short:p-3!">
           <h2 className="flex items-center gap-1.5 text-[13px] font-bold text-[#2A5C8A] mb-2.5">
             <CalendarClock size={14} />
             {t("orders_reservations_waiting")} ({pendingReservations.length})
@@ -169,7 +169,7 @@ export function OrdersView() {
       )}
 
       {awaitingPayment.length > 0 && (
-        <div className="mb-6 bg-[#F3E9D2] border border-[#8A6B3F]/25 rounded-2xl p-4">
+        <div className="mb-6 short:mb-3! bg-[#F3E9D2] border border-[#8A6B3F]/25 rounded-2xl p-4 short:p-3!">
           <h2 className="flex items-center gap-1.5 text-[13px] font-bold text-[#8A6B3F] mb-2.5">
             <Wallet size={14} />
             {t("orders_awaiting_payment_heading")} ({awaitingPayment.length})
@@ -201,18 +201,18 @@ export function OrdersView() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
-          <p className="text-[12px] text-[#8A8272] mb-1">{t("orders_stat_active")}</p>
-          <p className="text-[26px] font-bold text-[#22201B]">{active.length}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 short:gap-2! mb-8 short:mb-3!">
+        <div className="bg-white rounded-2xl p-4 short:p-2! border border-black/5 shadow-sm short:flex short:items-center short:justify-between">
+          <p className="text-[12px] text-[#8A8272] mb-1 short:mb-0!">{t("orders_stat_active")}</p>
+          <p className="text-[26px] short:text-[16px]! font-bold text-[#22201B]">{active.length}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
-          <p className="text-[12px] text-[#8A8272] mb-1">{t("orders_stat_tables_occupied")}</p>
-          <p className="text-[26px] font-bold text-[#22201B]">{tablesOccupied}</p>
+        <div className="bg-white rounded-2xl p-4 short:p-2! border border-black/5 shadow-sm short:flex short:items-center short:justify-between">
+          <p className="text-[12px] text-[#8A8272] mb-1 short:mb-0!">{t("orders_stat_tables_occupied")}</p>
+          <p className="text-[26px] short:text-[16px]! font-bold text-[#22201B]">{tablesOccupied}</p>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
-          <p className="text-[12px] text-[#8A8272] mb-1">{t("orders_stat_revenue")}</p>
-          <p className="text-[26px] font-bold text-[#2D5A3D]">{formatPrice(revenueToday, currency)}</p>
+        <div className="bg-white rounded-2xl p-4 short:p-2! border border-black/5 shadow-sm short:flex short:items-center short:justify-between">
+          <p className="text-[12px] text-[#8A8272] mb-1 short:mb-0!">{t("orders_stat_revenue")}</p>
+          <p className="text-[26px] short:text-[16px]! font-bold text-[#2D5A3D]">{formatPrice(revenueToday, currency)}</p>
         </div>
       </div>
 
@@ -222,7 +222,7 @@ export function OrdersView() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 short:gap-3!">
         {grouped.map(([groupKey, tableOrders]) => (
           <div key={groupKey} className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
             <div className="px-4 py-3 bg-[#1F3D2B] text-white flex items-center justify-between">

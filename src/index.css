@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* A short *and* wide viewport (a 7" 800x480 kitchen-display Pi is the
+   motivating case) still trips width-only breakpoints like `md:`, which
+   assume more width means more height too. Use `short:` wherever a
+   layout needs to shed vertical chrome specifically for that case. */
+@custom-variant short (@media (max-height: 560px));
+
 :root {
   color-scheme: light;
 }

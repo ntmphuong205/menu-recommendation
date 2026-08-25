@@ -85,17 +85,23 @@ export function OwnerApp() {
         <div className="md:hidden fixed inset-0 bg-black/40 z-40" onClick={() => setNavOpen(false)} />
       )}
 
+      {/* short: a very low/short viewport (e.g. a 7" 800x480 kitchen
+          display) is still wide enough to trip the md breakpoint, so width
+          alone can't tell this apart from a real desktop window — collapse
+          to an icon-only rail so the orders queue gets the vertical/
+          horizontal room it actually needs instead of a full-height nav
+          list that would itself need to scroll on a screen this short. */}
       <aside
-        className={`w-64 sm:w-60 shrink-0 bg-[#1F3D2B] text-white flex flex-col py-6 px-4 gap-6 fixed inset-y-0 left-0 z-50 overflow-y-auto transition-transform duration-200 md:static md:translate-x-0 ${
+        className={`w-64 sm:w-60 short:w-16! shrink-0 bg-[#1F3D2B] text-white flex flex-col py-6 px-4 short:px-2! gap-6 short:gap-3! fixed inset-y-0 left-0 z-50 overflow-y-auto transition-transform duration-200 md:static md:translate-x-0 ${
           navOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between px-2">
+        <div className="flex items-center justify-between px-2 short:px-0!">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
               <ChefHat size={18} />
             </div>
-            <div>
+            <div className="short:hidden">
               <p className="text-[14px] font-bold leading-tight">{RESTAURANT.name}</p>
               <p className="text-[11px] text-white/60">{t("owner_dashboard")}</p>
             </div>
@@ -104,7 +110,9 @@ export function OwnerApp() {
             <X size={18} />
           </button>
         </div>
-        <LangSwitcher dark />
+        <div className="short:hidden">
+          <LangSwitcher dark />
+        </div>
 
         <nav className="flex flex-col gap-1">
           {NAV.map(({ key, labelKey, icon: Icon }) => (
@@ -114,12 +122,13 @@ export function OwnerApp() {
                 setSection(key);
                 setNavOpen(false);
               }}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${
+              title={t(labelKey)}
+              className={`flex items-center gap-2.5 short:justify-center px-3 short:px-2! py-2.5 rounded-xl text-[13px] font-medium transition-colors ${
                 section === key ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/5"
               }`}
             >
-              <Icon size={16} />
-              {t(labelKey)}
+              <Icon size={16} className="shrink-0" />
+              <span className="short:hidden">{t(labelKey)}</span>
             </button>
           ))}
         </nav>
@@ -129,36 +138,40 @@ export function OwnerApp() {
             href="/"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors"
+            title={t("owner_view_customer")}
+            className="flex items-center gap-2 short:justify-center px-3 short:px-2! py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors"
           >
-            <ExternalLink size={14} />
-            {t("owner_view_customer")}
+            <ExternalLink size={14} className="shrink-0" />
+            <span className="short:hidden">{t("owner_view_customer")}</span>
           </a>
           {authRequired && (
             <button
               onClick={() => setStoreSlug(null)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
+              title={t("owner_switch_store")}
+              className="flex items-center gap-2 short:justify-center px-3 short:px-2! py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
             >
-              <StoreIcon size={14} />
-              {t("owner_switch_store")}
+              <StoreIcon size={14} className="shrink-0" />
+              <span className="short:hidden">{t("owner_switch_store")}</span>
             </button>
           )}
           {authRequired && (
             <button
               onClick={() => setShowChangePassword(true)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
+              title={t("owner_change_password")}
+              className="flex items-center gap-2 short:justify-center px-3 short:px-2! py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
             >
-              <KeyRound size={14} />
-              {t("owner_change_password")}
+              <KeyRound size={14} className="shrink-0" />
+              <span className="short:hidden">{t("owner_change_password")}</span>
             </button>
           )}
           {authRequired && (
             <button
               onClick={signOut}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
+              title={t("owner_logout")}
+              className="flex items-center gap-2 short:justify-center px-3 short:px-2! py-2.5 rounded-xl text-[12px] font-medium text-white/60 hover:bg-white/5 transition-colors text-left"
             >
-              <LogOut size={14} />
-              {t("owner_logout")}
+              <LogOut size={14} className="shrink-0" />
+              <span className="short:hidden">{t("owner_logout")}</span>
             </button>
           )}
         </div>
