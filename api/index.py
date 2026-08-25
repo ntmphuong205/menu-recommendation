@@ -2174,13 +2174,25 @@ def chat(payload: ChatRequest) -> Dict[str, Any]:
 
     try:
         repo = get_repository()
-        store = repo.get_store()
+        # Strip embedded photo data (cover_image/bank_qr_image on the store,
+        # img on every dish) before it goes anywhere near the prompt — these
+        # are base64 image blobs, sometimes megabytes each across a full
+        # menu, and Gemini has no use for them as text. Left in, a normal
+        # menu blew straight through the model's 1,048,576-token input
+        # limit on every single message, so /api/chat failed 100% of the
+        # time and silently fell back to the generic "AI unavailable" reply
+        # — from the customer's side indistinguishable from "doesn't know
+        # anything about the menu".
+        store = {k: v for k, v in repo.get_store().items() if k not in ("cover_image", "bank_qr_image")}
         available_menus = [
-            menu_to_public(row)
+            {k: v for k, v in menu_to_public(row).items() if k != "img"}
             for row in repo.get_menus()
             if not row.get("is_sold_out")
         ]
-        tables = [table_to_public(row) for row in repo.get_tables()]
+        tables = [
+            {k: v for k, v in table_to_public(row).items() if k not in ("table_image", "view_image")}
+            for row in repo.get_tables()
+        ]
         table_summary: Dict[str, Dict[str, int]] = {
             "indoor": {},
             "terrace": {},
