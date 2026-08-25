@@ -66,7 +66,7 @@ export function StoreDirectory() {
         <Leaf size={20} className="absolute top-16 right-[14%] text-[#4CAF7D]/20 rotate-[25deg] hidden sm:block" />
         <Sparkles size={18} className="absolute bottom-24 right-[10%] text-[#E0A83C]/25 hidden sm:block" />
 
-        <header className="relative z-10">
+        <header className="relative z-20">
           <div className="max-w-5xl mx-auto flex items-center justify-between px-5 sm:px-8 py-5">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
