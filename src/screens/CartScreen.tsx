@@ -11,6 +11,13 @@ import { getCustomerSessionId } from "../lib/apiClient";
 import { getStoreSlug } from "../lib/storeSlug";
 import { formatPrice, formatPriceRange } from "../lib/currency";
 
+// Dine-in orders are matched to "my orders" purely by table id (see
+// MyOrdersSection below) — with no cutoff, a brand-new customer scanning a
+// table's QR would see every order anyone has ever placed there, including
+// a completely unrelated party from hours or days earlier. A single seating
+// rarely runs longer than this; treat anything older as a past visit.
+const TABLE_SESSION_WINDOW_MS = 6 * 60 * 60 * 1000;
+
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
   new: "bg-[#FDECC8] text-[#8A6B1F]",
@@ -23,14 +30,20 @@ function MyOrdersSection() {
   const { orders, tableId, cancelOrder, getQueueInfo, currency } = useApp();
   const { t } = useI18n();
   // Dine-in orders aren't tied to any one customer_session_id — everyone
-  // seated at the table sees the table's combined orders. Pickup orders
-  // have no table at all (tableId is null), so they only ever show up for
-  // the customer_session_id that placed them — otherwise a pickup order
-  // (and its pickup code) became unfindable the moment the customer left
-  // the payment-result page, with no way back to it.
+  // seated at the table sees the table's combined orders, but only within
+  // the current sitting (TABLE_SESSION_WINDOW_MS) — otherwise the next
+  // party at that table would see a previous, unrelated group's orders.
+  // Pickup orders have no table at all (tableId is null), so they only
+  // ever show up for the customer_session_id that placed them — otherwise
+  // a pickup order (and its pickup code) became unfindable the moment the
+  // customer left the payment-result page, with no way back to it.
   const mySessionId = getCustomerSessionId();
   const myOrders = orders
-    .filter((o) => (o.fulfillmentType === "pickup" ? o.customerSessionId === mySessionId : o.tableId === tableId))
+    .filter((o) =>
+      o.fulfillmentType === "pickup"
+        ? o.customerSessionId === mySessionId
+        : o.tableId === tableId && Date.now() - o.createdAt < TABLE_SESSION_WINDOW_MS
+    )
     .sort((a, b) => b.createdAt - a.createdAt);
 
   if (myOrders.length === 0) return null;
