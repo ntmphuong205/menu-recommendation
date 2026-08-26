@@ -618,6 +618,10 @@ def table_to_public(row: Dict[str, Any]) -> Dict[str, Any]:
         "capacity": int(row.get("capacity", 4)),
         "table_image": row.get("table_image") or "",
         "view_image": row.get("view_image") or "",
+        # Everything before this moment belongs to a previous sitting at
+        # this table — see MyOrdersSection on the frontend, which uses it
+        # to stop showing a new party the last group's orders.
+        "session_started_at": row.get("session_started_at"),
     }
 
 
@@ -819,6 +823,29 @@ class SupabaseRepository:
             "Failed to load table information.",
         )
         return response.data[0] if response.data else None
+
+    def mark_table_occupied(self, table_code: str) -> None:
+        self._run(
+            lambda: self.client.table("tables")
+            .update({"status": "occupied", "session_started_at": utc_now(), "updated_at": utc_now()})
+            .eq("store_id", self.store_id)
+            .eq("table_code", table_code)
+            .execute(),
+            "Failed to update table status.",
+        )
+
+    def clear_table(self, table_code: str) -> Dict[str, Any]:
+        response = self._run(
+            lambda: self.client.table("tables")
+            .update({"status": "available", "session_started_at": utc_now(), "updated_at": utc_now()})
+            .eq("store_id", self.store_id)
+            .eq("table_code", table_code)
+            .execute(),
+            "Failed to clear the table.",
+        )
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Table not found.")
+        return response.data[0]
 
     def replace_tables(self, tables: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         payload = [
@@ -1621,6 +1648,22 @@ def update_tables(
     }
 
 
+@app.put("/api/tables/{table_code}/clear")
+def clear_table(
+    table_code: str, _staff: Dict[str, Any] = Depends(require_staff)
+) -> Dict[str, Any]:
+    """Staff marks a table paid up and free — flips it back to available
+    and starts a fresh session boundary, so the next party to scan that
+    table's QR doesn't see the previous group's orders (see
+    MyOrdersSection on the frontend)."""
+    row = get_repository().clear_table(table_code)
+    return {
+        "success": True,
+        "message": "Table cleared.",
+        "table": table_to_public(row),
+    }
+
+
 @app.get("/api/keywords")
 def get_keywords() -> Dict[str, Any]:
     return {"keywords": get_repository().get_keywords()}
@@ -1756,12 +1799,25 @@ def create_order(payload: OrderCreate) -> Dict[str, Any]:
         order_row["payment_method"] = payload.payment_method
         order_row["pickup_time"] = payload.pickup_time
     else:
-        if not repo.get_table(payload.table_id):
+        table = repo.get_table(payload.table_id)
+        if not table:
             raise HTTPException(status_code=404, detail="Table not found.")
         order_row["table_id"] = payload.table_id
         order_row["status"] = "new"
     order_row = {k: v for k, v in order_row.items() if v is not None}
     row = repo.create_order(order_row)
+    # First order of a new sitting: flip the table to occupied and start a
+    # fresh session boundary (see MyOrdersSection on the frontend) — but
+    # only on that first order, so later items in the same visit don't keep
+    # pushing the boundary forward and orphaning the earlier ones from it.
+    # Best-effort: the order itself has already been placed successfully,
+    # so a hiccup updating the table's bookkeeping shouldn't fail the whole
+    # request out from under the customer.
+    if payload.fulfillment_type != "pickup" and table.get("status") != "occupied":
+        try:
+            repo.mark_table_occupied(payload.table_id)
+        except HTTPException:
+            pass  # already logged inside _run() — the order itself still succeeds
     order = order_to_public(row)
     return {
         "success": True,

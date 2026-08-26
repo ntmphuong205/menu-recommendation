@@ -1,13 +1,14 @@
-import { MessageCircle, UtensilsCrossed, ShoppingBag, Store, Users } from "lucide-react";
+import { MessageCircle, UtensilsCrossed, ShoppingBag, Store, Users, Armchair } from "lucide-react";
 import { useApp, type TabKey } from "../context/AppContext";
 import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
+import { RESERVATIONS_ENABLED } from "../data/featureFlags";
 
-// Same 5 tabs regardless of mode now — remote pickup ordering (Cart) and
-// the staff chat both work whether or not a table QR was scanned. Web mode
-// used to swap Cart for Reserve here; reservations are disabled for now
-// (see data/featureFlags.ts) and pickup made Cart relevant in both modes.
-const TABS: { key: TabKey; labelKey: TranslationKey; icon: typeof MessageCircle }[] = [
+// Remote pickup ordering (Cart) and the staff chat both work whether or not
+// a table QR was scanned, so those stay regardless of mode. Reserve only
+// makes sense for mode=web (the general QR, scanned before being seated —
+// mode=store customers are already at their table).
+const BASE_TABS: { key: TabKey; labelKey: TranslationKey; icon: typeof MessageCircle }[] = [
   { key: "chat", labelKey: "tab_chat", icon: MessageCircle },
   { key: "staff_chat", labelKey: "tab_staff_chat", icon: Users },
   { key: "menu", labelKey: "tab_menu", icon: UtensilsCrossed },
@@ -16,13 +17,18 @@ const TABS: { key: TabKey; labelKey: TranslationKey; icon: typeof MessageCircle 
 ];
 
 export function TabBar() {
-  const { activeTab, setActiveTab, totalItems, setSelectedDishId } = useApp();
+  const { activeTab, setActiveTab, totalItems, setSelectedDishId, mode } = useApp();
   const { t } = useI18n();
+
+  const tabs =
+    RESERVATIONS_ENABLED && mode === "web"
+      ? [BASE_TABS[0], { key: "reserve" as const, labelKey: "tab_reserve" as const, icon: Armchair }, ...BASE_TABS.slice(1)]
+      : BASE_TABS;
 
   return (
     <div className="shrink-0 border-t border-black/5 bg-white/90 backdrop-blur-xl px-2 pt-2 pb-7">
       <div className="flex items-center justify-around">
-        {TABS.map(({ key, labelKey, icon: Icon }) => {
+        {tabs.map(({ key, labelKey, icon: Icon }) => {
           const label = t(labelKey);
           const active = activeTab === key;
           return (

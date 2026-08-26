@@ -132,6 +132,11 @@ create table if not exists public.tables (
     table_image text,
     view_image text,
     sort_order integer not null default 0,
+    -- Everything before this moment belongs to a previous sitting at this
+    -- table — bumped to now() whenever an order first occupies the table
+    -- or staff clears it after payment, so a new party scanning the same
+    -- table's QR never sees the last group's orders.
+    session_started_at timestamptz not null default now(),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     unique (store_id, table_code)
@@ -411,6 +416,9 @@ alter table public.menus
     add column if not exists size_variants jsonb not null default '[]'::jsonb,
     add column if not exists flavor_variants jsonb not null default '[]'::jsonb,
     add column if not exists toppings jsonb not null default '[]'::jsonb;
+
+alter table public.tables
+    add column if not exists session_started_at timestamptz not null default now();
 
 create table if not exists public.chat_messages (
     id uuid primary key default gen_random_uuid(),

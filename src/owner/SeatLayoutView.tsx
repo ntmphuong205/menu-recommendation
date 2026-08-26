@@ -61,6 +61,7 @@ export function SeatLayoutView() {
       capacity: 4,
       table_image: "",
       view_image: "",
+      session_started_at: null,
     };
     setLayout([...layout, next]);
     setSelectedIndex(layout.length);

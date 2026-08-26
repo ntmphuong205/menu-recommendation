@@ -11,13 +11,6 @@ import { getCustomerSessionId } from "../lib/apiClient";
 import { getStoreSlug } from "../lib/storeSlug";
 import { formatPrice, formatPriceRange } from "../lib/currency";
 
-// Dine-in orders are matched to "my orders" purely by table id (see
-// MyOrdersSection below) — with no cutoff, a brand-new customer scanning a
-// table's QR would see every order anyone has ever placed there, including
-// a completely unrelated party from hours or days earlier. A single seating
-// rarely runs longer than this; treat anything older as a past visit.
-const TABLE_SESSION_WINDOW_MS = 6 * 60 * 60 * 1000;
-
 const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
   new: "bg-[#FDECC8] text-[#8A6B1F]",
@@ -26,23 +19,37 @@ const STATUS_BADGE_STYLE: Record<OrderStatus, string> = {
   cancelled: "bg-[#F7E9E2] text-[#B0553C]",
 };
 
+// Fallback only for a table whose session_started_at hasn't loaded yet (or,
+// before the backend migration adding that column ships, is always null) —
+// without it, "my orders" would show every order ever placed at the table.
+// Once session_started_at is live this rarely matters, since it's a tighter
+// boundary in practice; this is just the pre-migration/loading safety net.
+const TABLE_SESSION_FALLBACK_WINDOW_MS = 6 * 60 * 60 * 1000;
+
 function MyOrdersSection() {
-  const { orders, tableId, cancelOrder, getQueueInfo, currency } = useApp();
+  const { orders, tables, tableId, cancelOrder, getQueueInfo, currency } = useApp();
   const { t } = useI18n();
   // Dine-in orders aren't tied to any one customer_session_id — everyone
-  // seated at the table sees the table's combined orders, but only within
-  // the current sitting (TABLE_SESSION_WINDOW_MS) — otherwise the next
-  // party at that table would see a previous, unrelated group's orders.
-  // Pickup orders have no table at all (tableId is null), so they only
-  // ever show up for the customer_session_id that placed them — otherwise
-  // a pickup order (and its pickup code) became unfindable the moment the
-  // customer left the payment-result page, with no way back to it.
+  // seated at the table sees the table's combined orders, but only from the
+  // table's *current* sitting: session_started_at is bumped to now() when
+  // an order first occupies the table and again whenever staff clears it
+  // after payment, so it marks exactly where the previous party's visit
+  // ended — without it, the next party scanning the same table's QR would
+  // see a completely unrelated group's old orders. Pickup orders have no
+  // table at all (tableId is null), so they only ever show up for the
+  // customer_session_id that placed them — otherwise a pickup order (and
+  // its pickup code) became unfindable the moment the customer left the
+  // payment-result page, with no way back to it.
   const mySessionId = getCustomerSessionId();
+  const currentTable = tables.find((tb) => tb.id === tableId);
+  const sessionStartMs = currentTable?.session_started_at
+    ? new Date(currentTable.session_started_at).getTime()
+    : Date.now() - TABLE_SESSION_FALLBACK_WINDOW_MS;
   const myOrders = orders
     .filter((o) =>
       o.fulfillmentType === "pickup"
         ? o.customerSessionId === mySessionId
-        : o.tableId === tableId && Date.now() - o.createdAt < TABLE_SESSION_WINDOW_MS
+        : o.tableId === tableId && o.createdAt >= sessionStartMs
     )
     .sort((a, b) => b.createdAt - a.createdAt);
 

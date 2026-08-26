@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Clock3, PackageCheck, XCircle, Ban, BellRing, Check, X, CalendarClock, Users, Wallet, Loader2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Clock3, PackageCheck, XCircle, Ban, BellRing, Check, X, CalendarClock, Users, Wallet, Loader2, CheckCircle2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { ORDER_STATUS_LABEL_KEY, ACTIVE_STATUSES, orderTotal, type Order, type OrderStatus } from "../data/orders";
 import { useI18n } from "../i18n/I18nContext";
@@ -7,6 +7,7 @@ import type { TranslationKey } from "../i18n/translations";
 import { RESERVATIONS_ENABLED } from "../data/featureFlags";
 import { formatPrice } from "../lib/currency";
 import { StoreStatusToggle } from "./StoreStatusToggle";
+import { useTablesData } from "../store/useTablesData";
 
 export const STATUS_STYLE: Record<OrderStatus, string> = {
   awaiting_payment: "bg-[#F3E9D2] text-[#8A6B3F]",
@@ -52,6 +53,20 @@ export function OrdersView() {
     currency,
   } = useApp();
   const { t } = useI18n();
+  const { clearTable } = useTablesData();
+  const [clearingTable, setClearingTable] = useState<string | null>(null);
+
+  const handleClearTable = async (tableCode: string) => {
+    if (!window.confirm(t("orders_clear_table_confirm", { table: tableCode }))) return;
+    setClearingTable(tableCode);
+    try {
+      await clearTable(tableCode);
+    } catch (err) {
+      console.error("[MenuPilot] Failed to clear table", err);
+    } finally {
+      setClearingTable(null);
+    }
+  };
 
   const pendingRequests = useMemo(() => tableRequests.filter((r) => !r.resolved), [tableRequests]);
   const pendingReservations = useMemo(
@@ -225,9 +240,22 @@ export function OrdersView() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 short:gap-3!">
         {grouped.map(([groupKey, tableOrders]) => (
           <div key={groupKey} className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden">
-            <div className="px-4 py-3 bg-[#1F3D2B] text-white flex items-center justify-between">
+            <div className="px-4 py-3 bg-[#1F3D2B] text-white flex items-center justify-between gap-2">
               <span className="text-[13px] font-bold">{orderLabel(tableOrders[0], t)}</span>
-              <span className="text-[11px] text-white/70">{t("orders_count_label", { count: tableOrders.length })}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[11px] text-white/70">{t("orders_count_label", { count: tableOrders.length })}</span>
+                {tableOrders[0].fulfillmentType === "dine_in" && tableOrders[0].tableId && (
+                  <button
+                    onClick={() => handleClearTable(tableOrders[0].tableId!)}
+                    disabled={clearingTable === tableOrders[0].tableId}
+                    title={t("orders_clear_table_title")}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-white bg-white/15 hover:bg-white/25 px-2.5 py-1 rounded-full active:scale-95 transition-transform disabled:opacity-50"
+                  >
+                    <CheckCircle2 size={11} />
+                    {t("orders_clear_table_button")}
+                  </button>
+                )}
+              </div>
             </div>
             <div className="p-4 flex flex-col gap-4">
               {tableOrders.map((order) => (

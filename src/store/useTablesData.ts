@@ -5,6 +5,10 @@ import { usePollingData } from "./usePollingData";
 export interface TablesData {
   tables: ApiTable[];
   saveLayout: (tables: ApiTable[]) => Promise<ApiTable[]>;
+  /** Staff marks a table paid up and free — flips it back to available and
+   *  starts a fresh session boundary so the next party doesn't see the
+   *  last group's orders (see CartScreen's MyOrdersSection). */
+  clearTable: (tableCode: string) => Promise<ApiTable>;
 }
 
 export function useTablesData(): TablesData {
@@ -17,5 +21,10 @@ export function useTablesData(): TablesData {
     return res.tables;
   };
 
-  return { tables, saveLayout };
+  const clearTable = async (tableCode: string) => {
+    const res = await apiClient.clearTable(tableCode);
+    return res.table;
+  };
+
+  return { tables, saveLayout, clearTable };
 }

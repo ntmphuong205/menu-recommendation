@@ -410,6 +410,17 @@ const dict = {
     ko: "{table} 테이블의 전체 주문을 취소할까요?",
   },
   orders_cancel_item_title: { vi: "Huỷ món này", en: "Cancel this item", ko: "이 항목 취소" },
+  orders_clear_table_button: { vi: "Đã thanh toán", en: "Paid & clear", ko: "결제 완료" },
+  orders_clear_table_title: {
+    vi: "Đánh dấu bàn đã thanh toán, dọn bàn cho khách mới",
+    en: "Mark this table paid and cleared for the next party",
+    ko: "이 테이블 결제 완료 처리 후 다음 손님을 위해 비우기",
+  },
+  orders_clear_table_confirm: {
+    vi: "Xác nhận Bàn {table} đã thanh toán và dọn xong? Khách mới quét mã bàn này sẽ không còn thấy các đơn hiện tại nữa.",
+    en: "Confirm Table {table} has paid and been cleared? A new customer scanning this table's QR will no longer see the current orders.",
+    ko: "{table} 테이블이 결제 완료되고 정리되었나요? 이 테이블 QR을 스캔하는 새 손님에게는 현재 주문이 더 이상 보이지 않습니다.",
+  },
   orders_order_total_label: { vi: "Tổng đơn:", en: "Order total:", ko: "주문 합계:" },
   orders_served_heading: { vi: "Đã phục vụ", en: "Served", ko: "서빙 완료" },
   orders_cancelled_heading: { vi: "Đã huỷ", en: "Cancelled", ko: "취소됨" },

@@ -89,6 +89,9 @@ export interface ApiTable {
   capacity: number;
   table_image: string;
   view_image: string;
+  /** Everything before this moment belongs to a previous sitting at this
+   *  table — see CartScreen's MyOrdersSection. */
+  session_started_at: string | null;
 }
 
 export type ApiOrderStatus = "awaiting_payment" | "new" | "preparing" | "served" | "cancelled";
@@ -282,6 +285,8 @@ export const apiClient = {
   getTables: () => request<ApiTable[]>("GET", "/tables"),
   updateTables: (tables: unknown[]) =>
     request<{ success: boolean; tables: ApiTable[] }>("PUT", "/tables", { tables }),
+  clearTable: (tableCode: string) =>
+    request<{ success: boolean; table: ApiTable }>("PUT", `/tables/${tableCode}/clear`, {}),
 
   getOrders: (customerSessionId?: string) =>
     request<ApiOrder[]>(
