@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
@@ -13,6 +14,7 @@ from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlencode
 from uuid import UUID
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,12 +48,20 @@ VNPAY_PAYMENT_URL = os.getenv(
     "VNPAY_PAYMENT_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
 ).strip()
 VNPAY_RETURN_URL = os.getenv("VNPAY_RETURN_URL", "").strip()
-VNPAY_TIMEZONE = timezone(timedelta(hours=7))  # VNPay expects Vietnam local time.
+VN_TIMEZONE = timezone(timedelta(hours=7))  # Vietnam has no DST, so this is exact year-round.
 # VNPay only settles in VND. Menu prices in this deployment are stored as
 # USD — this is a placeholder conversion for demo/pilot use, not a real FX
 # feed. Set a store's currency to VND directly for accurate production
 # pricing instead of relying on this rate.
 USD_TO_VND_RATE = float(os.getenv("USD_TO_VND_RATE", "25000"))
+
+# Business-analytics weather correlation (see /api/analytics/*) keys its
+# daily weather off one fixed point rather than each store's own address —
+# every store on this deployment is currently in Hanoi, and daily
+# rain/temperature doesn't vary enough within one city to matter for this
+# feature. Revisit (real geocoding) once a store outside Hanoi is added.
+WEATHER_LAT = 21.0285
+WEATHER_LON = 105.8542
 
 TABLE_STATUSES = {"available", "reserved", "occupied"}
 # Per-item kitchen status (replaces the old pending/completed/cancelled model
@@ -110,6 +120,14 @@ def order_group_amount_vnd(rows: List[Dict[str, Any]]) -> int:
     if rows and rows[0].get("currency") == "USD":
         total *= USD_TO_VND_RATE
     return round(total)
+
+
+def to_vnd(amount: Any, currency: str) -> float:
+    """Per-row version of order_group_amount_vnd's conversion — analytics
+    sums many individual rows that can each carry a different currency,
+    unlike a single order group which is always uniform."""
+    value = float(amount)
+    return value * USD_TO_VND_RATE if currency == "USD" else value
 
 
 def vnpay_txn_ref(order_group_id: UUID) -> str:
@@ -930,6 +948,33 @@ class SupabaseRepository:
         if not response.data:
             raise HTTPException(status_code=404, detail="Order not found.")
         return response.data[0]
+
+    def get_orders_since(self, since_iso: str) -> List[Dict[str, Any]]:
+        """Order lines for business analytics — embeds each item's menu
+        category via the orders.menu_id FK so revenue/quantity can be
+        broken down by category without a per-row round-trip."""
+        response = self._run(
+            lambda: self.client.table("orders")
+            .select("*, menus(category)")
+            .eq("store_id", self.store_id)
+            .neq("status", "cancelled")
+            .gte("created_at", since_iso)
+            .execute(),
+            "Failed to load order history.",
+        )
+        return response.data or []
+
+    def get_weather_daily(self, since_date: str) -> List[Dict[str, Any]]:
+        response = self._run(
+            lambda: self.client.table("weather_daily")
+            .select("*")
+            .eq("store_id", self.store_id)
+            .gte("date", since_date)
+            .order("date")
+            .execute(),
+            "Failed to load weather history.",
+        )
+        return response.data or []
 
     def get_reservations(
         self, customer_session_id: Optional[str] = None
@@ -1885,7 +1930,7 @@ def init_vnpay_payment(payload: VnpayInitRequest, request: Request) -> Dict[str,
         "vnp_Locale": "vn",
         "vnp_ReturnUrl": VNPAY_RETURN_URL,
         "vnp_IpAddr": client_ip,
-        "vnp_CreateDate": datetime.now(VNPAY_TIMEZONE).strftime("%Y%m%d%H%M%S"),
+        "vnp_CreateDate": datetime.now(VN_TIMEZONE).strftime("%Y%m%d%H%M%S"),
     }
     secure_hash = vnpay_sign(params)
     query = urlencode(sorted(params.items())) + f"&vnp_SecureHash={secure_hash}"
@@ -2143,6 +2188,256 @@ def resolve_table_request(
         "message": "Staff call request resolved.",
         "request": table_request_to_public(row),
     }
+
+
+def classify_weather(precip_mm: Optional[float], weathercode: Optional[int]) -> str:
+    """Open-Meteo's daily precipitation_sum (mm) + WMO weathercode collapsed
+    down to the 3 buckets the analytics feature correlates menu choices
+    against. 1mm/day is a light-but-real threshold, well above drizzle
+    rounding noise."""
+    if (precip_mm or 0) >= 1.0:
+        return "rainy"
+    if weathercode in (0, 1):
+        return "sunny"
+    return "cloudy"
+
+
+def ensure_weather_backfilled(repo: "SupabaseRepository", days: int) -> None:
+    """Tops up weather_daily with real Hanoi weather so analytics always has
+    something genuine to correlate against, even for a store with no
+    history yet. Open-Meteo's forecast endpoint serves up to 92 past days
+    (plus today) in one free, keyless call, so this is cheap enough to call
+    on every analytics request; it's a no-op whenever today is already
+    cached, which is true for the rest of a given day after the first hit.
+    Never raises — a failed refresh just leaves analytics running on
+    whatever was already cached."""
+    try:
+        existing = {
+            row["date"]
+            for row in repo.get_weather_daily(
+                (datetime.now(timezone.utc).date() - timedelta(days=days)).isoformat()
+            )
+        }
+        today = datetime.now(VN_TIMEZONE).date()
+        if today.isoformat() in existing and (today - timedelta(days=1)).isoformat() in existing:
+            return
+        response = httpx.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                "latitude": WEATHER_LAT,
+                "longitude": WEATHER_LON,
+                "daily": "temperature_2m_mean,precipitation_sum,weathercode",
+                "timezone": "Asia/Ho_Chi_Minh",
+                "past_days": min(days, 92),
+                "forecast_days": 1,
+            },
+            timeout=8.0,
+        )
+        response.raise_for_status()
+        daily = response.json().get("daily", {})
+        dates = daily.get("time", [])
+        temps = daily.get("temperature_2m_mean", [])
+        precs = daily.get("precipitation_sum", [])
+        codes = daily.get("weathercode", [])
+        rows = []
+        for i, day in enumerate(dates):
+            if day in existing:
+                continue
+            precip = precs[i] if i < len(precs) else None
+            rows.append(
+                {
+                    "store_id": repo.store_id,
+                    "date": day,
+                    "temp_avg_c": temps[i] if i < len(temps) else None,
+                    "precip_mm": precip,
+                    "condition": classify_weather(precip, codes[i] if i < len(codes) else None),
+                }
+            )
+        if rows and supabase_client:
+            supabase_client.table("weather_daily").upsert(rows, on_conflict="store_id,date").execute()
+    except Exception:
+        logger.exception("Weather backfill failed")
+
+
+WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+
+def compute_weather_menu_analytics(
+    orders: List[Dict[str, Any]], weather_rows: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """Aggregates raw order lines + daily weather into the numbers both
+    /api/analytics/weather-menu (charts) and /api/analytics/insights (the
+    AI summary's only source of numbers) build on. Every figure here is a
+    real count/sum over `orders` — nothing here is estimated or invented."""
+    weather_by_date = {row["date"]: row for row in weather_rows}
+    conditions = ["sunny", "cloudy", "rainy"]
+    condition_days = {c: 0 for c in conditions}
+    for row in weather_rows:
+        condition_days[row["condition"]] = condition_days.get(row["condition"], 0) + 1
+
+    condition_stats = {
+        c: {"order_lines": 0, "revenue_vnd": 0.0, "categories": {}, "items": {}} for c in conditions
+    }
+    weekday_revenue = {k: 0.0 for k in WEEKDAY_KEYS}
+    hour_counts = [0] * 24
+    item_totals: Dict[str, Dict[str, Any]] = {}
+
+    for row in orders:
+        created = datetime.fromisoformat(str(row["created_at"]).replace("Z", "+00:00"))
+        local = created.astimezone(VN_TIMEZONE)
+        date_str = local.date().isoformat()
+        qty = int(row.get("quantity") or 0)
+        amount = to_vnd(row.get("total_price", 0), row.get("currency", "KRW"))
+        category = ((row.get("menus") or {}) or {}).get("category") or "Khác"
+        name = row.get("menu_name") or "?"
+
+        weekday_revenue[WEEKDAY_KEYS[local.weekday()]] += amount
+        hour_counts[local.hour] += qty
+
+        totals = item_totals.setdefault(name, {"name": name, "qty": 0, "revenue_vnd": 0.0})
+        totals["qty"] += qty
+        totals["revenue_vnd"] += amount
+
+        weather = weather_by_date.get(date_str)
+        if not weather:
+            continue
+        stat = condition_stats[weather["condition"]]
+        stat["order_lines"] += 1
+        stat["revenue_vnd"] += amount
+        stat["categories"][category] = stat["categories"].get(category, 0) + qty
+        stat["items"][name] = stat["items"].get(name, 0) + qty
+
+    def top_n(counter: Dict[str, int], n: int = 5) -> List[Dict[str, Any]]:
+        return [
+            {"name": k, "qty": v}
+            for k, v in sorted(counter.items(), key=lambda kv: kv[1], reverse=True)[:n]
+        ]
+
+    by_condition = []
+    for c in conditions:
+        stat = condition_stats[c]
+        total_qty = sum(stat["categories"].values()) or 1
+        by_condition.append(
+            {
+                "condition": c,
+                "days": condition_days.get(c, 0),
+                "order_lines": stat["order_lines"],
+                "revenue_vnd": round(stat["revenue_vnd"]),
+                "top_categories": [
+                    {"category": k, "qty": v, "share_pct": round(v / total_qty * 100, 1)}
+                    for k, v in sorted(stat["categories"].items(), key=lambda kv: kv[1], reverse=True)[:5]
+                ],
+                "top_items": top_n(stat["items"]),
+            }
+        )
+
+    return {
+        "days_with_weather": len(weather_rows),
+        "by_condition": by_condition,
+        "top_items_overall": sorted(item_totals.values(), key=lambda v: v["qty"], reverse=True)[:8],
+        "revenue_by_weekday": [{"weekday": k, "revenue_vnd": round(v)} for k, v in weekday_revenue.items()],
+        "orders_by_hour": [{"hour": h, "qty": hour_counts[h]} for h in range(24)],
+    }
+
+
+class AnalyticsInsights(BaseModel):
+    insights: List[str] = Field(default_factory=list)
+
+
+# Gemini call is slow-ish (~2-4s) and the underlying numbers only change as
+# fast as new orders come in — cache each store's generated insights for a
+# while instead of re-calling the model on every dashboard load.
+_insights_cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
+INSIGHTS_CACHE_TTL_SECONDS = 600
+
+
+@app.get("/api/analytics/weather-menu")
+def get_weather_menu_analytics(
+    days: int = Query(default=90, ge=7, le=365),
+    _staff: Dict[str, Any] = Depends(require_staff),
+) -> Dict[str, Any]:
+    repo = get_repository()
+    ensure_weather_backfilled(repo, days)
+    since_date = (datetime.now(timezone.utc).date() - timedelta(days=days)).isoformat()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        orders_future = pool.submit(repo.get_orders_since, f"{since_date}T00:00:00+00:00")
+        weather_future = pool.submit(repo.get_weather_daily, since_date)
+        orders = orders_future.result()
+        weather_rows = weather_future.result()
+    return compute_weather_menu_analytics(orders, weather_rows)
+
+
+@app.get("/api/analytics/insights")
+def get_analytics_insights(
+    days: int = Query(default=90, ge=7, le=365),
+    _staff: Dict[str, Any] = Depends(require_staff),
+) -> Dict[str, Any]:
+    repo = get_repository()
+    cache_key = f"{repo.store_id}:{days}"
+    now = time.monotonic()
+    cached = _insights_cache.get(cache_key)
+    if cached and now - cached[0] < INSIGHTS_CACHE_TTL_SECONDS:
+        return cached[1]
+
+    ensure_weather_backfilled(repo, days)
+    since_date = (datetime.now(timezone.utc).date() - timedelta(days=days)).isoformat()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        orders_future = pool.submit(repo.get_orders_since, f"{since_date}T00:00:00+00:00")
+        weather_future = pool.submit(repo.get_weather_daily, since_date)
+        orders = orders_future.result()
+        weather_rows = weather_future.result()
+    stats = compute_weather_menu_analytics(orders, weather_rows)
+
+    # Too little history to say anything real — an honest "not enough data
+    # yet" beats letting the model guess. This is the common case for a
+    # brand-new store that hasn't been running long enough to correlate
+    # anything against.
+    fallback: Dict[str, Any] = {"insights": [], "generated": False, "days_with_weather": stats["days_with_weather"]}
+    if not gemini_client or stats["days_with_weather"] < 14 or not stats["by_condition"]:
+        _insights_cache[cache_key] = (now, fallback)
+        return fallback
+
+    try:
+        prompt = f"""
+You are a business analyst for a Vietnamese restaurant. Below is real, pre-aggregated
+data from its orders and daily weather over the last {days} days:
+
+{json.dumps(stats, ensure_ascii=False, default=str)}
+
+Write 4-6 short business insights in Vietnamese, one sentence each, for the owner to
+skim quickly. Use ONLY the numbers present in the data above (percentages, quantities,
+revenue) — never invent any number not in the data. Prioritize: clear differences
+between rainy/sunny/cloudy days if the data shows any, the best-selling items overall,
+the busiest hour(s), and the busiest weekday. If the data doesn't clearly support a
+conclusion, don't make one up — skip it instead.
+Respond with exactly this JSON shape, nothing else:
+{{"insights": ["insight 1", "insight 2"]}}
+""".strip()
+        response = gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=[types.Content(role="user", parts=[types.Part(text=prompt)])],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=AnalyticsInsights,
+                thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL),
+            ),
+        )
+        if isinstance(response.parsed, AnalyticsInsights):
+            parsed = response.parsed.model_dump()
+        elif isinstance(response.parsed, dict):
+            parsed = response.parsed
+        else:
+            parsed = json.loads(response.text or "{}")
+        result: Dict[str, Any] = {
+            "insights": [str(s) for s in (parsed.get("insights") or [])][:6],
+            "generated": True,
+            "days_with_weather": stats["days_with_weather"],
+        }
+    except Exception:
+        logger.exception("Analytics insight generation failed")
+        result = fallback
+    _insights_cache[cache_key] = (now, result)
+    return result
 
 
 @app.get("/api/chat-messages")

@@ -235,6 +235,22 @@ create table if not exists public.table_requests (
 );
 create index if not exists table_requests_store_id_idx on public.table_requests(store_id);
 
+-- One row per store per calendar day (Vietnam local date) — real historical
+-- weather from Open-Meteo, backfilled/refreshed by the backend on demand
+-- (see api/index.py's ensure_weather_backfilled). Powers the "weather vs.
+-- menu" business analytics: joined against orders by date to see whether
+-- rainy/sunny/cloudy days correlate with different items selling.
+create table if not exists public.weather_daily (
+    store_id uuid not null references public.stores(id) on delete cascade,
+    date date not null,
+    temp_avg_c numeric(4, 1),
+    precip_mm numeric(6, 1),
+    condition text not null check (condition in ('sunny', 'cloudy', 'rainy')),
+    created_at timestamptz not null default now(),
+    primary key (store_id, date)
+);
+create index if not exists weather_daily_store_id_idx on public.weather_daily(store_id);
+
 -- Two-way messaging between a customer (identified by their browser's
 -- customer_session_id, same id used for orders/reviews) and restaurant
 -- staff — a real conversation, unlike the one-shot "call staff" requests
@@ -372,6 +388,7 @@ alter table public.reservations enable row level security;
 alter table public.reviews enable row level security;
 alter table public.table_requests enable row level security;
 alter table public.chat_messages enable row level security;
+alter table public.weather_daily enable row level security;
 
 -- ---------------------------------------------------------------------
 -- Migration for an already-provisioned database (this `create table`
@@ -426,6 +443,18 @@ update public.tables set status = 'available' where status = 'soon';
 alter table public.tables drop constraint if exists tables_status_check;
 alter table public.tables add constraint tables_status_check
     check (status in ('available', 'reserved', 'occupied'));
+
+create table if not exists public.weather_daily (
+    store_id uuid not null references public.stores(id) on delete cascade,
+    date date not null,
+    temp_avg_c numeric(4, 1),
+    precip_mm numeric(6, 1),
+    condition text not null check (condition in ('sunny', 'cloudy', 'rainy')),
+    created_at timestamptz not null default now(),
+    primary key (store_id, date)
+);
+create index if not exists weather_daily_store_id_idx on public.weather_daily(store_id);
+alter table public.weather_daily enable row level security;
 
 create table if not exists public.chat_messages (
     id uuid primary key default gen_random_uuid(),

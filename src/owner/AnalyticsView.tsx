@@ -1,11 +1,203 @@
-import { useMemo, useState } from "react";
-import { TrendingUp, Receipt, Wallet, Table2, BarChart3 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { TrendingUp, Receipt, Wallet, Table2, BarChart3, Sun, Cloud, CloudRain, Sparkles, Loader2 } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { orderTotal } from "../data/orders";
 import { useI18n } from "../i18n/I18nContext";
 import { formatPrice } from "../lib/currency";
+import { apiClient, type WeatherMenuAnalytics, type AnalyticsInsightsResponse } from "../lib/apiClient";
+import type { TranslationKey } from "../i18n/translations";
 
 const BRAND_GREEN = "#2D5A3D";
+
+const WEATHER_ICON = { sunny: Sun, cloudy: Cloud, rainy: CloudRain } as const;
+const WEATHER_COLOR = { sunny: "#C9A227", cloudy: "#5B7FA6", rainy: "#3E6B8A" } as const;
+const WEATHER_LABEL_KEY = {
+  sunny: "analytics_weather_sunny",
+  cloudy: "analytics_weather_cloudy",
+  rainy: "analytics_weather_rainy",
+} as const satisfies Record<string, TranslationKey>;
+const WEEKDAY_LABEL_KEY: Record<string, TranslationKey> = {
+  mon: "weekday_mon",
+  tue: "weekday_tue",
+  wed: "weekday_wed",
+  thu: "weekday_thu",
+  fri: "weekday_fri",
+  sat: "weekday_sat",
+  sun: "weekday_sun",
+};
+
+/** Weather × menu business analytics — real order + real historical
+ *  weather data joined server-side (see /api/analytics/*); this component
+ *  only renders whatever numbers the backend actually computed. */
+function WeatherAnalyticsSection() {
+  const { t } = useI18n();
+  const [days, setDays] = useState(90);
+  const [stats, setStats] = useState<WeatherMenuAnalytics | null>(null);
+  const [insights, setInsights] = useState<AnalyticsInsightsResponse | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingInsights, setLoadingInsights] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingStats(true);
+    setLoadingInsights(true);
+    setStats(null);
+    setInsights(null);
+    apiClient
+      .getWeatherMenuAnalytics(days)
+      .then((res) => !cancelled && setStats(res))
+      .catch(() => !cancelled && setStats(null))
+      .finally(() => !cancelled && setLoadingStats(false));
+    apiClient
+      .getAnalyticsInsights(days)
+      .then((res) => !cancelled && setInsights(res))
+      .catch(() => !cancelled && setInsights(null))
+      .finally(() => !cancelled && setLoadingInsights(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [days]);
+
+  const maxWeekdayRevenue = Math.max(1, ...(stats?.revenue_by_weekday.map((d) => d.revenue_vnd) ?? [1]));
+  const maxHourQty = Math.max(1, ...(stats?.orders_by_hour.map((h) => h.qty) ?? [1]));
+  const hasEnoughData = !!stats && stats.days_with_weather > 0 && stats.by_condition.some((c) => c.order_lines > 0);
+
+  return (
+    <div className="mt-10">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div>
+          <h2 className="text-[17px] font-bold text-[#22201B] mb-1">{t("analytics_weather_title")}</h2>
+          <p className="text-[12.5px] text-[#8A8272] max-w-lg">{t("analytics_weather_subtitle")}</p>
+        </div>
+        <div className="flex items-center gap-1 bg-[#F5F1E6] rounded-full p-1 shrink-0">
+          {[30, 90, 180].map((d) => (
+            <button
+              key={d}
+              onClick={() => setDays(d)}
+              className={`px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors ${
+                days === d ? "bg-white shadow-sm text-[#22201B]" : "text-[#8A8272]"
+              }`}
+            >
+              {t(`analytics_weather_range_${d}` as TranslationKey)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loadingStats && (
+        <div className="bg-white rounded-2xl p-10 border border-black/5 text-center text-[13px] text-[#B0A794] flex items-center justify-center gap-2">
+          <Loader2 size={15} className="animate-spin" />
+          {t("analytics_weather_insights_loading")}
+        </div>
+      )}
+
+      {!loadingStats && !hasEnoughData && (
+        <div className="bg-white rounded-2xl p-10 border border-black/5 text-center text-[13px] text-[#B0A794]">
+          {t("analytics_weather_empty")}
+        </div>
+      )}
+
+      {!loadingStats && hasEnoughData && stats && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            {stats.by_condition.map((cond) => {
+              const Icon = WEATHER_ICON[cond.condition];
+              return (
+                <div key={cond.condition} className="bg-white rounded-2xl border border-black/5 shadow-sm p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#22201B]">
+                      <Icon size={15} style={{ color: WEATHER_COLOR[cond.condition] }} />
+                      {t(WEATHER_LABEL_KEY[cond.condition])}
+                    </div>
+                    <span className="text-[10.5px] text-[#B0A794]">
+                      {t("analytics_weather_days_count", { count: cond.days })}
+                    </span>
+                  </div>
+                  <p className="text-[19px] font-bold text-[#2D5A3D] mb-2">{formatPrice(cond.revenue_vnd, "VND")}</p>
+                  {cond.order_lines === 0 ? (
+                    <p className="text-[11.5px] text-[#B0A794]">{t("analytics_weather_no_days")}</p>
+                  ) : (
+                    <>
+                      <p className="text-[10.5px] font-semibold text-[#8A8272] mb-1.5">
+                        {t("analytics_weather_top_categories")}
+                      </p>
+                      <div className="flex flex-col gap-1">
+                        {cond.top_categories.slice(0, 3).map((cat) => (
+                          <div key={cat.category} className="flex items-center justify-between text-[11.5px]">
+                            <span className="text-[#5C5240] truncate pr-2">{cat.category}</span>
+                            <span className="text-[#22201B] font-medium shrink-0">{cat.share_pct}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5 mb-4">
+            <h3 className="flex items-center gap-1.5 text-[13px] font-bold text-[#22201B] mb-3">
+              <Sparkles size={14} className="text-[#2D5A3D]" />
+              {t("analytics_weather_insights_title")}
+            </h3>
+            {loadingInsights ? (
+              <p className="flex items-center gap-2 text-[12.5px] text-[#B0A794]">
+                <Loader2 size={13} className="animate-spin" />
+                {t("analytics_weather_insights_loading")}
+              </p>
+            ) : insights && insights.insights.length > 0 ? (
+              <ul className="flex flex-col gap-2">
+                {insights.insights.map((line, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[13px] text-[#22201B]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#2D5A3D] mt-1.5 shrink-0" />
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[12.5px] text-[#B0A794]">{t("analytics_weather_insights_empty")}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
+              <h3 className="text-[13px] font-bold text-[#22201B] mb-4">{t("analytics_weather_revenue_by_weekday")}</h3>
+              <div className="flex items-end gap-2 h-32">
+                {stats.revenue_by_weekday.map((d) => (
+                  <div key={d.weekday} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5">
+                    <div
+                      style={{ height: `${(d.revenue_vnd / maxWeekdayRevenue) * 100}%`, backgroundColor: BRAND_GREEN }}
+                      className="w-full rounded-t-[4px] transition-all"
+                      title={formatPrice(d.revenue_vnd, "VND")}
+                    />
+                    <span className="text-[10px] text-[#8A8272]">{t(WEEKDAY_LABEL_KEY[d.weekday])}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
+              <h3 className="text-[13px] font-bold text-[#22201B] mb-4">{t("analytics_weather_orders_by_hour")}</h3>
+              <div className="flex items-end gap-[3px] h-32">
+                {stats.orders_by_hour.map((h) => (
+                  <div key={h.hour} className="flex-1 flex flex-col items-center justify-end h-full gap-1">
+                    <div
+                      style={{ height: `${(h.qty / maxHourQty) * 100}%`, backgroundColor: "#5B7FA6" }}
+                      className="w-full rounded-t-[2px] transition-all"
+                      title={`${h.hour}h: ${h.qty}`}
+                    />
+                    {h.hour % 3 === 0 && <span className="text-[9px] text-[#8A8272]">{h.hour}h</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function formatDay(ts: number) {
   return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -201,6 +393,8 @@ export function AnalyticsView() {
           </div>
         </div>
       )}
+
+      <WeatherAnalyticsSection />
     </div>
   );
 }

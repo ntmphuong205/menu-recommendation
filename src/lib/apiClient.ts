@@ -94,6 +94,29 @@ export interface ApiTable {
   session_started_at: string | null;
 }
 
+export interface WeatherConditionStat {
+  condition: "sunny" | "cloudy" | "rainy";
+  days: number;
+  order_lines: number;
+  revenue_vnd: number;
+  top_categories: { category: string; qty: number; share_pct: number }[];
+  top_items: { name: string; qty: number }[];
+}
+
+export interface WeatherMenuAnalytics {
+  days_with_weather: number;
+  by_condition: WeatherConditionStat[];
+  top_items_overall: { name: string; qty: number; revenue_vnd: number }[];
+  revenue_by_weekday: { weekday: string; revenue_vnd: number }[];
+  orders_by_hour: { hour: number; qty: number }[];
+}
+
+export interface AnalyticsInsightsResponse {
+  insights: string[];
+  generated: boolean;
+  days_with_weather: number;
+}
+
 export type ApiOrderStatus = "awaiting_payment" | "new" | "preparing" | "served" | "cancelled";
 export type ApiFulfillmentType = "dine_in" | "pickup";
 export type ApiPaymentMethod = "vnpay" | "bank_transfer";
@@ -373,4 +396,9 @@ export const apiClient = {
     web_order_intent?: "dine_in" | "pickup" | null;
     history?: ChatHistoryTurn[];
   }) => request<ChatResponse>("POST", "/chat", payload),
+
+  getWeatherMenuAnalytics: (days = 90) =>
+    request<WeatherMenuAnalytics>("GET", `/analytics/weather-menu?days=${days}`),
+  getAnalyticsInsights: (days = 90) =>
+    request<AnalyticsInsightsResponse>("GET", `/analytics/insights?days=${days}`),
 };

@@ -494,6 +494,48 @@ const dict = {
   analytics_col_dish: { vi: "Món", en: "Dish", ko: "메뉴" },
   analytics_col_qty: { vi: "SL", en: "Qty", ko: "수량" },
 
+  // Weather × menu business analytics (admin, AnalyticsView)
+  analytics_weather_title: { vi: "Thời tiết & thực đơn", en: "Weather & menu", ko: "날씨 & 메뉴" },
+  analytics_weather_subtitle: {
+    vi: "So sánh những gì khách gọi vào ngày nắng, nhiều mây và ngày mưa, dựa trên dữ liệu đơn hàng thật và thời tiết thật.",
+    en: "Compares what customers order on sunny, cloudy, and rainy days, based on real order and weather data.",
+    ko: "실제 주문 및 날씨 데이터를 기반으로 맑은 날, 흐린 날, 비 오는 날 고객이 주문하는 메뉴를 비교합니다.",
+  },
+  analytics_weather_range_30: { vi: "30 ngày", en: "30 days", ko: "30일" },
+  analytics_weather_range_90: { vi: "90 ngày", en: "90 days", ko: "90일" },
+  analytics_weather_range_180: { vi: "180 ngày", en: "180 days", ko: "180일" },
+  analytics_weather_sunny: { vi: "Ngày nắng", en: "Sunny days", ko: "맑은 날" },
+  analytics_weather_cloudy: { vi: "Ngày nhiều mây", en: "Cloudy days", ko: "흐린 날" },
+  analytics_weather_rainy: { vi: "Ngày mưa", en: "Rainy days", ko: "비 오는 날" },
+  analytics_weather_days_count: { vi: "{count} ngày", en: "{count} days", ko: "{count}일" },
+  analytics_weather_no_days: {
+    vi: "Chưa có ngày nào loại này trong khoảng đã chọn.",
+    en: "No days of this type in the selected range yet.",
+    ko: "선택한 기간에 이 유형의 날이 아직 없습니다.",
+  },
+  analytics_weather_empty: {
+    vi: "Chưa có đủ dữ liệu thời tiết + đơn hàng để phân tích. Dữ liệu thời tiết được tự động cập nhật mỗi ngày — quay lại sau khi quán có thêm lịch sử đơn hàng.",
+    en: "Not enough weather + order data to analyze yet. Weather data updates automatically each day — check back once the store has more order history.",
+    ko: "분석하기에 날씨 및 주문 데이터가 아직 충분하지 않습니다. 날씨 데이터는 매일 자동으로 업데이트됩니다 — 주문 이력이 더 쌓이면 다시 확인해 주세요.",
+  },
+  analytics_weather_insights_title: { vi: "Nhận định từ AI", en: "AI insights", ko: "AI 인사이트" },
+  analytics_weather_insights_loading: { vi: "AI đang phân tích số liệu…", en: "AI is analyzing the data…", ko: "AI가 데이터를 분석 중입니다…" },
+  analytics_weather_insights_empty: {
+    vi: "Chưa đủ lịch sử để AI đưa ra nhận định đáng tin cậy — cần ít nhất khoảng 2 tuần dữ liệu thời tiết đã có đơn hàng đi kèm.",
+    en: "Not enough history yet for a reliable AI insight — at least about 2 weeks of weather-matched order data is needed.",
+    ko: "신뢰할 수 있는 AI 인사이트를 위한 이력이 아직 충분하지 않습니다 — 최소 약 2주 분량의 날씨-주문 매칭 데이터가 필요합니다.",
+  },
+  analytics_weather_top_categories: { vi: "Nhóm món nổi bật", en: "Top categories", ko: "인기 카테고리" },
+  analytics_weather_revenue_by_weekday: { vi: "Doanh thu theo thứ trong tuần", en: "Revenue by weekday", ko: "요일별 매출" },
+  analytics_weather_orders_by_hour: { vi: "Đơn hàng theo khung giờ", en: "Orders by hour", ko: "시간대별 주문" },
+  weekday_mon: { vi: "T2", en: "Mon", ko: "월" },
+  weekday_tue: { vi: "T3", en: "Tue", ko: "화" },
+  weekday_wed: { vi: "T4", en: "Wed", ko: "수" },
+  weekday_thu: { vi: "T5", en: "Thu", ko: "목" },
+  weekday_fri: { vi: "T6", en: "Fri", ko: "금" },
+  weekday_sat: { vi: "T7", en: "Sat", ko: "토" },
+  weekday_sun: { vi: "CN", en: "Sun", ko: "일" },
+
   // Seating layout (admin)
   seating_title: { vi: "Sơ đồ bàn", en: "Seating Layout", ko: "좌석 배치" },
   seating_subtitle: {
