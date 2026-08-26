@@ -75,7 +75,7 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof Users; label: str
  *  ingredient_lines) aggregated server-side (see /api/analytics/*); this
  *  component only renders whatever numbers the backend actually computed. */
 function BusinessAnalyticsSection() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [days, setDays] = useState(90);
   const [stats, setStats] = useState<BusinessAnalytics | null>(null);
   const [insights, setInsights] = useState<AnalyticsInsightsResponse | null>(null);
@@ -85,23 +85,33 @@ function BusinessAnalyticsSection() {
   useEffect(() => {
     let cancelled = false;
     setLoadingStats(true);
-    setLoadingInsights(true);
     setStats(null);
-    setInsights(null);
     apiClient
       .getBusinessAnalytics(days)
       .then((res) => !cancelled && setStats(res))
       .catch(() => !cancelled && setStats(null))
       .finally(() => !cancelled && setLoadingStats(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [days]);
+
+  // Separate from the stats fetch above — the AI text is the only part of
+  // this section that depends on the admin's chosen display language, so
+  // switching language shouldn't re-fetch the (language-agnostic) numbers.
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingInsights(true);
+    setInsights(null);
     apiClient
-      .getAnalyticsInsights(days)
+      .getAnalyticsInsights(days, lang)
       .then((res) => !cancelled && setInsights(res))
       .catch(() => !cancelled && setInsights(null))
       .finally(() => !cancelled && setLoadingInsights(false));
     return () => {
       cancelled = true;
     };
-  }, [days]);
+  }, [days, lang]);
 
   const pb = stats?.purchase_behavior;
   const ing = stats?.ingredient_prep;

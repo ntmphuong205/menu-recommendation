@@ -428,6 +428,6 @@ export const apiClient = {
 
   getBusinessAnalytics: (days = 90) =>
     request<BusinessAnalytics>("GET", `/analytics/business?days=${days}`),
-  getAnalyticsInsights: (days = 90) =>
-    request<AnalyticsInsightsResponse>("GET", `/analytics/insights?days=${days}`),
+  getAnalyticsInsights: (days = 90, lang = "vi") =>
+    request<AnalyticsInsightsResponse>("GET", `/analytics/insights?days=${days}&lang=${lang}`),
 };

@@ -2275,10 +2275,6 @@ def ensure_weather_backfilled(repo: "SupabaseRepository", days: int) -> None:
 
 
 WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-WEEKDAY_VI_LABEL = {
-    "mon": "Thứ Hai", "tue": "Thứ Ba", "wed": "Thứ Tư", "thu": "Thứ Năm",
-    "fri": "Thứ Sáu", "sat": "Thứ Bảy", "sun": "Chủ Nhật",
-}
 
 
 def compute_business_analytics(
@@ -2479,13 +2475,17 @@ def get_business_analytics(
     return _load_analytics_stats(get_repository(), days)
 
 
+ANALYTICS_LANGUAGE_NAMES = {"ko": "Korean", "en": "English", "vi": "Vietnamese"}
+
+
 @app.get("/api/analytics/insights")
 def get_analytics_insights(
     days: int = Query(default=90, ge=7, le=365),
+    lang: str = Query(default="vi", min_length=2, max_length=10),
     _staff: Dict[str, Any] = Depends(require_staff),
 ) -> Dict[str, Any]:
     repo = get_repository()
-    cache_key = f"{repo.store_id}:{days}"
+    cache_key = f"{repo.store_id}:{days}:{lang}"
     now = time.monotonic()
     cached = _insights_cache.get(cache_key)
     if cached and now - cached[0] < INSIGHTS_CACHE_TTL_SECONDS:
@@ -2507,6 +2507,7 @@ def get_analytics_insights(
         return fallback
 
     try:
+        language_name = ANALYTICS_LANGUAGE_NAMES.get(lang, "Vietnamese")
         prompt = f"""
 You are a business analyst for a Vietnamese restaurant. Below is real, pre-aggregated
 data from its orders (and, where available, matched daily weather and each dish's
@@ -2514,7 +2515,8 @@ ingredient list) over the last {days} days:
 
 {json.dumps(stats, ensure_ascii=False, default=str)}
 
-Write 5-8 short, concrete business insights in Vietnamese, one sentence each, for the
+Write 5-8 short, concrete business insights in {language_name} (the owner's chosen
+display language — do not mix in any other language), one sentence each, for the
 owner to skim quickly. Use ONLY the numbers present in the data above (percentages,
 quantities, grams, revenue) — copy each number exactly from its field, never invent one
 and never combine two different fields into a new number. In particular: a "days" field
@@ -2525,20 +2527,21 @@ field you're describing before including it. Cover a mix of:
 - purchase behavior: best-selling items/categories, items frequently bought together,
   repeat-customer rate, busiest hour(s) and weekday
 - ingredient prep: which ingredients are used in the largest quantity, and how much of
-  the top 2-3 ingredients to prepare tomorrow ({WEEKDAY_VI_LABEL[stats['ingredient_prep']['tomorrow_weekday']]})
-  based on forecast_tomorrow_grams — phrase this as a concrete kg/g amount
+  the top 2-3 ingredients to prepare tomorrow (weekday code "{stats['ingredient_prep']['tomorrow_weekday']}",
+  translate this to a real day name in {language_name}) based on forecast_tomorrow_grams
+  — phrase this as a concrete kg/g amount
 - weather (only if by_condition data is non-empty and shows a real difference): how
   rainy/sunny/cloudy days differ in what sells — the "days" field there is how many of
   the {days} calendar days had that weather, not how many items sold
 If a category above has no usable data (e.g. ingredient_prep.top_ingredients is empty,
 or weather.by_condition is all zeros), skip that category entirely instead of forcing
 a sentence about it. If the data doesn't clearly support a conclusion, don't make one up.
-Formatting: write natural Vietnamese sentences only — never print a raw JSON field/key
-name like "revenue_vnd" or "order_lines" in the output, describe what the number means
-in words instead. Write VND amounts rounded to a readable form (e.g. "39,3 triệu VNĐ",
-not a raw decimal), and translate the 3-letter weekday codes (mon/tue/wed/thu/fri/sat/
-sun) to Vietnamese day names (Thứ Hai/Thứ Ba/Thứ Tư/Thứ Năm/Thứ Sáu/Thứ Bảy/Chủ Nhật) —
-never print a raw weekday code.
+Formatting: write natural {language_name} sentences only — never print a raw JSON
+field/key name like "revenue_vnd" or "order_lines" in the output, describe what the
+number means in words instead. Write money amounts rounded to a readable form idiomatic
+to {language_name} (e.g. Vietnamese "39,3 triệu VNĐ", not a raw decimal), and always
+translate the 3-letter weekday codes (mon/tue/wed/thu/fri/sat/sun) to real day names in
+{language_name} — never print a raw weekday code.
 Respond with exactly this JSON shape, nothing else:
 {{"insights": ["insight 1", "insight 2"]}}
 """.strip()
