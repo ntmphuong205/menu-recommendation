@@ -64,6 +64,16 @@ create table if not exists public.stores (
     -- *schedule*) — new orders are rejected outright while this is false,
     -- so a customer can't pay for a pickup on a day the store didn't open.
     is_open boolean not null default true,
+    -- Gemini context-cache reference for /api/chat's system prompt (store
+    -- info + menu + tables) — that content is identical across every chat
+    -- message for this store until something changes, so caching it with
+    -- Gemini and reusing the reference here (instead of re-uploading the
+    -- full prompt on every message) cuts most of the token cost per
+    -- message. Stored in the DB, not in-process memory, since this
+    -- backend runs as serverless functions with no guaranteed shared
+    -- memory between requests. Null/expired means "create a fresh one".
+    ai_cache_name text,
+    ai_cache_expires_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
@@ -427,7 +437,9 @@ alter table public.stores
     add column if not exists address text default '',
     add column if not exists cover_image text,
     add column if not exists filter_tags jsonb not null default '[]'::jsonb,
-    add column if not exists is_open boolean not null default true;
+    add column if not exists is_open boolean not null default true,
+    add column if not exists ai_cache_name text,
+    add column if not exists ai_cache_expires_at timestamptz;
 
 alter table public.menus
     add column if not exists size_variants jsonb not null default '[]'::jsonb,
