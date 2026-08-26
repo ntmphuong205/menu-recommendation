@@ -125,7 +125,7 @@ create table if not exists public.tables (
     table_code text not null,
     x numeric(5, 2) not null default 0 check (x >= 0 and x <= 100),
     y numeric(5, 2) not null default 0 check (y >= 0 and y <= 100),
-    status text not null default 'available' check (status in ('available', 'soon', 'reserved', 'occupied')),
+    status text not null default 'available' check (status in ('available', 'reserved', 'occupied')),
     view_name text default '',
     tag text default '',
     capacity integer not null default 4 check (capacity > 0),
@@ -419,6 +419,13 @@ alter table public.menus
 
 alter table public.tables
     add column if not exists session_started_at timestamptz not null default now();
+
+-- "soon" (available-soon) was dropped as a seating status — fold any
+-- existing rows into "available" before tightening the check constraint.
+update public.tables set status = 'available' where status = 'soon';
+alter table public.tables drop constraint if exists tables_status_check;
+alter table public.tables add constraint tables_status_check
+    check (status in ('available', 'reserved', 'occupied'));
 
 create table if not exists public.chat_messages (
     id uuid primary key default gen_random_uuid(),

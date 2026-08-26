@@ -2,11 +2,13 @@ import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
 import type { ApiTable } from "../lib/apiClient";
 
+// A deliberately traffic-light-like scheme now that only 3 statuses remain
+// — green/blue/red reads at a glance far more clearly than the muted
+// terracotta "occupied" used to.
 const STATUS_BG: Record<ApiTable["status"], string> = {
   available: "bg-[#4CAF7D]",
-  soon: "bg-[#E0A83C]",
   reserved: "bg-[#5B7FA6]",
-  occupied: "bg-[#C97456]",
+  occupied: "bg-[#B0553C]",
 };
 
 /** Terrace vs indoor is inferred the same way the backend's AI chat context
@@ -61,25 +63,22 @@ export function FloorPlanView({ tables, onSelect }: { tables: ApiTable[]; onSele
   const { t } = useI18n();
   const counts = {
     available: tables.filter((tb) => tb.status === "available").length,
-    soon: tables.filter((tb) => tb.status === "soon").length,
     reserved: tables.filter((tb) => tb.status === "reserved").length,
     occupied: tables.filter((tb) => tb.status === "occupied").length,
   };
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-3 grid grid-cols-4 gap-1 text-center">
+      <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-3 grid grid-cols-3 gap-1 text-center">
         <StatTile value={counts.available} label={t("table_status_available")} color="text-[#2D5A3D]" />
-        <StatTile value={counts.soon} label={t("table_status_soon")} color="text-[#8A6B1F]" />
         <StatTile value={counts.reserved} label={t("table_status_reserved")} color="text-[#3E5C7A]" />
         <StatTile value={counts.occupied} label={t("table_status_occupied")} color="text-[#B0553C]" />
       </div>
 
       <div className="flex items-center gap-3 text-[10px] text-[#8A8272] px-0.5 flex-wrap">
         <LegendDot color="bg-[#4CAF7D]" label={t("table_status_available")} />
-        <LegendDot color="bg-[#E0A83C]" label={t("table_status_soon")} />
         <LegendDot color="bg-[#5B7FA6]" label={t("table_status_reserved")} />
-        <LegendDot color="bg-[#C97456]" label={t("table_status_occupied")} />
+        <LegendDot color="bg-[#B0553C]" label={t("table_status_occupied")} />
       </div>
 
       <div className="relative bg-[#EFE4CE] rounded-2xl overflow-hidden aspect-[10/11] border border-black/5">

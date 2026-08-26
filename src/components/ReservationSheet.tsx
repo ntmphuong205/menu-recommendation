@@ -7,9 +7,8 @@ import type { ApiTable } from "../lib/apiClient";
 
 const STATUS_DOT: Record<ApiTable["status"], string> = {
   available: "bg-[#4CAF7D]",
-  soon: "bg-[#E0A83C]",
   reserved: "bg-[#5B7FA6]",
-  occupied: "bg-[#C97456]",
+  occupied: "bg-[#B0553C]",
 };
 
 function PhotoCard({ label, src }: { label: string; src: string }) {

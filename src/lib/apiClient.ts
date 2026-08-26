@@ -83,7 +83,7 @@ export interface ApiTable {
   db_id: string;
   x: number;
   y: number;
-  status: "available" | "soon" | "reserved" | "occupied";
+  status: "available" | "reserved" | "occupied";
   view: string;
   tag: string;
   capacity: number;

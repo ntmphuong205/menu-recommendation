@@ -53,7 +53,7 @@ VNPAY_TIMEZONE = timezone(timedelta(hours=7))  # VNPay expects Vietnam local tim
 # pricing instead of relying on this rate.
 USD_TO_VND_RATE = float(os.getenv("USD_TO_VND_RATE", "25000"))
 
-TABLE_STATUSES = {"available", "soon", "reserved", "occupied"}
+TABLE_STATUSES = {"available", "reserved", "occupied"}
 # Per-item kitchen status (replaces the old pending/completed/cancelled model
 # with ICAPS's finer-grained new -> preparing -> served flow). awaiting_payment
 # is a pre-kitchen holding state for remote pickup orders, only ever set by
@@ -313,7 +313,7 @@ class TablePayload(BaseModel):
     db_id: Optional[str] = None
     x: float = Field(ge=0, le=100)
     y: float = Field(ge=0, le=100)
-    status: Literal["available", "soon", "reserved", "occupied"]
+    status: Literal["available", "reserved", "occupied"]
     view: str = Field(default="", max_length=100)
     tag: str = Field(default="", max_length=100)
     capacity: int = Field(default=4, ge=1, le=50)

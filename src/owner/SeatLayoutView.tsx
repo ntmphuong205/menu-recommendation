@@ -5,20 +5,22 @@ import type { ApiTable } from "../lib/apiClient";
 import { useI18n } from "../i18n/I18nContext";
 import type { TranslationKey } from "../i18n/translations";
 
-const STATUS_OPTIONS: ApiTable["status"][] = ["available", "soon", "reserved", "occupied"];
+const STATUS_OPTIONS: ApiTable["status"][] = ["available", "reserved", "occupied"];
 
 const STATUS_LABEL_KEY: Record<ApiTable["status"], TranslationKey> = {
   available: "table_status_available",
-  soon: "table_status_soon",
   reserved: "table_status_reserved",
   occupied: "table_status_occupied",
 };
 
-const STATUS_RING: Record<ApiTable["status"], string> = {
-  available: "ring-2 ring-[#2D5A3D]/40",
-  soon: "ring-2 ring-[#8A6B1F]/40",
-  reserved: "ring-2 ring-black/15",
-  occupied: "ring-2 ring-[#B0553C]/40",
+// Solid fills, not faint rings on a white tile — a thin 2px outline at 40%
+// opacity read as barely-there on the actual floor plan, especially for
+// "reserved" (a near-invisible ring-black/15). Same traffic-light palette
+// as the customer-facing FloorPlanView so the two stay visually consistent.
+const STATUS_STYLE: Record<ApiTable["status"], string> = {
+  available: "bg-[#4CAF7D] text-white border-transparent",
+  reserved: "bg-[#5B7FA6] text-white border-transparent",
+  occupied: "bg-[#B0553C] text-white border-transparent",
 };
 
 function nextTableCode(tables: ApiTable[]): string {
@@ -129,6 +131,15 @@ export function SeatLayoutView() {
         </div>
       </div>
 
+      <div className="flex items-center gap-3 text-[11px] text-[#8A8272] mb-3 flex-wrap">
+        {STATUS_OPTIONS.map((s) => (
+          <span key={s} className="flex items-center gap-1.5">
+            <span className={`w-2.5 h-2.5 rounded-full ${STATUS_STYLE[s].split(" ")[0]}`} />
+            {t(STATUS_LABEL_KEY[s])}
+          </span>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-4">
         <div
           ref={canvasRef}
@@ -146,9 +157,9 @@ export function SeatLayoutView() {
               key={table.db_id || table.id || i}
               onPointerDown={handlePointerDown(i)}
               style={{ left: `${table.x}%`, top: `${table.y}%` }}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-xl border border-black/10 bg-white flex items-center justify-center text-[11px] font-bold text-[#22201B] cursor-grab active:cursor-grabbing transition-shadow ${
-                i === selectedIndex ? "shadow-md" : "opacity-90"
-              } ${STATUS_RING[table.status]}`}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-xl border flex items-center justify-center text-[11px] font-bold cursor-grab active:cursor-grabbing transition-shadow ${
+                i === selectedIndex ? "ring-2 ring-offset-2 ring-[#22201B] shadow-md" : "opacity-90"
+              } ${STATUS_STYLE[table.status]}`}
             >
               {table.id}
             </button>

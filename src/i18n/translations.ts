@@ -157,7 +157,6 @@ const dict = {
     ko: "테이블을 눌러 상세 정보를 보거나 예약을 요청하세요.",
   },
   table_status_available: { vi: "Còn trống", en: "Available", ko: "이용 가능" },
-  table_status_soon: { vi: "Sắp trống", en: "Available soon", ko: "곧 이용 가능" },
   table_status_reserved: { vi: "Đã đặt", en: "Reserved", ko: "예약됨" },
   table_status_occupied: { vi: "Đang sử dụng", en: "Occupied", ko: "이용 중" },
   table_terrace: { vi: "Sân hiên", en: "Terrace", ko: "테라스" },
