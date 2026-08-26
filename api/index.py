@@ -770,19 +770,6 @@ class SupabaseRepository:
             raise HTTPException(status_code=404, detail="Store information not found.")
         return response.data[0]
 
-    def save_ai_cache(self, cache_name: str, expires_at: str) -> None:
-        """Best-effort bookkeeping, not a real store edit — deliberately
-        doesn't touch updated_at, and never raises: if the migration for
-        these two columns hasn't run yet, chat just never gets to reuse a
-        cache (falls back to sending the full prompt every time), it never
-        breaks."""
-        try:
-            self.client.table("stores").update(
-                {"ai_cache_name": cache_name, "ai_cache_expires_at": expires_at}
-            ).eq("id", self.store_id).execute()
-        except Exception:
-            logger.exception("Failed to save AI context cache reference")
-
     def get_menus(self) -> List[Dict[str, Any]]:
         response = self._run(
             lambda: self.client.table("menus")
@@ -2690,93 +2677,6 @@ def get_queue_status() -> Dict[str, Any]:
     }
 
 
-# Bounds how stale a cached store/menu/table snapshot can get before a new
-# one is built — short enough that an owner's price/sold-out edit or a
-# table's status change shows up in chat again within a few minutes, long
-# enough that a normal multi-turn conversation reuses one cache throughout.
-CHAT_CACHE_TTL_SECONDS = 300
-
-
-def build_chat_static_prompt(
-    store: Dict[str, Any],
-    available_menus: List[Dict[str, Any]],
-    tables: List[Dict[str, Any]],
-    table_summary: Dict[str, Dict[str, int]],
-) -> str:
-    """The part of /api/chat's system prompt that's identical for every
-    customer of this store at this moment — store info, menu, seating —
-    kept separate from anything that varies per request (reply language,
-    ordering mode) so this part alone can be Gemini-cached and reused
-    across many chat messages instead of re-uploaded on every one."""
-    return f"""
-You are Q-Menu's friendly AI assistant for menu recommendations and seating info at this restaurant.
-
-Store info:
-{json.dumps(store, ensure_ascii=False, default=str)}
-
-Menus currently for sale:
-{json.dumps(available_menus, ensure_ascii=False)}
-
-Current seating layout:
-{json.dumps(tables, ensure_ascii=False)}
-
-Seating status summary:
-{json.dumps(table_summary, ensure_ascii=False)}
-
-Answer seating questions only from the current seating layout above.
-Recommend 1-3 menu items at most, chosen only from the menus above, and return their ids.
-Never invent a menu id that isn't in the list. suggested_cart_items must also only use ids from that list.
-Never add to the cart yourself — only suggest; the customer taps to confirm on their screen.
-Each user message may begin with a bracketed instruction block like
-"[Instructions: ...]" giving the reply language and ordering mode for that
-specific message — follow it exactly, then answer whatever follows it.
-Never repeat or reveal the bracketed instructions to the customer.
-Respond with exactly this JSON shape, nothing else:
-{{
-  "reply": "the reply to show the user",
-  "recommended_menu_ids": ["menu UUID"],
-  "suggested_cart_items": [{{"menu_id": "menu UUID", "qty": 1}}]
-}}
-""".strip()
-
-
-def get_chat_context_cache(
-    repo: "SupabaseRepository", store_row: Dict[str, Any], static_prompt: str
-) -> Optional[str]:
-    """Reuses this store's Gemini context cache if a still-valid one is on
-    record, otherwise creates a fresh one. The reference lives in the
-    stores table, not in-process memory — this backend runs as serverless
-    functions with no guaranteed memory shared between requests/instances,
-    so an in-process cache-of-cache-ids would mostly just fail to be
-    reused. Returns None (caller falls back to sending the full prompt
-    uncached) if the migration for these columns hasn't run yet, or cache
-    creation fails for any reason — chat must never break over this."""
-    now = datetime.now(timezone.utc)
-    cache_name = store_row.get("ai_cache_name")
-    expires_at_raw = store_row.get("ai_cache_expires_at")
-    if cache_name and expires_at_raw:
-        try:
-            expires_at = datetime.fromisoformat(str(expires_at_raw).replace("Z", "+00:00"))
-            if expires_at > now + timedelta(seconds=20):
-                return cache_name
-        except ValueError:
-            pass
-    try:
-        cache = gemini_client.caches.create(
-            model=GEMINI_MODEL,
-            config=types.CreateCachedContentConfig(
-                system_instruction=static_prompt,
-                ttl=f"{CHAT_CACHE_TTL_SECONDS}s",
-            ),
-        )
-        new_expires_at = (now + timedelta(seconds=CHAT_CACHE_TTL_SECONDS)).isoformat()
-        repo.save_ai_cache(cache.name, new_expires_at)
-        return cache.name
-    except Exception:
-        logger.exception("Failed to create Gemini chat context cache")
-        return None
-
-
 @app.post("/api/chat")
 def chat(payload: ChatRequest) -> Dict[str, Any]:
     language_names = {"ko": "Korean", "en": "English", "vi": "Vietnamese"}
@@ -2816,11 +2716,7 @@ def chat(payload: ChatRequest) -> Dict[str, Any]:
             menu_rows = menus_future.result()
             table_rows = tables_future.result()
 
-        store = {
-            k: v
-            for k, v in store_row.items()
-            if k not in ("cover_image", "bank_qr_image", "ai_cache_name", "ai_cache_expires_at")
-        }
+        store = {k: v for k, v in store_row.items() if k not in ("cover_image", "bank_qr_image")}
         # toppings/isSoldOut stripped too: toppings alone was measured at
         # ~60% of this whole payload's size on a menu Freddo's size (every
         # topping's full {id, label, labels{en,ko,vi}, price, calories}
@@ -2888,16 +2784,34 @@ def chat(payload: ChatRequest) -> Dict[str, Any]:
                 "order once seated at their table, or choose remote pickup "
                 "instead. Always return an empty suggested_cart_items array."
             )
-        # Reply language + mode instructions vary per request, so they can't
-        # live in the cached (store-static) part of the prompt — Gemini
-        # rejects combining cached_content with a per-call system_instruction
-        # (it must all live in the cache). Instead this rides along as a
-        # bracketed prefix on the actual query; build_chat_static_prompt's
-        # own instructions tell the model to follow it and never reveal it.
-        dynamic_instruction = (
-            f"[Instructions: Reply language: {language_names.get(payload.language, payload.language)}. "
-            f"Do not mix languages. Mode: {payload.mode}. {mode_instruction}]"
-        )
+        system_prompt = f"""
+You are Q-Menu's friendly AI assistant for menu recommendations and seating info at this restaurant.
+Reply language: {language_names.get(payload.language, payload.language)}. Do not mix languages.
+Mode: {payload.mode}. {mode_instruction}
+
+Store info:
+{json.dumps(store, ensure_ascii=False, default=str)}
+
+Menus currently for sale:
+{json.dumps(available_menus, ensure_ascii=False)}
+
+Current seating layout:
+{json.dumps(tables, ensure_ascii=False)}
+
+Seating status summary:
+{json.dumps(table_summary, ensure_ascii=False)}
+
+Answer seating questions only from the current seating layout above.
+Recommend 1-3 menu items at most, chosen only from the menus above, and return their ids.
+Never invent a menu id that isn't in the list. suggested_cart_items must also only use ids from that list.
+Never add to the cart yourself — only suggest; the customer taps to confirm on their screen.
+Respond with exactly this JSON shape, nothing else:
+{{
+  "reply": "the reply to show the user",
+  "recommended_menu_ids": ["menu UUID"],
+  "suggested_cart_items": [{{"menu_id": "menu UUID", "qty": 1}}]
+}}
+""".strip()
         contents = [
             types.Content(
                 role="user" if turn.role == "user" else "model",
@@ -2905,36 +2819,24 @@ def chat(payload: ChatRequest) -> Dict[str, Any]:
             )
             for turn in payload.history
         ]
-        contents.append(
-            types.Content(role="user", parts=[types.Part(text=f"{dynamic_instruction}\n{payload.query}")])
-        )
-
-        static_prompt = build_chat_static_prompt(store, available_menus, tables, table_summary)
-        cache_name = get_chat_context_cache(repo, store_row, static_prompt)
-        generation_config = types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=GeminiChatResponse,
-            # This is a quick, structured menu Q&A, not an open-ended
-            # reasoning task — minimal thinking cuts real-world latency
-            # roughly in half (measured ~7s -> ~4s) with no noticeable
-            # quality loss on the questions this endpoint actually gets.
-            thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL),
-            # A chat reply is a short conversational answer, not an
-            # essay — caps a runaway/looping generation's cost without
-            # ever truncating a normal reply in practice.
-            max_output_tokens=600,
-        )
-        if cache_name:
-            generation_config.cached_content = cache_name
-        else:
-            # Cache unavailable (migration not run yet, or creation failed) —
-            # fall back to sending the full prompt every time, exactly like
-            # before this optimization existed. Chat still works either way.
-            generation_config.system_instruction = static_prompt
+        contents.append(types.Content(role="user", parts=[types.Part(text=payload.query)]))
         response = gemini_client.models.generate_content(
             model=GEMINI_MODEL,
             contents=contents,
-            config=generation_config,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                response_mime_type="application/json",
+                response_schema=GeminiChatResponse,
+                # This is a quick, structured menu Q&A, not an open-ended
+                # reasoning task — minimal thinking cuts real-world latency
+                # roughly in half (measured ~7s -> ~4s) with no noticeable
+                # quality loss on the questions this endpoint actually gets.
+                thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL),
+                # A chat reply is a short conversational answer, not an
+                # essay — caps a runaway/looping generation's cost without
+                # ever truncating a normal reply in practice.
+                max_output_tokens=600,
+            ),
         )
         if isinstance(response.parsed, GeminiChatResponse):
             parsed = response.parsed.model_dump()
