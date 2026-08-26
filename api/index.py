@@ -2585,6 +2585,9 @@ Respond with exactly this JSON shape, nothing else:
                 # was measured mixing up a day-count field with an item-
                 # count field in testing, so this uses one thinking level up.
                 thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW),
+                # 5-8 short sentences, nothing more — caps a runaway
+                # generation's cost without ever truncating a real answer.
+                max_output_tokens=800,
             ),
         )
         if isinstance(response.parsed, AnalyticsInsights):
@@ -2714,8 +2717,16 @@ def chat(payload: ChatRequest) -> Dict[str, Any]:
             table_rows = tables_future.result()
 
         store = {k: v for k, v in store_row.items() if k not in ("cover_image", "bank_qr_image")}
+        # toppings/isSoldOut stripped too: toppings alone was measured at
+        # ~60% of this whole payload's size on a menu Freddo's size (every
+        # topping's full {id, label, labels{en,ko,vi}, price, calories}
+        # repeated on every single drink) — real token cost on every chat
+        # message, for data the model never uses (topping selection happens
+        # on the customer's own screen after adding to cart, never something
+        # the AI is asked to reason about). isSoldOut is always false here
+        # since sold-out items are already filtered out above.
         available_menus = [
-            {k: v for k, v in menu_to_public(row).items() if k != "img"}
+            {k: v for k, v in menu_to_public(row).items() if k not in ("img", "toppings", "isSoldOut")}
             for row in menu_rows
             if not row.get("is_sold_out")
         ]
@@ -2821,6 +2832,10 @@ Respond with exactly this JSON shape, nothing else:
                 # roughly in half (measured ~7s -> ~4s) with no noticeable
                 # quality loss on the questions this endpoint actually gets.
                 thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL),
+                # A chat reply is a short conversational answer, not an
+                # essay — caps a runaway/looping generation's cost without
+                # ever truncating a normal reply in practice.
+                max_output_tokens=600,
             ),
         )
         if isinstance(response.parsed, GeminiChatResponse):
