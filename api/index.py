@@ -951,18 +951,33 @@ class SupabaseRepository:
 
     def get_orders_since(self, since_iso: str) -> List[Dict[str, Any]]:
         """Order lines for business analytics — embeds each item's menu
-        category via the orders.menu_id FK so revenue/quantity can be
-        broken down by category without a per-row round-trip."""
-        response = self._run(
-            lambda: self.client.table("orders")
-            .select("*, menus(category)")
-            .eq("store_id", self.store_id)
-            .neq("status", "cancelled")
-            .gte("created_at", since_iso)
-            .execute(),
-            "Failed to load order history.",
-        )
-        return response.data or []
+        category and ingredient_lines via the orders.menu_id FK so revenue/
+        quantity/ingredient-consumption can be broken down without a
+        per-row round-trip. PostgREST caps a single response at 1000 rows
+        regardless of any .limit() passed, which a 90-day window comfortably
+        exceeds even for a mid-size restaurant — page through with .range()
+        until a page comes back short."""
+        page_size = 1000
+        rows: List[Dict[str, Any]] = []
+        start = 0
+        while True:
+            response = self._run(
+                lambda start=start: self.client.table("orders")
+                .select("*, menus(category, ingredient_lines)")
+                .eq("store_id", self.store_id)
+                .neq("status", "cancelled")
+                .gte("created_at", since_iso)
+                .order("created_at")
+                .range(start, start + page_size - 1)
+                .execute(),
+                "Failed to load order history.",
+            )
+            page = response.data or []
+            rows.extend(page)
+            if len(page) < page_size:
+                break
+            start += page_size
+        return rows
 
     def get_weather_daily(self, since_date: str) -> List[Dict[str, Any]]:
         response = self._run(
@@ -2260,58 +2275,135 @@ def ensure_weather_backfilled(repo: "SupabaseRepository", days: int) -> None:
 
 
 WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+WEEKDAY_VI_LABEL = {
+    "mon": "Thứ Hai", "tue": "Thứ Ba", "wed": "Thứ Tư", "thu": "Thứ Năm",
+    "fri": "Thứ Sáu", "sat": "Thứ Bảy", "sun": "Chủ Nhật",
+}
 
 
-def compute_weather_menu_analytics(
+def compute_business_analytics(
     orders: List[Dict[str, Any]], weather_rows: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
-    """Aggregates raw order lines + daily weather into the numbers both
-    /api/analytics/weather-menu (charts) and /api/analytics/insights (the
-    AI summary's only source of numbers) build on. Every figure here is a
-    real count/sum over `orders` — nothing here is estimated or invented."""
+    """Aggregates raw order lines into everything the admin Analytics tab
+    and /api/analytics/insights (the AI summary's only source of numbers)
+    are built from: purchase-behavior (top items/categories, what sells
+    together, repeat-customer rate, peak hour/weekday), ingredient prep
+    (real grams consumed per menu item's ingredient_lines, so the kitchen
+    knows roughly how much of each ingredient to have ready), and — same
+    as before — a weather correlation, now just one section among several
+    rather than the whole feature. Every figure here is a real count/sum
+    over `orders`/menu ingredient data — nothing here is estimated."""
     weather_by_date = {row["date"]: row for row in weather_rows}
     conditions = ["sunny", "cloudy", "rainy"]
     condition_days = {c: 0 for c in conditions}
     for row in weather_rows:
         condition_days[row["condition"]] = condition_days.get(row["condition"], 0) + 1
-
     condition_stats = {
         c: {"order_lines": 0, "revenue_vnd": 0.0, "categories": {}, "items": {}} for c in conditions
     }
+
     weekday_revenue = {k: 0.0 for k in WEEKDAY_KEYS}
+    weekday_days_seen: Dict[str, set] = {k: set() for k in WEEKDAY_KEYS}
     hour_counts = [0] * 24
     item_totals: Dict[str, Dict[str, Any]] = {}
+    category_totals: Dict[str, Dict[str, Any]] = {}
+    ingredient_totals: Dict[str, float] = {}
+    ingredient_by_weekday: Dict[str, Dict[str, float]] = {k: {} for k in WEEKDAY_KEYS}
+    days_seen: set = set()
+    group_items: Dict[str, set] = {}
+    group_customer: Dict[str, str] = {}
+    order_line_count = 0
 
     for row in orders:
         created = datetime.fromisoformat(str(row["created_at"]).replace("Z", "+00:00"))
         local = created.astimezone(VN_TIMEZONE)
         date_str = local.date().isoformat()
+        weekday = WEEKDAY_KEYS[local.weekday()]
         qty = int(row.get("quantity") or 0)
         amount = to_vnd(row.get("total_price", 0), row.get("currency", "KRW"))
-        category = ((row.get("menus") or {}) or {}).get("category") or "Khác"
+        menu_info = row.get("menus") or {}
+        category = menu_info.get("category") or "Khác"
         name = row.get("menu_name") or "?"
+        group_id = str(row.get("order_group_id") or row["id"])
 
-        weekday_revenue[WEEKDAY_KEYS[local.weekday()]] += amount
+        days_seen.add(date_str)
+        weekday_revenue[weekday] += amount
+        weekday_days_seen[weekday].add(date_str)
         hour_counts[local.hour] += qty
+        order_line_count += 1
 
-        totals = item_totals.setdefault(name, {"name": name, "qty": 0, "revenue_vnd": 0.0})
-        totals["qty"] += qty
-        totals["revenue_vnd"] += amount
+        item = item_totals.setdefault(name, {"name": name, "qty": 0, "revenue_vnd": 0.0})
+        item["qty"] += qty
+        item["revenue_vnd"] += amount
+
+        cat = category_totals.setdefault(category, {"category": category, "qty": 0, "revenue_vnd": 0.0})
+        cat["qty"] += qty
+        cat["revenue_vnd"] += amount
+
+        for ing in menu_info.get("ingredient_lines") or []:
+            ing_name = ing.get("name")
+            grams_each = float(ing.get("grams") or 0)
+            if not ing_name or grams_each <= 0:
+                continue
+            grams_used = grams_each * qty
+            ingredient_totals[ing_name] = ingredient_totals.get(ing_name, 0.0) + grams_used
+            wd_map = ingredient_by_weekday[weekday]
+            wd_map[ing_name] = wd_map.get(ing_name, 0.0) + grams_used
+
+        group_items.setdefault(group_id, set()).add(name)
+        group_customer[group_id] = str(row.get("customer_session_id") or "")
 
         weather = weather_by_date.get(date_str)
-        if not weather:
-            continue
-        stat = condition_stats[weather["condition"]]
-        stat["order_lines"] += 1
-        stat["revenue_vnd"] += amount
-        stat["categories"][category] = stat["categories"].get(category, 0) + qty
-        stat["items"][name] = stat["items"].get(name, 0) + qty
+        if weather:
+            stat = condition_stats[weather["condition"]]
+            stat["order_lines"] += 1
+            stat["revenue_vnd"] += amount
+            stat["categories"][category] = stat["categories"].get(category, 0) + qty
+            stat["items"][name] = stat["items"].get(name, 0) + qty
 
+    # --- purchase behavior ---
+    pair_counts: Dict[tuple, int] = {}
+    for items_set in group_items.values():
+        names = sorted(items_set)
+        for i in range(len(names)):
+            for j in range(i + 1, len(names)):
+                key = (names[i], names[j])
+                pair_counts[key] = pair_counts.get(key, 0) + 1
+    top_pairs = [
+        {"item_a": a, "item_b": b, "count": c}
+        for (a, b), c in sorted(pair_counts.items(), key=lambda kv: kv[1], reverse=True)
+        if c >= 2
+    ][:8]
+
+    customer_group_count: Dict[str, int] = {}
+    for cust in group_customer.values():
+        customer_group_count[cust] = customer_group_count.get(cust, 0) + 1
+    total_customers = len(customer_group_count)
+    repeat_customers = sum(1 for v in customer_group_count.values() if v >= 2)
+    repeat_customer_rate_pct = round(repeat_customers / total_customers * 100, 1) if total_customers else 0.0
+    total_order_groups = len(group_items)
+
+    # --- ingredient prep ---
+    tomorrow_weekday = WEEKDAY_KEYS[(datetime.now(VN_TIMEZONE).date() + timedelta(days=1)).weekday()]
+    days_analyzed = len(days_seen) or 1
+    top_ingredient_names = sorted(ingredient_totals.items(), key=lambda kv: kv[1], reverse=True)[:12]
+    top_ingredients = []
+    for ing_name, total_grams in top_ingredient_names:
+        tomorrow_days = weekday_days_seen[tomorrow_weekday]
+        tomorrow_grams = ingredient_by_weekday[tomorrow_weekday].get(ing_name, 0.0)
+        forecast_g = round(tomorrow_grams / len(tomorrow_days)) if tomorrow_days else round(total_grams / days_analyzed)
+        top_ingredients.append(
+            {
+                "name": ing_name,
+                "total_grams": round(total_grams),
+                "avg_per_day_grams": round(total_grams / days_analyzed),
+                "forecast_tomorrow_grams": forecast_g,
+            }
+        )
+
+    # --- weather correlation ---
     def top_n(counter: Dict[str, int], n: int = 5) -> List[Dict[str, Any]]:
-        return [
-            {"name": k, "qty": v}
-            for k, v in sorted(counter.items(), key=lambda kv: kv[1], reverse=True)[:n]
-        ]
+        return [{"name": k, "qty": v} for k, v in sorted(counter.items(), key=lambda kv: kv[1], reverse=True)[:n]]
 
     by_condition = []
     for c in conditions:
@@ -2332,11 +2424,28 @@ def compute_weather_menu_analytics(
         )
 
     return {
-        "days_with_weather": len(weather_rows),
-        "by_condition": by_condition,
-        "top_items_overall": sorted(item_totals.values(), key=lambda v: v["qty"], reverse=True)[:8],
-        "revenue_by_weekday": [{"weekday": k, "revenue_vnd": round(v)} for k, v in weekday_revenue.items()],
-        "orders_by_hour": [{"hour": h, "qty": hour_counts[h]} for h in range(24)],
+        "days_analyzed": len(days_seen),
+        "total_order_groups": total_order_groups,
+        "total_order_lines": order_line_count,
+        "purchase_behavior": {
+            "top_items": sorted(item_totals.values(), key=lambda v: v["qty"], reverse=True)[:10],
+            "top_categories": sorted(category_totals.values(), key=lambda v: v["qty"], reverse=True)[:10],
+            "frequently_bought_together": top_pairs,
+            "avg_items_per_order": round(order_line_count / total_order_groups, 2) if total_order_groups else 0.0,
+            "total_customers": total_customers,
+            "repeat_customer_rate_pct": repeat_customer_rate_pct,
+            "revenue_by_weekday": [{"weekday": k, "revenue_vnd": round(v)} for k, v in weekday_revenue.items()],
+            "orders_by_hour": [{"hour": h, "qty": hour_counts[h]} for h in range(24)],
+        },
+        "ingredient_prep": {
+            "days_analyzed": len(days_seen),
+            "tomorrow_weekday": tomorrow_weekday,
+            "top_ingredients": top_ingredients,
+        },
+        "weather": {
+            "days_with_weather": len(weather_rows),
+            "by_condition": by_condition,
+        },
     }
 
 
@@ -2351,12 +2460,7 @@ _insights_cache: Dict[str, tuple[float, Dict[str, Any]]] = {}
 INSIGHTS_CACHE_TTL_SECONDS = 600
 
 
-@app.get("/api/analytics/weather-menu")
-def get_weather_menu_analytics(
-    days: int = Query(default=90, ge=7, le=365),
-    _staff: Dict[str, Any] = Depends(require_staff),
-) -> Dict[str, Any]:
-    repo = get_repository()
+def _load_analytics_stats(repo: "SupabaseRepository", days: int) -> Dict[str, Any]:
     ensure_weather_backfilled(repo, days)
     since_date = (datetime.now(timezone.utc).date() - timedelta(days=days)).isoformat()
     with ThreadPoolExecutor(max_workers=2) as pool:
@@ -2364,7 +2468,15 @@ def get_weather_menu_analytics(
         weather_future = pool.submit(repo.get_weather_daily, since_date)
         orders = orders_future.result()
         weather_rows = weather_future.result()
-    return compute_weather_menu_analytics(orders, weather_rows)
+    return compute_business_analytics(orders, weather_rows)
+
+
+@app.get("/api/analytics/business")
+def get_business_analytics(
+    days: int = Query(default=90, ge=7, le=365),
+    _staff: Dict[str, Any] = Depends(require_staff),
+) -> Dict[str, Any]:
+    return _load_analytics_stats(get_repository(), days)
 
 
 @app.get("/api/analytics/insights")
@@ -2379,37 +2491,54 @@ def get_analytics_insights(
     if cached and now - cached[0] < INSIGHTS_CACHE_TTL_SECONDS:
         return cached[1]
 
-    ensure_weather_backfilled(repo, days)
-    since_date = (datetime.now(timezone.utc).date() - timedelta(days=days)).isoformat()
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        orders_future = pool.submit(repo.get_orders_since, f"{since_date}T00:00:00+00:00")
-        weather_future = pool.submit(repo.get_weather_daily, since_date)
-        orders = orders_future.result()
-        weather_rows = weather_future.result()
-    stats = compute_weather_menu_analytics(orders, weather_rows)
+    stats = _load_analytics_stats(repo, days)
 
-    # Too little history to say anything real — an honest "not enough data
-    # yet" beats letting the model guess. This is the common case for a
-    # brand-new store that hasn't been running long enough to correlate
-    # anything against.
-    fallback: Dict[str, Any] = {"insights": [], "generated": False, "days_with_weather": stats["days_with_weather"]}
-    if not gemini_client or stats["days_with_weather"] < 14 or not stats["by_condition"]:
+    # Too little order history to say anything real — an honest "not enough
+    # data yet" beats letting the model guess. This is the common case for
+    # a brand-new store that hasn't taken enough orders yet.
+    fallback: Dict[str, Any] = {
+        "insights": [],
+        "generated": False,
+        "days_analyzed": stats["days_analyzed"],
+        "total_order_groups": stats["total_order_groups"],
+    }
+    if not gemini_client or stats["total_order_groups"] < 20:
         _insights_cache[cache_key] = (now, fallback)
         return fallback
 
     try:
         prompt = f"""
 You are a business analyst for a Vietnamese restaurant. Below is real, pre-aggregated
-data from its orders and daily weather over the last {days} days:
+data from its orders (and, where available, matched daily weather and each dish's
+ingredient list) over the last {days} days:
 
 {json.dumps(stats, ensure_ascii=False, default=str)}
 
-Write 4-6 short business insights in Vietnamese, one sentence each, for the owner to
-skim quickly. Use ONLY the numbers present in the data above (percentages, quantities,
-revenue) — never invent any number not in the data. Prioritize: clear differences
-between rainy/sunny/cloudy days if the data shows any, the best-selling items overall,
-the busiest hour(s), and the busiest weekday. If the data doesn't clearly support a
-conclusion, don't make one up — skip it instead.
+Write 5-8 short, concrete business insights in Vietnamese, one sentence each, for the
+owner to skim quickly. Use ONLY the numbers present in the data above (percentages,
+quantities, grams, revenue) — copy each number exactly from its field, never invent one
+and never combine two different fields into a new number. In particular: a "days" field
+is a count of calendar days (small, at most `days_analyzed`) and must never be confused
+with an "qty"/"order_lines"/"total_grams" field (item or gram counts, which can be much
+larger) — double-check every number you write actually appears in the JSON under the
+field you're describing before including it. Cover a mix of:
+- purchase behavior: best-selling items/categories, items frequently bought together,
+  repeat-customer rate, busiest hour(s) and weekday
+- ingredient prep: which ingredients are used in the largest quantity, and how much of
+  the top 2-3 ingredients to prepare tomorrow ({WEEKDAY_VI_LABEL[stats['ingredient_prep']['tomorrow_weekday']]})
+  based on forecast_tomorrow_grams — phrase this as a concrete kg/g amount
+- weather (only if by_condition data is non-empty and shows a real difference): how
+  rainy/sunny/cloudy days differ in what sells — the "days" field there is how many of
+  the {days} calendar days had that weather, not how many items sold
+If a category above has no usable data (e.g. ingredient_prep.top_ingredients is empty,
+or weather.by_condition is all zeros), skip that category entirely instead of forcing
+a sentence about it. If the data doesn't clearly support a conclusion, don't make one up.
+Formatting: write natural Vietnamese sentences only — never print a raw JSON field/key
+name like "revenue_vnd" or "order_lines" in the output, describe what the number means
+in words instead. Write VND amounts rounded to a readable form (e.g. "39,3 triệu VNĐ",
+not a raw decimal), and translate the 3-letter weekday codes (mon/tue/wed/thu/fri/sat/
+sun) to Vietnamese day names (Thứ Hai/Thứ Ba/Thứ Tư/Thứ Năm/Thứ Sáu/Thứ Bảy/Chủ Nhật) —
+never print a raw weekday code.
 Respond with exactly this JSON shape, nothing else:
 {{"insights": ["insight 1", "insight 2"]}}
 """.strip()
@@ -2419,7 +2548,11 @@ Respond with exactly this JSON shape, nothing else:
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=AnalyticsInsights,
-                thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL),
+                # Getting every number right matters more than latency here
+                # (the result is cached for 10 minutes either way) — MINIMAL
+                # was measured mixing up a day-count field with an item-
+                # count field in testing, so this uses one thinking level up.
+                thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW),
             ),
         )
         if isinstance(response.parsed, AnalyticsInsights):
@@ -2429,9 +2562,10 @@ Respond with exactly this JSON shape, nothing else:
         else:
             parsed = json.loads(response.text or "{}")
         result: Dict[str, Any] = {
-            "insights": [str(s) for s in (parsed.get("insights") or [])][:6],
+            "insights": [str(s) for s in (parsed.get("insights") or [])][:8],
             "generated": True,
-            "days_with_weather": stats["days_with_weather"],
+            "days_analyzed": stats["days_analyzed"],
+            "total_order_groups": stats["total_order_groups"],
         }
     except Exception:
         logger.exception("Analytics insight generation failed")

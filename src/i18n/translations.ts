@@ -494,16 +494,72 @@ const dict = {
   analytics_col_dish: { vi: "Món", en: "Dish", ko: "메뉴" },
   analytics_col_qty: { vi: "SL", en: "Qty", ko: "수량" },
 
-  // Weather × menu business analytics (admin, AnalyticsView)
-  analytics_weather_title: { vi: "Thời tiết & thực đơn", en: "Weather & menu", ko: "날씨 & 메뉴" },
-  analytics_weather_subtitle: {
-    vi: "So sánh những gì khách gọi vào ngày nắng, nhiều mây và ngày mưa, dựa trên dữ liệu đơn hàng thật và thời tiết thật.",
-    en: "Compares what customers order on sunny, cloudy, and rainy days, based on real order and weather data.",
-    ko: "실제 주문 및 날씨 데이터를 기반으로 맑은 날, 흐린 날, 비 오는 날 고객이 주문하는 메뉴를 비교합니다.",
+  // Business analytics: purchase behavior + ingredient prep + weather
+  // (admin, AnalyticsView)
+  analytics_business_title: { vi: "Phân tích hành vi mua hàng", en: "Purchase behavior analysis", ko: "구매 행동 분석" },
+  analytics_business_subtitle: {
+    vi: "Công cụ giúp quán hiểu khách hay mua gì, khi nào đông, và cần chuẩn bị bao nhiêu nguyên liệu — dựa trên dữ liệu đơn hàng thật.",
+    en: "A tool to understand what customers buy, when it's busiest, and how much of each ingredient to prepare — based on real order data.",
+    ko: "고객이 무엇을 구매하는지, 언제 가장 붐비는지, 재료를 얼마나 준비해야 하는지 실제 주문 데이터를 기반으로 알려주는 도구입니다.",
   },
-  analytics_weather_range_30: { vi: "30 ngày", en: "30 days", ko: "30일" },
-  analytics_weather_range_90: { vi: "90 ngày", en: "90 days", ko: "90일" },
-  analytics_weather_range_180: { vi: "180 ngày", en: "180 days", ko: "180일" },
+  analytics_business_range_30: { vi: "30 ngày", en: "30 days", ko: "30일" },
+  analytics_business_range_90: { vi: "90 ngày", en: "90 days", ko: "90일" },
+  analytics_business_range_180: { vi: "180 ngày", en: "180 days", ko: "180일" },
+  analytics_business_loading: { vi: "Đang tải số liệu…", en: "Loading data…", ko: "데이터를 불러오는 중…" },
+  analytics_business_empty: {
+    vi: "Chưa có đủ lịch sử đơn hàng để phân tích. Số liệu sẽ xuất hiện khi quán có thêm đơn hàng.",
+    en: "Not enough order history to analyze yet. This will fill in once the store has more orders.",
+    ko: "분석하기에 주문 이력이 아직 충분하지 않습니다. 주문이 더 쌓이면 표시됩니다.",
+  },
+
+  analytics_insights_title: { vi: "Nhận định & khuyến nghị từ AI", en: "AI insights & recommendations", ko: "AI 인사이트 및 추천" },
+  analytics_insights_loading: { vi: "AI đang phân tích số liệu…", en: "AI is analyzing the data…", ko: "AI가 데이터를 분석 중입니다…" },
+  analytics_insights_empty: {
+    vi: "Chưa đủ lịch sử để AI đưa ra nhận định đáng tin cậy — cần ít nhất khoảng 20 đơn hàng.",
+    en: "Not enough history yet for a reliable AI insight — at least about 20 orders is needed.",
+    ko: "신뢰할 수 있는 AI 인사이트를 위한 이력이 아직 충분하지 않습니다 — 최소 약 20건의 주문이 필요합니다.",
+  },
+
+  analytics_pb_title: { vi: "Hành vi mua hàng", en: "Purchase behavior", ko: "구매 행동" },
+  analytics_pb_total_customers: { vi: "Tổng khách hàng", en: "Total customers", ko: "총 고객 수" },
+  analytics_pb_repeat_rate: { vi: "Khách quay lại", en: "Repeat customers", ko: "재방문 고객" },
+  analytics_pb_avg_items: { vi: "Món / đơn trung bình", en: "Avg items / order", ko: "주문당 평균 항목" },
+  analytics_pb_total_orders: { vi: "Tổng số đơn", en: "Total orders", ko: "총 주문 수" },
+  analytics_pb_top_items: { vi: "Món bán chạy nhất", en: "Best-selling items", ko: "가장 많이 팔린 메뉴" },
+  analytics_pb_top_categories: { vi: "Nhóm món bán chạy nhất", en: "Best-selling categories", ko: "가장 많이 팔린 카테고리" },
+  analytics_pb_pairs_title: { vi: "Món thường được mua cùng nhau", en: "Frequently bought together", ko: "자주 함께 구매되는 메뉴" },
+  analytics_pb_pairs_empty: {
+    vi: "Chưa đủ dữ liệu để tìm ra các món hay được mua cùng nhau.",
+    en: "Not enough data yet to find items frequently bought together.",
+    ko: "함께 자주 구매되는 메뉴를 찾기에 데이터가 아직 충분하지 않습니다.",
+  },
+  analytics_pb_pairs_count: { vi: "{count} lần", en: "{count}×", ko: "{count}회" },
+  analytics_pb_revenue_by_weekday: { vi: "Doanh thu theo thứ trong tuần", en: "Revenue by weekday", ko: "요일별 매출" },
+  analytics_pb_orders_by_hour: { vi: "Đơn hàng theo khung giờ", en: "Orders by hour", ko: "시간대별 주문" },
+
+  analytics_ing_title: { vi: "Chuẩn bị nguyên liệu", en: "Ingredient prep", ko: "재료 준비" },
+  analytics_ing_subtitle: {
+    vi: "Ước tính lượng nguyên liệu đã dùng dựa trên món đã bán, giúp quán nhập hàng sát nhu cầu hơn.",
+    en: "Estimates ingredient usage from items actually sold, to help the store restock closer to real demand.",
+    ko: "실제 판매된 메뉴를 기반으로 재료 사용량을 추정하여 실제 수요에 맞게 재고를 준비하도록 돕습니다.",
+  },
+  analytics_ing_tomorrow_heading: { vi: "Dự kiến cần cho ngày mai ({weekday})", en: "Estimated need for tomorrow ({weekday})", ko: "내일({weekday}) 예상 필요량" },
+  analytics_ing_avg_per_day: { vi: "TB/ngày", en: "Avg/day", ko: "일평균" },
+  analytics_ing_col_ingredient: { vi: "Nguyên liệu", en: "Ingredient", ko: "재료" },
+  analytics_ing_col_avg_day: { vi: "TB mỗi ngày", en: "Avg per day", ko: "일평균" },
+  analytics_ing_col_forecast: { vi: "Dự kiến ngày mai", en: "Forecast for tomorrow", ko: "내일 예상량" },
+  analytics_ing_empty: {
+    vi: "Các món trong thực đơn chưa khai báo nguyên liệu (mục \"Nguyên liệu\" khi sửa món trong Quản lý thực đơn), nên chưa thể ước tính. Điền nguyên liệu cho từng món để mở khoá phần này.",
+    en: "Menu items haven't had their ingredients filled in yet (the \"Ingredients\" section when editing a dish in Menu Management), so this can't be estimated. Fill in ingredients per item to unlock this.",
+    ko: "메뉴 항목에 재료가 아직 입력되지 않아 추정할 수 없습니다(메뉴 관리에서 메뉴 수정 시 \"재료\" 항목). 항목별로 재료를 입력하면 이 기능이 활성화됩니다.",
+  },
+
+  analytics_weather_section_title: { vi: "Theo thời tiết", en: "By weather", ko: "날씨별" },
+  analytics_weather_section_subtitle: {
+    vi: "So sánh những gì khách gọi vào ngày nắng, nhiều mây và ngày mưa, dựa trên dữ liệu thời tiết thật.",
+    en: "Compares what customers order on sunny, cloudy, and rainy days, based on real weather data.",
+    ko: "실제 날씨 데이터를 기반으로 맑은 날, 흐린 날, 비 오는 날 고객이 주문하는 메뉴를 비교합니다.",
+  },
   analytics_weather_sunny: { vi: "Ngày nắng", en: "Sunny days", ko: "맑은 날" },
   analytics_weather_cloudy: { vi: "Ngày nhiều mây", en: "Cloudy days", ko: "흐린 날" },
   analytics_weather_rainy: { vi: "Ngày mưa", en: "Rainy days", ko: "비 오는 날" },
@@ -514,20 +570,12 @@ const dict = {
     ko: "선택한 기간에 이 유형의 날이 아직 없습니다.",
   },
   analytics_weather_empty: {
-    vi: "Chưa có đủ dữ liệu thời tiết + đơn hàng để phân tích. Dữ liệu thời tiết được tự động cập nhật mỗi ngày — quay lại sau khi quán có thêm lịch sử đơn hàng.",
-    en: "Not enough weather + order data to analyze yet. Weather data updates automatically each day — check back once the store has more order history.",
-    ko: "분석하기에 날씨 및 주문 데이터가 아직 충분하지 않습니다. 날씨 데이터는 매일 자동으로 업데이트됩니다 — 주문 이력이 더 쌓이면 다시 확인해 주세요.",
-  },
-  analytics_weather_insights_title: { vi: "Nhận định từ AI", en: "AI insights", ko: "AI 인사이트" },
-  analytics_weather_insights_loading: { vi: "AI đang phân tích số liệu…", en: "AI is analyzing the data…", ko: "AI가 데이터를 분석 중입니다…" },
-  analytics_weather_insights_empty: {
-    vi: "Chưa đủ lịch sử để AI đưa ra nhận định đáng tin cậy — cần ít nhất khoảng 2 tuần dữ liệu thời tiết đã có đơn hàng đi kèm.",
-    en: "Not enough history yet for a reliable AI insight — at least about 2 weeks of weather-matched order data is needed.",
-    ko: "신뢰할 수 있는 AI 인사이트를 위한 이력이 아직 충분하지 않습니다 — 최소 약 2주 분량의 날씨-주문 매칭 데이터가 필요합니다.",
+    vi: "Chưa có đủ dữ liệu thời tiết khớp với đơn hàng để so sánh.",
+    en: "Not enough weather-matched order data to compare yet.",
+    ko: "비교하기에 날씨와 매칭된 주문 데이터가 아직 충분하지 않습니다.",
   },
   analytics_weather_top_categories: { vi: "Nhóm món nổi bật", en: "Top categories", ko: "인기 카테고리" },
-  analytics_weather_revenue_by_weekday: { vi: "Doanh thu theo thứ trong tuần", en: "Revenue by weekday", ko: "요일별 매출" },
-  analytics_weather_orders_by_hour: { vi: "Đơn hàng theo khung giờ", en: "Orders by hour", ko: "시간대별 주문" },
+
   weekday_mon: { vi: "T2", en: "Mon", ko: "월" },
   weekday_tue: { vi: "T3", en: "Tue", ko: "화" },
   weekday_wed: { vi: "T4", en: "Wed", ko: "수" },
@@ -535,6 +583,13 @@ const dict = {
   weekday_fri: { vi: "T6", en: "Fri", ko: "금" },
   weekday_sat: { vi: "T7", en: "Sat", ko: "토" },
   weekday_sun: { vi: "CN", en: "Sun", ko: "일" },
+  weekday_full_mon: { vi: "Thứ Hai", en: "Monday", ko: "월요일" },
+  weekday_full_tue: { vi: "Thứ Ba", en: "Tuesday", ko: "화요일" },
+  weekday_full_wed: { vi: "Thứ Tư", en: "Wednesday", ko: "수요일" },
+  weekday_full_thu: { vi: "Thứ Năm", en: "Thursday", ko: "목요일" },
+  weekday_full_fri: { vi: "Thứ Sáu", en: "Friday", ko: "금요일" },
+  weekday_full_sat: { vi: "Thứ Bảy", en: "Saturday", ko: "토요일" },
+  weekday_full_sun: { vi: "Chủ Nhật", en: "Sunday", ko: "일요일" },
 
   // Seating layout (admin)
   seating_title: { vi: "Sơ đồ bàn", en: "Seating Layout", ko: "좌석 배치" },

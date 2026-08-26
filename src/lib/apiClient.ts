@@ -103,18 +103,47 @@ export interface WeatherConditionStat {
   top_items: { name: string; qty: number }[];
 }
 
-export interface WeatherMenuAnalytics {
-  days_with_weather: number;
-  by_condition: WeatherConditionStat[];
-  top_items_overall: { name: string; qty: number; revenue_vnd: number }[];
+export interface PurchaseBehavior {
+  top_items: { name: string; qty: number; revenue_vnd: number }[];
+  top_categories: { category: string; qty: number; revenue_vnd: number }[];
+  frequently_bought_together: { item_a: string; item_b: string; count: number }[];
+  avg_items_per_order: number;
+  total_customers: number;
+  repeat_customer_rate_pct: number;
   revenue_by_weekday: { weekday: string; revenue_vnd: number }[];
   orders_by_hour: { hour: number; qty: number }[];
+}
+
+export interface IngredientForecast {
+  name: string;
+  total_grams: number;
+  avg_per_day_grams: number;
+  forecast_tomorrow_grams: number;
+}
+
+export interface IngredientPrep {
+  days_analyzed: number;
+  tomorrow_weekday: string;
+  top_ingredients: IngredientForecast[];
+}
+
+export interface BusinessAnalytics {
+  days_analyzed: number;
+  total_order_groups: number;
+  total_order_lines: number;
+  purchase_behavior: PurchaseBehavior;
+  ingredient_prep: IngredientPrep;
+  weather: {
+    days_with_weather: number;
+    by_condition: WeatherConditionStat[];
+  };
 }
 
 export interface AnalyticsInsightsResponse {
   insights: string[];
   generated: boolean;
-  days_with_weather: number;
+  days_analyzed: number;
+  total_order_groups: number;
 }
 
 export type ApiOrderStatus = "awaiting_payment" | "new" | "preparing" | "served" | "cancelled";
@@ -397,8 +426,8 @@ export const apiClient = {
     history?: ChatHistoryTurn[];
   }) => request<ChatResponse>("POST", "/chat", payload),
 
-  getWeatherMenuAnalytics: (days = 90) =>
-    request<WeatherMenuAnalytics>("GET", `/analytics/weather-menu?days=${days}`),
+  getBusinessAnalytics: (days = 90) =>
+    request<BusinessAnalytics>("GET", `/analytics/business?days=${days}`),
   getAnalyticsInsights: (days = 90) =>
     request<AnalyticsInsightsResponse>("GET", `/analytics/insights?days=${days}`),
 };
