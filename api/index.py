@@ -54,6 +54,10 @@ VN_TIMEZONE = timezone(timedelta(hours=7))  # Vietnam has no DST, so this is exa
 # feed. Set a store's currency to VND directly for accurate production
 # pricing instead of relying on this rate.
 USD_TO_VND_RATE = float(os.getenv("USD_TO_VND_RATE", "25000"))
+# Same kind of placeholder rate, for the handful of leftover KRW-priced
+# menu items (from before this deployment standardized on USD/VND) that
+# still show up in analytics totals — informational display only.
+KRW_TO_USD_RATE = float(os.getenv("KRW_TO_USD_RATE", "1350"))
 
 # Business-analytics weather correlation (see /api/analytics/*) keys its
 # daily weather off one fixed point rather than each store's own address —
@@ -122,12 +126,16 @@ def order_group_amount_vnd(rows: List[Dict[str, Any]]) -> int:
     return round(total)
 
 
-def to_vnd(amount: Any, currency: str) -> float:
-    """Per-row version of order_group_amount_vnd's conversion — analytics
-    sums many individual rows that can each carry a different currency,
-    unlike a single order group which is always uniform."""
+def to_usd(amount: Any, currency: str) -> float:
+    """Normalizes one order line's amount to USD for the business-analytics
+    dashboard — a foreign audience reads USD far more easily than VND, and
+    every store on this deployment prices most items in USD already."""
     value = float(amount)
-    return value * USD_TO_VND_RATE if currency == "USD" else value
+    if currency == "VND":
+        return value / USD_TO_VND_RATE
+    if currency == "KRW":
+        return value / KRW_TO_USD_RATE
+    return value  # USD, or an unrecognized currency — best effort as-is
 
 
 def vnpay_txn_ref(order_group_id: UUID) -> str:
@@ -901,18 +909,34 @@ class SupabaseRepository:
     def get_orders(
         self, customer_session_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        def operation() -> Any:
-            query = (
-                self.client.table("orders")
-                .select("*")
-                .eq("store_id", self.store_id)
-            )
-            if customer_session_id:
-                query = query.eq("customer_session_id", customer_session_id)
-            return query.order("created_at", desc=True).execute()
+        # PostgREST caps a single response at 1000 rows regardless of any
+        # .limit() passed — a store with more history than that (the norm
+        # once a restaurant's been live a while) would otherwise silently
+        # lose its oldest orders here, same issue get_orders_since had.
+        # customer_session_id-scoped calls (a diner's own order history)
+        # never come close to that, but paging unconditionally is simpler
+        # and just as correct as branching on which case this is.
+        page_size = 1000
+        rows: List[Dict[str, Any]] = []
+        start = 0
+        while True:
+            def operation(start=start) -> Any:
+                query = (
+                    self.client.table("orders")
+                    .select("*")
+                    .eq("store_id", self.store_id)
+                )
+                if customer_session_id:
+                    query = query.eq("customer_session_id", customer_session_id)
+                return query.order("created_at", desc=True).range(start, start + page_size - 1).execute()
 
-        response = self._run(operation, "Failed to load orders.")
-        return response.data or []
+            response = self._run(operation, "Failed to load orders.")
+            page = response.data or []
+            rows.extend(page)
+            if len(page) < page_size:
+                break
+            start += page_size
+        return rows
 
     def get_orders_by_group(self, order_group_id: str) -> List[Dict[str, Any]]:
         response = self._run(
@@ -2295,7 +2319,7 @@ def compute_business_analytics(
     for row in weather_rows:
         condition_days[row["condition"]] = condition_days.get(row["condition"], 0) + 1
     condition_stats = {
-        c: {"order_lines": 0, "revenue_vnd": 0.0, "categories": {}, "items": {}} for c in conditions
+        c: {"order_lines": 0, "revenue_usd": 0.0, "categories": {}, "items": {}} for c in conditions
     }
 
     weekday_revenue = {k: 0.0 for k in WEEKDAY_KEYS}
@@ -2316,7 +2340,7 @@ def compute_business_analytics(
         date_str = local.date().isoformat()
         weekday = WEEKDAY_KEYS[local.weekday()]
         qty = int(row.get("quantity") or 0)
-        amount = to_vnd(row.get("total_price", 0), row.get("currency", "KRW"))
+        amount = to_usd(row.get("total_price", 0), row.get("currency", "KRW"))
         menu_info = row.get("menus") or {}
         category = menu_info.get("category") or "Khác"
         name = row.get("menu_name") or "?"
@@ -2328,13 +2352,13 @@ def compute_business_analytics(
         hour_counts[local.hour] += qty
         order_line_count += 1
 
-        item = item_totals.setdefault(name, {"name": name, "qty": 0, "revenue_vnd": 0.0})
+        item = item_totals.setdefault(name, {"name": name, "qty": 0, "revenue_usd": 0.0})
         item["qty"] += qty
-        item["revenue_vnd"] += amount
+        item["revenue_usd"] += amount
 
-        cat = category_totals.setdefault(category, {"category": category, "qty": 0, "revenue_vnd": 0.0})
+        cat = category_totals.setdefault(category, {"category": category, "qty": 0, "revenue_usd": 0.0})
         cat["qty"] += qty
-        cat["revenue_vnd"] += amount
+        cat["revenue_usd"] += amount
 
         for ing in menu_info.get("ingredient_lines") or []:
             ing_name = ing.get("name")
@@ -2353,9 +2377,14 @@ def compute_business_analytics(
         if weather:
             stat = condition_stats[weather["condition"]]
             stat["order_lines"] += 1
-            stat["revenue_vnd"] += amount
+            stat["revenue_usd"] += amount
             stat["categories"][category] = stat["categories"].get(category, 0) + qty
             stat["items"][name] = stat["items"].get(name, 0) + qty
+
+    for item in item_totals.values():
+        item["revenue_usd"] = round(item["revenue_usd"], 2)
+    for cat in category_totals.values():
+        cat["revenue_usd"] = round(cat["revenue_usd"], 2)
 
     # --- purchase behavior ---
     pair_counts: Dict[tuple, int] = {}
@@ -2410,7 +2439,7 @@ def compute_business_analytics(
                 "condition": c,
                 "days": condition_days.get(c, 0),
                 "order_lines": stat["order_lines"],
-                "revenue_vnd": round(stat["revenue_vnd"]),
+                "revenue_usd": round(stat["revenue_usd"], 2),
                 "top_categories": [
                     {"category": k, "qty": v, "share_pct": round(v / total_qty * 100, 1)}
                     for k, v in sorted(stat["categories"].items(), key=lambda kv: kv[1], reverse=True)[:5]
@@ -2430,7 +2459,7 @@ def compute_business_analytics(
             "avg_items_per_order": round(order_line_count / total_order_groups, 2) if total_order_groups else 0.0,
             "total_customers": total_customers,
             "repeat_customer_rate_pct": repeat_customer_rate_pct,
-            "revenue_by_weekday": [{"weekday": k, "revenue_vnd": round(v)} for k, v in weekday_revenue.items()],
+            "revenue_by_weekday": [{"weekday": k, "revenue_usd": round(v, 2)} for k, v in weekday_revenue.items()],
             "orders_by_hour": [{"hour": h, "qty": hour_counts[h]} for h in range(24)],
         },
         "ingredient_prep": {
@@ -2537,11 +2566,11 @@ If a category above has no usable data (e.g. ingredient_prep.top_ingredients is 
 or weather.by_condition is all zeros), skip that category entirely instead of forcing
 a sentence about it. If the data doesn't clearly support a conclusion, don't make one up.
 Formatting: write natural {language_name} sentences only — never print a raw JSON
-field/key name like "revenue_vnd" or "order_lines" in the output, describe what the
-number means in words instead. Write money amounts rounded to a readable form idiomatic
-to {language_name} (e.g. Vietnamese "39,3 triệu VNĐ", not a raw decimal), and always
-translate the 3-letter weekday codes (mon/tue/wed/thu/fri/sat/sun) to real day names in
-{language_name} — never print a raw weekday code.
+field/key name like "revenue_usd" or "order_lines" in the output, describe what the
+number means in words instead. All money figures in the data are already in USD —
+write them as USD (e.g. "$1,234"), never convert to or label them as VND or any other
+currency. Always translate the 3-letter weekday codes (mon/tue/wed/thu/fri/sat/sun) to
+real day names in {language_name} — never print a raw weekday code.
 Respond with exactly this JSON shape, nothing else:
 {{"insights": ["insight 1", "insight 2"]}}
 """.strip()

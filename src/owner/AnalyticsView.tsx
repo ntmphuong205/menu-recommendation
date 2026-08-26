@@ -58,6 +58,49 @@ function formatGrams(grams: number): string {
   return `${Math.round(grams)} g`;
 }
 
+/** A horizontal progress-style bar (used for top items/categories/
+ *  ingredients) with a floating tooltip that appears on hover — replaces
+ *  the browser's native `title` tooltip, which is slow to appear and easy
+ *  to miss when scanning a chart during a demo. */
+function HoverProgressBar({ widthPct, color, tooltip }: { widthPct: number; color: string; tooltip: string }) {
+  return (
+    <div className="relative group">
+      <div className="h-1.5 bg-[#F5F1E6] rounded-full overflow-hidden">
+        <div style={{ width: `${widthPct}%`, backgroundColor: color }} className="h-full rounded-full" />
+      </div>
+      <span className="pointer-events-none absolute left-0 -top-6 text-[10.5px] font-semibold text-white bg-[#22201B] px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">
+        {tooltip}
+      </span>
+    </div>
+  );
+}
+
+/** One column of a vertical bar chart (revenue-by-weekday, orders-by-hour)
+ *  with the same floating hover tooltip as HoverProgressBar above. */
+function HoverColumn({
+  heightPct,
+  color,
+  bottomLabel,
+  tooltip,
+  roundedClass = "rounded-t-[4px]",
+}: {
+  heightPct: number;
+  color: string;
+  bottomLabel?: string;
+  tooltip: string;
+  roundedClass?: string;
+}) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-end h-full gap-1.5 group relative">
+      <span className="pointer-events-none absolute -top-1 -translate-y-full text-[10.5px] font-semibold text-white bg-[#22201B] px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 shadow-sm">
+        {tooltip}
+      </span>
+      <div style={{ height: `${heightPct}%`, backgroundColor: color }} className={`w-full ${roundedClass} transition-all`} />
+      {bottomLabel && <span className="text-[10px] text-[#8A8272]">{bottomLabel}</span>}
+    </div>
+  );
+}
+
 function StatCard({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: string }) {
   return (
     <div className="bg-white rounded-2xl p-4 border border-black/5 shadow-sm">
@@ -76,7 +119,10 @@ function StatCard({ icon: Icon, label, value }: { icon: typeof Users; label: str
  *  component only renders whatever numbers the backend actually computed. */
 function BusinessAnalyticsSection() {
   const { t, lang } = useI18n();
-  const [days, setDays] = useState(90);
+  // Defaults to a full year rather than 90 days — Hanoi's real weather has
+  // very few clear/"sunny" days outside roughly Oct-Apr, so a shorter
+  // default window would show the weather comparison as empty out of the box.
+  const [days, setDays] = useState(365);
   const [stats, setStats] = useState<BusinessAnalytics | null>(null);
   const [insights, setInsights] = useState<AnalyticsInsightsResponse | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -117,7 +163,7 @@ function BusinessAnalyticsSection() {
   const ing = stats?.ingredient_prep;
   const maxItemQty = Math.max(1, ...(pb?.top_items.map((i) => i.qty) ?? [1]));
   const maxCategoryQty = Math.max(1, ...(pb?.top_categories.map((c) => c.qty) ?? [1]));
-  const maxWeekdayRevenue = Math.max(1, ...(pb?.revenue_by_weekday.map((d) => d.revenue_vnd) ?? [1]));
+  const maxWeekdayRevenue = Math.max(1, ...(pb?.revenue_by_weekday.map((d) => d.revenue_usd) ?? [1]));
   const maxHourQty = Math.max(1, ...(pb?.orders_by_hour.map((h) => h.qty) ?? [1]));
   const maxIngredientGrams = Math.max(1, ...(ing?.top_ingredients.map((i) => i.avg_per_day_grams) ?? [1]));
   const hasEnoughData = !!stats && stats.total_order_groups > 0;
@@ -131,7 +177,7 @@ function BusinessAnalyticsSection() {
           <p className="text-[12.5px] text-[#8A8272] max-w-lg">{t("analytics_business_subtitle")}</p>
         </div>
         <div className="flex items-center gap-1 bg-[#F5F1E6] rounded-full p-1 shrink-0">
-          {[30, 90, 180].map((d) => (
+          {[30, 90, 180, 365].map((d) => (
             <button
               key={d}
               onClick={() => setDays(d)}
@@ -204,9 +250,11 @@ function BusinessAnalyticsSection() {
                       <span className="font-medium text-[#22201B] truncate pr-2">{it.name}</span>
                       <span className="text-[#5C5240] shrink-0">{it.qty}</span>
                     </div>
-                    <div className="h-1.5 bg-[#F5F1E6] rounded-full overflow-hidden" title={formatPrice(it.revenue_vnd, "VND")}>
-                      <div style={{ width: `${(it.qty / maxItemQty) * 100}%`, backgroundColor: BRAND_GREEN }} className="h-full rounded-full" />
-                    </div>
+                    <HoverProgressBar
+                      widthPct={(it.qty / maxItemQty) * 100}
+                      color={BRAND_GREEN}
+                      tooltip={`${it.qty} × ${it.name} · ${formatPrice(it.revenue_usd, "USD")}`}
+                    />
                   </div>
                 ))}
               </div>
@@ -220,9 +268,11 @@ function BusinessAnalyticsSection() {
                       <span className="font-medium text-[#22201B] truncate pr-2">{cat.category}</span>
                       <span className="text-[#5C5240] shrink-0">{cat.qty}</span>
                     </div>
-                    <div className="h-1.5 bg-[#F5F1E6] rounded-full overflow-hidden" title={formatPrice(cat.revenue_vnd, "VND")}>
-                      <div style={{ width: `${(cat.qty / maxCategoryQty) * 100}%`, backgroundColor: "#5B7FA6" }} className="h-full rounded-full" />
-                    </div>
+                    <HoverProgressBar
+                      widthPct={(cat.qty / maxCategoryQty) * 100}
+                      color="#5B7FA6"
+                      tooltip={`${cat.qty} × ${cat.category} · ${formatPrice(cat.revenue_usd, "USD")}`}
+                    />
                   </div>
                 ))}
               </div>
@@ -253,32 +303,31 @@ function BusinessAnalyticsSection() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
             <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
               <h4 className="text-[12.5px] font-bold text-[#22201B] mb-4">{t("analytics_pb_revenue_by_weekday")}</h4>
-              <div className="flex items-end gap-2 h-32">
+              <div className="flex items-end gap-2 h-32 pt-6">
                 {pb.revenue_by_weekday.map((d) => (
-                  <div key={d.weekday} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5">
-                    <div
-                      style={{ height: `${(d.revenue_vnd / maxWeekdayRevenue) * 100}%`, backgroundColor: BRAND_GREEN }}
-                      className="w-full rounded-t-[4px] transition-all"
-                      title={formatPrice(d.revenue_vnd, "VND")}
-                    />
-                    <span className="text-[10px] text-[#8A8272]">{t(WEEKDAY_LABEL_KEY[d.weekday])}</span>
-                  </div>
+                  <HoverColumn
+                    key={d.weekday}
+                    heightPct={(d.revenue_usd / maxWeekdayRevenue) * 100}
+                    color={BRAND_GREEN}
+                    bottomLabel={t(WEEKDAY_LABEL_KEY[d.weekday])}
+                    tooltip={formatPrice(d.revenue_usd, "USD")}
+                  />
                 ))}
               </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-black/5 shadow-sm p-5">
               <h4 className="text-[12.5px] font-bold text-[#22201B] mb-4">{t("analytics_pb_orders_by_hour")}</h4>
-              <div className="flex items-end gap-[3px] h-32">
+              <div className="flex items-end gap-[3px] h-32 pt-6">
                 {pb.orders_by_hour.map((h) => (
-                  <div key={h.hour} className="flex-1 flex flex-col items-center justify-end h-full gap-1">
-                    <div
-                      style={{ height: `${(h.qty / maxHourQty) * 100}%`, backgroundColor: "#5B7FA6" }}
-                      className="w-full rounded-t-[2px] transition-all"
-                      title={`${h.hour}h: ${h.qty}`}
-                    />
-                    {h.hour % 3 === 0 && <span className="text-[9px] text-[#8A8272]">{h.hour}h</span>}
-                  </div>
+                  <HoverColumn
+                    key={h.hour}
+                    heightPct={(h.qty / maxHourQty) * 100}
+                    color="#5B7FA6"
+                    roundedClass="rounded-t-[2px]"
+                    bottomLabel={h.hour % 3 === 0 ? `${h.hour}h` : undefined}
+                    tooltip={t("analytics_hour_tooltip", { hour: h.hour, qty: h.qty })}
+                  />
                 ))}
               </div>
             </div>
@@ -322,12 +371,15 @@ function BusinessAnalyticsSection() {
                         <span className="font-medium text-[#22201B] truncate pr-2">{i.name}</span>
                         <span className="text-[#5C5240] shrink-0">{formatGrams(i.avg_per_day_grams)}</span>
                       </div>
-                      <div className="h-1.5 bg-[#F5F1E6] rounded-full overflow-hidden">
-                        <div
-                          style={{ width: `${(i.avg_per_day_grams / maxIngredientGrams) * 100}%`, backgroundColor: "#8A6B1F" }}
-                          className="h-full rounded-full"
-                        />
-                      </div>
+                      <HoverProgressBar
+                        widthPct={(i.avg_per_day_grams / maxIngredientGrams) * 100}
+                        color="#8A6B1F"
+                        tooltip={t("analytics_ing_tooltip", {
+                          name: i.name,
+                          avg: formatGrams(i.avg_per_day_grams),
+                          total: formatGrams(i.total_grams),
+                        })}
+                      />
                     </div>
                   ))}
                 </div>
@@ -354,7 +406,7 @@ function BusinessAnalyticsSection() {
                           {t("analytics_weather_days_count", { count: cond.days })}
                         </span>
                       </div>
-                      <p className="text-[19px] font-bold text-[#2D5A3D] mb-2">{formatPrice(cond.revenue_vnd, "VND")}</p>
+                      <p className="text-[19px] font-bold text-[#2D5A3D] mb-2">{formatPrice(cond.revenue_usd, "USD")}</p>
                       {cond.order_lines === 0 ? (
                         <p className="text-[11.5px] text-[#B0A794]">{t("analytics_weather_no_days")}</p>
                       ) : (

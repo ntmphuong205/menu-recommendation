@@ -505,6 +505,7 @@ const dict = {
   analytics_business_range_30: { vi: "30 ngày", en: "30 days", ko: "30일" },
   analytics_business_range_90: { vi: "90 ngày", en: "90 days", ko: "90일" },
   analytics_business_range_180: { vi: "180 ngày", en: "180 days", ko: "180일" },
+  analytics_business_range_365: { vi: "1 năm", en: "1 year", ko: "1년" },
   analytics_business_loading: { vi: "Đang tải số liệu…", en: "Loading data…", ko: "데이터를 불러오는 중…" },
   analytics_business_empty: {
     vi: "Chưa có đủ lịch sử đơn hàng để phân tích. Số liệu sẽ xuất hiện khi quán có thêm đơn hàng.",
@@ -545,6 +546,12 @@ const dict = {
   },
   analytics_ing_tomorrow_heading: { vi: "Dự kiến cần cho ngày mai ({weekday})", en: "Estimated need for tomorrow ({weekday})", ko: "내일({weekday}) 예상 필요량" },
   analytics_ing_avg_per_day: { vi: "TB/ngày", en: "Avg/day", ko: "일평균" },
+  analytics_ing_tooltip: {
+    vi: "{name}: {avg}/ngày · {total} tổng",
+    en: "{name}: {avg}/day · {total} total",
+    ko: "{name}: 일평균 {avg} · 총 {total}",
+  },
+  analytics_hour_tooltip: { vi: "{hour}h: {qty} món", en: "{hour}h: {qty} items", ko: "{hour}시: {qty}개" },
   analytics_ing_col_ingredient: { vi: "Nguyên liệu", en: "Ingredient", ko: "재료" },
   analytics_ing_col_avg_day: { vi: "TB mỗi ngày", en: "Avg per day", ko: "일평균" },
   analytics_ing_col_forecast: { vi: "Dự kiến ngày mai", en: "Forecast for tomorrow", ko: "내일 예상량" },
