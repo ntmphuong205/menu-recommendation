@@ -92,7 +92,7 @@ export function OwnerApp() {
           horizontal room it actually needs instead of a full-height nav
           list that would itself need to scroll on a screen this short. */}
       <aside
-        className={`w-64 sm:w-60 short:w-16! shrink-0 bg-[#1F3D2B] text-white flex flex-col py-6 px-4 short:px-2! gap-6 short:gap-3! fixed inset-y-0 left-0 z-50 overflow-y-auto touch-pan-y transition-transform duration-200 md:static md:translate-x-0 ${
+        className={`w-64 sm:w-60 short:w-16! shrink-0 bg-[#1F3D2B] text-white flex flex-col py-6 px-4 short:px-2! gap-6 short:gap-3! fixed inset-y-0 left-0 z-50 overflow-y-auto touch-pan-y admin-scroll admin-scroll-dark transition-transform duration-200 md:static md:translate-x-0 ${
           navOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -177,7 +177,7 @@ export function OwnerApp() {
         </div>
       </aside>
 
-      <main className="flex-1 min-w-0 overflow-y-auto touch-pan-y pt-14 md:pt-0">
+      <main className="flex-1 min-w-0 overflow-y-auto touch-pan-y admin-scroll pt-14 md:pt-0">
         {section === "orders" && <OrdersView />}
         {section === "history" && <OrderHistoryView />}
         {section === "chat" && <StaffChatView />}
