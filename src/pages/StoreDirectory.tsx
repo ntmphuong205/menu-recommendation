@@ -16,10 +16,13 @@ const CARD_THEMES = [
   "from-[#1E3A52] to-[#2A5C8A]",
 ];
 
-function themeForStore(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  return CARD_THEMES[hash % CARD_THEMES.length];
+/** Assigns each card its own color by list position rather than hashing
+ *  the store id — a hash can (and did, once 4 stores existed) collide
+ *  multiple stores onto the same theme, defeating the whole point. Index-
+ *  based assignment guarantees every store visible at once gets a
+ *  different color, cycling only once there are more stores than themes. */
+function themeForIndex(index: number): string {
+  return CARD_THEMES[index % CARD_THEMES.length];
 }
 
 /** Shown at the bare domain root (no ?store= in the URL) — every QR code
@@ -159,7 +162,7 @@ export function StoreDirectory() {
 
           {!error && stores !== null && stores.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {stores.map((store) => {
+              {stores.map((store, index) => {
                 const name = store.name_i18n[lang] || store.name_i18n.en;
                 const description = store.description_i18n[lang] || store.description_i18n.en;
                 const hours = store.hours_i18n[lang] || store.hours_i18n.en;
@@ -169,7 +172,7 @@ export function StoreDirectory() {
                     href={`/?store=${store.slug}&mode=web`}
                     className="group flex flex-col bg-white rounded-2xl border border-black/5 shadow-lg overflow-hidden hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.99] active:translate-y-0 transition-all duration-200"
                   >
-                    <div className={`relative h-24 bg-gradient-to-br ${themeForStore(store.id)} flex items-center px-5 overflow-hidden shrink-0`}>
+                    <div className={`relative h-24 bg-gradient-to-br ${themeForIndex(index)} flex items-center px-5 overflow-hidden shrink-0`}>
                       <span className="absolute -right-3 -bottom-5 text-[88px] font-black text-white/10 leading-none select-none">
                         {name.charAt(0).toUpperCase()}
                       </span>
