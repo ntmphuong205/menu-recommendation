@@ -1602,8 +1602,14 @@ def list_stores() -> List[Dict[str, Any]]:
         raise HTTPException(status_code=503, detail="The database is not configured.")
     response = (
         supabase_client.table("stores")
-        .select("id, slug, name, name_en, name_vi, description, description_en, description_vi, hours, hours_en, hours_vi")
-        .order("name_en")
+        .select(
+            "id, slug, name, name_en, name_vi, description, description_en, "
+            "description_vi, hours, hours_en, hours_vi, created_at"
+        )
+        # Provisioning order rather than alphabetical — the first stores
+        # onboarded (the real ones) belong at the front of the homepage,
+        # not wherever their name happens to fall alphabetically.
+        .order("created_at")
         .execute()
     )
     return [store_to_directory_entry(row) for row in (response.data or [])]
