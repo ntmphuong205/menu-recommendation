@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiClient, getCustomerSessionId, type ApiOrder, type ApiOrderStatus } from "../lib/apiClient";
 import { usePollingData } from "./usePollingData";
 import { deriveOrderStatus, type Order, type OrderItem, type OrderStatus } from "../data/orders";
@@ -76,7 +76,34 @@ export interface OrdersData {
 export function useOrdersData(): OrdersData {
   const fetcher = useCallback(() => apiClient.getOrders(), []);
   const rows = usePollingData(fetcher);
-  const orders = groupOrders(rows ?? []).sort((a, b) => b.createdAt - a.createdAt);
+
+  // Clicking a status button used to just fire the request and wait for
+  // the next 5s poll to show the change — felt laggy for kitchen staff
+  // clicking through several items in a row. This overlays a locally-known
+  // status onto the polled rows the instant a button is clicked, so the
+  // UI updates immediately; each override is dropped once the poll
+  // confirms the same status (or reverted if the request itself fails).
+  const [pendingStatus, setPendingStatus] = useState<Record<string, OrderStatus>>({});
+  useEffect(() => {
+    if (!rows) return;
+    setPendingStatus((prev) => {
+      if (Object.keys(prev).length === 0) return prev;
+      let changed = false;
+      const next = { ...prev };
+      for (const row of rows) {
+        if (next[row.id] === row.status) {
+          delete next[row.id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [rows]);
+
+  const displayRows = (rows ?? []).map((row) =>
+    pendingStatus[row.id] ? { ...row, status: pendingStatus[row.id] } : row
+  );
+  const orders = groupOrders(displayRows).sort((a, b) => b.createdAt - a.createdAt);
 
   const placeOrder = async (
     tableId: string,
@@ -136,23 +163,33 @@ export function useOrdersData(): OrdersData {
     return groupId;
   };
 
+  const revertPendingStatus = (itemId: string) =>
+    setPendingStatus((prev) => {
+      if (!(itemId in prev)) return prev;
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
+
+  const applyItemStatus = (itemId: string, status: OrderStatus) => {
+    setPendingStatus((prev) => ({ ...prev, [itemId]: status }));
+    apiClient
+      .updateOrderStatus(itemId, status as ApiOrderStatus)
+      .catch((err) => {
+        console.error("[MenuPilot] Failed to update item status", err);
+        revertPendingStatus(itemId);
+      });
+  };
+
   // Whole-order actions (e.g. the customer cancelling before the kitchen
   // starts) cascade the new status to every item in the group.
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
     const order = orders.find((o) => o.id === orderId);
     if (!order) return;
-    for (const item of order.items) {
-      apiClient
-        .updateOrderStatus(item.id, status as ApiOrderStatus)
-        .catch((err) => console.error("[MenuPilot] Failed to update order status", err));
-    }
+    for (const item of order.items) applyItemStatus(item.id, status);
   };
 
-  const updateItemStatus = (itemId: string, status: OrderStatus) => {
-    apiClient
-      .updateOrderStatus(itemId, status as ApiOrderStatus)
-      .catch((err) => console.error("[MenuPilot] Failed to update item status", err));
-  };
+  const updateItemStatus = (itemId: string, status: OrderStatus) => applyItemStatus(itemId, status);
 
   return { orders, placeOrder, placePickupOrder, updateOrderStatus, updateItemStatus };
 }
