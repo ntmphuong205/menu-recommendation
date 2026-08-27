@@ -98,19 +98,19 @@ export interface WeatherConditionStat {
   condition: "sunny" | "cloudy" | "rainy";
   days: number;
   order_lines: number;
-  revenue_usd: number;
+  revenue: number;
   top_categories: { category: string; qty: number; share_pct: number }[];
   top_items: { name: string; qty: number }[];
 }
 
 export interface PurchaseBehavior {
-  top_items: { name: string; qty: number; revenue_usd: number }[];
-  top_categories: { category: string; qty: number; revenue_usd: number }[];
+  top_items: { name: string; qty: number; revenue: number }[];
+  top_categories: { category: string; qty: number; revenue: number }[];
   frequently_bought_together: { item_a: string; item_b: string; count: number }[];
   avg_items_per_order: number;
   total_customers: number;
   repeat_customer_rate_pct: number;
-  revenue_by_weekday: { weekday: string; revenue_usd: number }[];
+  revenue_by_weekday: { weekday: string; revenue: number }[];
   orders_by_hour: { hour: number; qty: number }[];
 }
 
@@ -131,6 +131,9 @@ export interface BusinessAnalytics {
   days_analyzed: number;
   total_order_groups: number;
   total_order_lines: number;
+  /** The store's own real menu currency (e.g. "VND", "USD") — every money
+   *  figure elsewhere in this response is reported in this currency. */
+  currency: string;
   purchase_behavior: PurchaseBehavior;
   ingredient_prep: IngredientPrep;
   weather: {

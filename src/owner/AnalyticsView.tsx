@@ -163,7 +163,7 @@ function BusinessAnalyticsSection() {
   const ing = stats?.ingredient_prep;
   const maxItemQty = Math.max(1, ...(pb?.top_items.map((i) => i.qty) ?? [1]));
   const maxCategoryQty = Math.max(1, ...(pb?.top_categories.map((c) => c.qty) ?? [1]));
-  const maxWeekdayRevenue = Math.max(1, ...(pb?.revenue_by_weekday.map((d) => d.revenue_usd) ?? [1]));
+  const maxWeekdayRevenue = Math.max(1, ...(pb?.revenue_by_weekday.map((d) => d.revenue) ?? [1]));
   const maxHourQty = Math.max(1, ...(pb?.orders_by_hour.map((h) => h.qty) ?? [1]));
   const maxIngredientGrams = Math.max(1, ...(ing?.top_ingredients.map((i) => i.avg_per_day_grams) ?? [1]));
   const hasEnoughData = !!stats && stats.total_order_groups > 0;
@@ -253,7 +253,7 @@ function BusinessAnalyticsSection() {
                     <HoverProgressBar
                       widthPct={(it.qty / maxItemQty) * 100}
                       color={BRAND_GREEN}
-                      tooltip={`${it.qty} × ${it.name} · ${formatPrice(it.revenue_usd, "USD")}`}
+                      tooltip={`${it.qty} × ${it.name} · ${formatPrice(it.revenue, stats.currency)}`}
                     />
                   </div>
                 ))}
@@ -271,7 +271,7 @@ function BusinessAnalyticsSection() {
                     <HoverProgressBar
                       widthPct={(cat.qty / maxCategoryQty) * 100}
                       color="#5B7FA6"
-                      tooltip={`${cat.qty} × ${cat.category} · ${formatPrice(cat.revenue_usd, "USD")}`}
+                      tooltip={`${cat.qty} × ${cat.category} · ${formatPrice(cat.revenue, stats.currency)}`}
                     />
                   </div>
                 ))}
@@ -307,10 +307,10 @@ function BusinessAnalyticsSection() {
                 {pb.revenue_by_weekday.map((d) => (
                   <HoverColumn
                     key={d.weekday}
-                    heightPct={(d.revenue_usd / maxWeekdayRevenue) * 100}
+                    heightPct={(d.revenue / maxWeekdayRevenue) * 100}
                     color={BRAND_GREEN}
                     bottomLabel={t(WEEKDAY_LABEL_KEY[d.weekday])}
-                    tooltip={formatPrice(d.revenue_usd, "USD")}
+                    tooltip={formatPrice(d.revenue, stats.currency)}
                   />
                 ))}
               </div>
@@ -406,7 +406,7 @@ function BusinessAnalyticsSection() {
                           {t("analytics_weather_days_count", { count: cond.days })}
                         </span>
                       </div>
-                      <p className="text-[19px] font-bold text-[#2D5A3D] mb-2">{formatPrice(cond.revenue_usd, "USD")}</p>
+                      <p className="text-[19px] font-bold text-[#2D5A3D] mb-2">{formatPrice(cond.revenue, stats.currency)}</p>
                       {cond.order_lines === 0 ? (
                         <p className="text-[11.5px] text-[#B0A794]">{t("analytics_weather_no_days")}</p>
                       ) : (

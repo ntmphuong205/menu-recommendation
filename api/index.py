@@ -126,16 +126,26 @@ def order_group_amount_vnd(rows: List[Dict[str, Any]]) -> int:
     return round(total)
 
 
-def to_usd(amount: Any, currency: str) -> float:
-    """Normalizes one order line's amount to USD for the business-analytics
-    dashboard — a foreign audience reads USD far more easily than VND, and
-    every store on this deployment prices most items in USD already."""
+def to_currency(amount: Any, currency: str, target: str) -> float:
+    """Normalizes one order line's amount into `target` for the business-
+    analytics dashboard — each store reports in its own real menu currency
+    (Freddo prices in VND, a demo store might price in USD), so this only
+    actually converts anything on the rare line priced in a different
+    currency than the rest of that store's menu. Pivots through USD since
+    that's the only pair the configured rates cover directly."""
     value = float(amount)
+    usd = value
     if currency == "VND":
-        return value / USD_TO_VND_RATE
-    if currency == "KRW":
-        return value / KRW_TO_USD_RATE
-    return value  # USD, or an unrecognized currency — best effort as-is
+        usd = value / USD_TO_VND_RATE
+    elif currency == "KRW":
+        usd = value / KRW_TO_USD_RATE
+    if target == currency:
+        return value
+    if target == "VND":
+        return usd * USD_TO_VND_RATE
+    if target == "KRW":
+        return usd * KRW_TO_USD_RATE
+    return usd  # target == USD, or an unrecognized target — best effort
 
 
 def vnpay_txn_ref(order_group_id: UUID) -> str:
@@ -2307,8 +2317,20 @@ def ensure_weather_backfilled(repo: "SupabaseRepository", days: int) -> None:
 WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 
 
+def store_primary_currency(menu_rows: List[Dict[str, Any]]) -> str:
+    """Whichever currency most of a store's menu is actually priced in —
+    Freddo prices in VND, a store set up for an international demo might
+    price in USD. Analytics reports revenue in this currency rather than
+    forcing one currency on every store."""
+    counts: Dict[str, int] = {}
+    for row in menu_rows:
+        currency = row.get("currency") or "USD"
+        counts[currency] = counts.get(currency, 0) + 1
+    return max(counts.items(), key=lambda kv: kv[1])[0] if counts else "USD"
+
+
 def compute_business_analytics(
-    orders: List[Dict[str, Any]], weather_rows: List[Dict[str, Any]]
+    orders: List[Dict[str, Any]], weather_rows: List[Dict[str, Any]], currency: str
 ) -> Dict[str, Any]:
     """Aggregates raw order lines into everything the admin Analytics tab
     and /api/analytics/insights (the AI summary's only source of numbers)
@@ -2318,14 +2340,16 @@ def compute_business_analytics(
     knows roughly how much of each ingredient to have ready), and — same
     as before — a weather correlation, now just one section among several
     rather than the whole feature. Every figure here is a real count/sum
-    over `orders`/menu ingredient data — nothing here is estimated."""
+    over `orders`/menu ingredient data — nothing here is estimated. Money
+    figures are reported in `currency` (the store's own — see
+    store_primary_currency), converting the rare line priced differently."""
     weather_by_date = {row["date"]: row for row in weather_rows}
     conditions = ["sunny", "cloudy", "rainy"]
     condition_days = {c: 0 for c in conditions}
     for row in weather_rows:
         condition_days[row["condition"]] = condition_days.get(row["condition"], 0) + 1
     condition_stats = {
-        c: {"order_lines": 0, "revenue_usd": 0.0, "categories": {}, "items": {}} for c in conditions
+        c: {"order_lines": 0, "revenue": 0.0, "categories": {}, "items": {}} for c in conditions
     }
 
     weekday_revenue = {k: 0.0 for k in WEEKDAY_KEYS}
@@ -2346,7 +2370,7 @@ def compute_business_analytics(
         date_str = local.date().isoformat()
         weekday = WEEKDAY_KEYS[local.weekday()]
         qty = int(row.get("quantity") or 0)
-        amount = to_usd(row.get("total_price", 0), row.get("currency", "KRW"))
+        amount = to_currency(row.get("total_price", 0), row.get("currency", "KRW"), currency)
         menu_info = row.get("menus") or {}
         category = menu_info.get("category") or "Khác"
         name = row.get("menu_name") or "?"
@@ -2358,13 +2382,13 @@ def compute_business_analytics(
         hour_counts[local.hour] += qty
         order_line_count += 1
 
-        item = item_totals.setdefault(name, {"name": name, "qty": 0, "revenue_usd": 0.0})
+        item = item_totals.setdefault(name, {"name": name, "qty": 0, "revenue": 0.0})
         item["qty"] += qty
-        item["revenue_usd"] += amount
+        item["revenue"] += amount
 
-        cat = category_totals.setdefault(category, {"category": category, "qty": 0, "revenue_usd": 0.0})
+        cat = category_totals.setdefault(category, {"category": category, "qty": 0, "revenue": 0.0})
         cat["qty"] += qty
-        cat["revenue_usd"] += amount
+        cat["revenue"] += amount
 
         for ing in menu_info.get("ingredient_lines") or []:
             ing_name = ing.get("name")
@@ -2383,14 +2407,14 @@ def compute_business_analytics(
         if weather:
             stat = condition_stats[weather["condition"]]
             stat["order_lines"] += 1
-            stat["revenue_usd"] += amount
+            stat["revenue"] += amount
             stat["categories"][category] = stat["categories"].get(category, 0) + qty
             stat["items"][name] = stat["items"].get(name, 0) + qty
 
     for item in item_totals.values():
-        item["revenue_usd"] = round(item["revenue_usd"], 2)
+        item["revenue"] = round(item["revenue"], 2)
     for cat in category_totals.values():
-        cat["revenue_usd"] = round(cat["revenue_usd"], 2)
+        cat["revenue"] = round(cat["revenue"], 2)
 
     # --- purchase behavior ---
     pair_counts: Dict[tuple, int] = {}
@@ -2445,7 +2469,7 @@ def compute_business_analytics(
                 "condition": c,
                 "days": condition_days.get(c, 0),
                 "order_lines": stat["order_lines"],
-                "revenue_usd": round(stat["revenue_usd"], 2),
+                "revenue": round(stat["revenue"], 2),
                 "top_categories": [
                     {"category": k, "qty": v, "share_pct": round(v / total_qty * 100, 1)}
                     for k, v in sorted(stat["categories"].items(), key=lambda kv: kv[1], reverse=True)[:5]
@@ -2458,6 +2482,7 @@ def compute_business_analytics(
         "days_analyzed": len(days_seen),
         "total_order_groups": total_order_groups,
         "total_order_lines": order_line_count,
+        "currency": currency,
         "purchase_behavior": {
             "top_items": sorted(item_totals.values(), key=lambda v: v["qty"], reverse=True)[:10],
             "top_categories": sorted(category_totals.values(), key=lambda v: v["qty"], reverse=True)[:10],
@@ -2465,7 +2490,7 @@ def compute_business_analytics(
             "avg_items_per_order": round(order_line_count / total_order_groups, 2) if total_order_groups else 0.0,
             "total_customers": total_customers,
             "repeat_customer_rate_pct": repeat_customer_rate_pct,
-            "revenue_by_weekday": [{"weekday": k, "revenue_usd": round(v, 2)} for k, v in weekday_revenue.items()],
+            "revenue_by_weekday": [{"weekday": k, "revenue": round(v, 2)} for k, v in weekday_revenue.items()],
             "orders_by_hour": [{"hour": h, "qty": hour_counts[h]} for h in range(24)],
         },
         "ingredient_prep": {
@@ -2494,12 +2519,15 @@ INSIGHTS_CACHE_TTL_SECONDS = 600
 def _load_analytics_stats(repo: "SupabaseRepository", days: int) -> Dict[str, Any]:
     ensure_weather_backfilled(repo, days)
     since_date = (datetime.now(timezone.utc).date() - timedelta(days=days)).isoformat()
-    with ThreadPoolExecutor(max_workers=2) as pool:
+    with ThreadPoolExecutor(max_workers=3) as pool:
         orders_future = pool.submit(repo.get_orders_since, f"{since_date}T00:00:00+00:00")
         weather_future = pool.submit(repo.get_weather_daily, since_date)
+        menus_future = pool.submit(repo.get_menus)
         orders = orders_future.result()
         weather_rows = weather_future.result()
-    return compute_business_analytics(orders, weather_rows)
+        menu_rows = menus_future.result()
+    currency = store_primary_currency(menu_rows)
+    return compute_business_analytics(orders, weather_rows, currency)
 
 
 @app.get("/api/analytics/business")
@@ -2572,11 +2600,13 @@ If a category above has no usable data (e.g. ingredient_prep.top_ingredients is 
 or weather.by_condition is all zeros), skip that category entirely instead of forcing
 a sentence about it. If the data doesn't clearly support a conclusion, don't make one up.
 Formatting: write natural {language_name} sentences only — never print a raw JSON
-field/key name like "revenue_usd" or "order_lines" in the output, describe what the
-number means in words instead. All money figures in the data are already in USD —
-write them as USD (e.g. "$1,234"), never convert to or label them as VND or any other
-currency. Always translate the 3-letter weekday codes (mon/tue/wed/thu/fri/sat/sun) to
-real day names in {language_name} — never print a raw weekday code.
+field/key name like "revenue" or "order_lines" in the output, describe what the
+number means in words instead. All money figures in the data are already in
+{stats['currency']} (the "currency" field) — write them in {stats['currency']},
+formatted the way a native {language_name} speaker would, never convert to or label
+them as a different currency. Always translate the 3-letter weekday codes (mon/tue/
+wed/thu/fri/sat/sun) to real day names in {language_name} — never print a raw
+weekday code.
 Respond with exactly this JSON shape, nothing else:
 {{"insights": ["insight 1", "insight 2"]}}
 """.strip()
